@@ -1,0 +1,12 @@
+{
+    "PORT": 5000,
+    "HOST": "0.0.0.0",
+    "LOG_LEVEL": "DEBUG",
+    "LOGGER_PATH": "Utilities/Logs/ServerLogger.log",
+    "POSE_MODEL_PATH": "Models/pose_model.tflite",
+    "FRAME_WIDTH": 640,
+    "FRAME_HEIGHT": 480,
+    "TIMEOUT_SECONDS": 30,
+    "SUPPORTED_EXERCISES": ["squat", "bicep_curl", "shoulder_raise"],
+    "ENABLE_DEBUG_MODE": true
+  }

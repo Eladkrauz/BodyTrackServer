@@ -110,6 +110,9 @@ class FlaskServer:
         # Future: Cleanup logic, save session log, etc.
         return jsonify({"session": "ended"}), 200
 
+    ####################
+    ### ANALYZE POSE ###
+    ####################
     def analyze_pose(self):
         """
         Accepts a POST request containing an image frame and analyzes the user's pose.
