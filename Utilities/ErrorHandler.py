@@ -3,12 +3,6 @@
 ############################################################
 ################### CLASS: ErrorHandler ####################
 ############################################################
-# The ErrorHandler class serves as a centralized utility for managing and
-# reporting errors across the server. It enables structured logging of issues
-# using standardized error codes, detailed messages, and optional contextual
-# information, while supporting both non-critical logging and critical failures
-# that gracefully terminate the system. This ensures consistency, improves
-# debuggability, and maintains robust system behavior throughout the application.
 
 ###############
 ### IMPORTS ###
@@ -18,46 +12,62 @@ import os
 from os.path import basename
 from Utilities.Logger import Logger
 from enum import Enum as enum
+from enum import auto
 
 ########################
 ### ERROR CODE CLASS ###
 ########################
 class ErrorCode(enum):
     """
+    ### Description:
     An enum class representing error codes.
     """
-    ERROR_CODE_1 = 1
-    ERROR_CODE_2 = 2
-    ERROR_CODE_3 = 3
-    ERROR_CODE_4 = 4
-    ERROR_CODE_5 = 5
-    ERROR_CODE_6 = 6
-    ERROR_CODE_7 = 7
+    CANT_CONFIGURE_LOG                  = auto()
+    CONFIGURATION_FILE_NOT_EXIST        = auto()
+    CONFIGURATION_PARAMETER_NOT_EXIST   = auto()
+    CANT_ADD_URL_RULE_TO_FLASK_SERVER   = auto()
 
 ###########################
 ### ERROR HANDLER CLASS ###
 ###########################
 class ErrorHandler:
     """
-    A centralized error handling utility for the server. 
-    Allows structured error reporting with an opcode, message, context, and severity level.
+    ### Description:
+    The `ErrorHandler` class serves as a centralized utility for managing and
+    reporting errors across the server. It enables structured logging of issues
+    using standardized error codes, detailed messages, and optional contextual
+    information, while supporting both non-critical logging and critical failures
+    that gracefully terminate the system.
+    ### Notes:
+    - The class functions as a **singleton** class, so no need to create multiple objects.
+    - No need to get an instance of `ErrorHandler` before handling an error, the methods are class methods and do it themselves.
     """
-
     _instance = None
 
     #########################
     ### CLASS CONSTRUCTOR ###
     #########################
-    def __init__(self):
-        """Private constructor. Use get_instance() instead."""
+    def __init__(self) -> 'ErrorCode':
+        """
+        ### Brief:
+        The `__init__` method is a private constructor for the singleton `ErrorHandler` class.
+        """
         self.logger = Logger.get_instance()
 
     ####################
     ### GET INSTANCE ###
     ####################
     @classmethod
-    def get_instance(cls):
-        """Returns the singleton instance of ErrorHandler."""
+    def get_instance(cls) -> 'ErrorHandler':
+        """
+        ### Brief:
+        The `get_instance` method returns an instance of the `ErrorHandler` object.
+        It functions as a **singleton** instance creator.
+        ### Arguments:
+        - `cls`: The class object.
+        ### Returns:
+        - The `ErrorHandler` singleton object.
+        """
         if cls._instance is None:
             cls._instance = ErrorHandler()
         return cls._instance
@@ -66,16 +76,37 @@ class ErrorHandler:
     ### HANDLE ###
     ##############
     @classmethod
-    def handle(cls, opcode: ErrorCode, origin, message: str, extra_info: dict = None, critical: bool = False):
+    def handle(cls, opcode:ErrorCode, origin:inspect.FrameType, message:str, extra_info:dict = None, critical:bool = False) -> None:
+        """
+        ### Brief:
+        The `handle` method gets error information and logs it into the system logger.
+        ### Arguments:
+        - `cls`: The class object.
+        - `opcode`: The opcode of the error from `ErrorCode` enum class.
+        - `origin`: The origin of the error. Use `inspect.currentframe()` to get the origin.
+        - `message`: A string representing the error main message.
+        - `extra_info`: An optional dictionary representing extra information. Defaults to `None`.
+        - `critical`: `True` will terminate the system, `False` will just log the error. Defaults to `False`.
+        ### Explanation:
+        After importing the `ErrorHandler` and `ErrorCode`, call `handle` this way:
+        ```python
+        from Utilities.ErrorHandler import ErrorHandler, ErrorCode
+        ErrorHandler.handle(
+            opcode=ErrorCode.ERROR_TYPE,
+            origin=inpsect.currentframe(),
+            message="The main error message",
+            extra_info={
+                'Reason': 'reason of the error',
+                'SomethingElse': 'write here'
+                }, # Can be ignored.
+            critical=False # Can be ignored.
+        )
+        ```
+        #### 
+        ### Notes:
+        - `extra_info` and `critical` can be ignored and not sent as parameters.
+        """
         handler = cls.get_instance()
-        """
-        Handles an error in a consistent, structured way.
-
-        :param opcode: Numeric or string code identifying the error type
-        :param message: Human-readable error message
-        :param extra_info: Optional dictionary with additional debug info
-        :param critical: If True, logs as critical and exits the program, otherwise logs as error and continues.
-        """
         full_message = f"[Error {str(opcode.value)}] {message}"
 
         if extra_info: # If extra info is provided, add it to the message.
@@ -86,7 +117,9 @@ class ErrorHandler:
 
         if critical: # If critical is True, log as critical and exit the program.
             full_message += "\nThis error is not recoverable. Aborting system."
-            handler.logger.critical(full_message)
+            if not handler.logger.critical(full_message):
+                print(full_message)
             sys.exit(f"Critical error occurred (code {str(opcode.value)}). Exiting.")
         else: # If critical is False, log as error and continue.
-            handler.logger.error(full_message)
+            if not handler.logger.error(full_message):
+                print(full_message)

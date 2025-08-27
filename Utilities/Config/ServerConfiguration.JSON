@@ -1,12 +1,22 @@
 {
-    "PORT": 5000,
-    "HOST": "0.0.0.0",
-    "LOG_LEVEL": "DEBUG",
-    "LOGGER_PATH": "Utilities/Logs/ServerLogger.log",
-    "POSE_MODEL_PATH": "Models/pose_model.tflite",
-    "FRAME_WIDTH": 640,
-    "FRAME_HEIGHT": 480,
-    "TIMEOUT_SECONDS": 30,
-    "SUPPORTED_EXERCISES": ["squat", "bicep_curl", "shoulder_raise"],
-    "ENABLE_DEBUG_MODE": true
+  "PORT": 5000,
+  "HOST": "0.0.0.0",
+  "POSE_MODEL_PATH": "Models/pose_model.tflite",
+  "frame": {
+    "width": 640,
+    "height": 480
+  },
+  "timeout_seconds": 30,
+  "supported_exercises": [
+    "squat",
+    "bicep_curl",
+    "shoulder_raise"
+  ],
+  "enable_debug_mode": true,
+  "log": {
+    "logger_path": "Utilities/Logs/ServerLogger.log",
+    "logger_name": "BodyTrackLogger",
+    "archive_dir_name": "Archive",
+    "log_level": "DEBUG"
   }
+}
