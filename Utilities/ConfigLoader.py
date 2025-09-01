@@ -7,8 +7,9 @@
 ###############
 ### IMPORTS ###
 ###############
-import json, os, inspect, enum
-from json import JSONDecodeError, UnicodeDecodeError
+import json, os, inspect
+from enum import Enum as enum
+from json import JSONDecodeError
 from Utilities.ErrorHandler import ErrorHandler, ErrorCode
 
 class ConfigParameters(enum):
@@ -46,7 +47,7 @@ class ConfigLoader:
         - `config_path`: The path to the configuration input file.
         ### Raises:
         - `FileNotFoundError`: In case the specified file does not exist.
-        - `JSONDecodeError`: In case te data being deserialized is not a valid JSON document.
+        - `JSONDecodeError`: In case the data being deserialized is not a valid JSON document.
         - `UnicodeDecodeError`: In case the data being deserialized does not contain UTF-8, UTF-16 or UTF-32 encoded data
         ### Notes:
         - The `config_path` defaults to 'Utilities/Config/ServerConfiguration.JSON'.
@@ -55,8 +56,8 @@ class ConfigLoader:
             raise FileNotFoundError(f"Configuration file not found at: {config_path}")
 
         with open(config_path, 'r') as file:
-            self._config_data = dict(json.load(file)
-)
+            self._config_data = dict(json.load(file))
+
     ####################
     ### GET INSTANCE ###
     ####################
@@ -73,7 +74,7 @@ class ConfigLoader:
         ### Notes:
         In case there is an error with the configuration file, the system is being terminated.
         - `FileNotFoundError`: In case the specified file does not exist.
-        - `JSONDecodeError`: In case te data being deserialized is not a valid JSON document.
+        - `JSONDecodeError`: In case the data being deserialized is not a valid JSON document.
         - `UnicodeDecodeError`: In case the data being deserialized does not contain UTF-8, UTF-16 or UTF-32 encoded data
         """
         if cls._instance is None:
@@ -134,7 +135,8 @@ class ConfigLoader:
         - Uses the `ConfigParameters` enum to ensure only predefined configuration keys are accessed, avoiding typos or inconsistent access.
         """
         try:
-            return cls.get_instance()._config_data[f"{key.value}"]
+            if not isinstance(key, str): key = key.value
+            return cls.get_instance()._config_data[key]
         except KeyError as e:
             ErrorHandler.handle(
                 opcode=ErrorCode.CONFIGURATION_PARAMETER_NOT_EXIST,

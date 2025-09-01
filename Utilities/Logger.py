@@ -9,8 +9,6 @@
 ###############
 import logging, os, inspect
 from datetime import datetime
-from Utilities.ConfigLoader import ConfigLoader as Loader
-from Utilities.ErrorHandler import ErrorHandler, ErrorCode
 
 class Logger:
     """
@@ -41,7 +39,8 @@ class Logger:
         - It archives existing log file if exists and starts a new log session.
         """
         # Extract parameters from the configuration file.
-        logger_parameters = Loader.get('log')
+        from Utilities.ConfigLoader import ConfigLoader as Loader
+        logger_parameters = Loader.get(key='log', critical_value=True)
         logger_path = logger_parameters['logger_path']
         logger_name = logger_parameters['logger_name']
         archive_dir = logger_parameters['archive_dir_name']
@@ -105,16 +104,8 @@ class Logger:
             try:
                 cls._instance = Logger()
             except Exception as e:
-                ErrorHandler.handle(
-                    opcode=ErrorCode.CANT_CONFIGURE_LOG,
-                    origin=inspect.currentframe(),
-                    message="Can't configure the logger.",
-                    extra_info={
-                        "Exception": f"{type(e)}",
-                        "Reason": f"{str(e)}"
-                    },
-                    critical=False
-                )
+                print("Can't configure the logger.")
+                raise e
                 
         return cls._instance
 

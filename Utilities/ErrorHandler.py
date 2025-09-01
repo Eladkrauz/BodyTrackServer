@@ -7,12 +7,12 @@
 ###############
 ### IMPORTS ###
 ###############
-import sys, inspect
-import os
+import sys
 from os.path import basename
-from Utilities.Logger import Logger
 from enum import Enum as enum
 from enum import auto
+from types import FrameType
+from Utilities.Logger import Logger as Logger
 
 ########################
 ### ERROR CODE CLASS ###
@@ -47,12 +47,11 @@ class ErrorHandler:
     #########################
     ### CLASS CONSTRUCTOR ###
     #########################
-    def __init__(self) -> 'ErrorCode':
+    def __init__(self) -> 'ErrorHandler':
         """
         ### Brief:
         The `__init__` method is a private constructor for the singleton `ErrorHandler` class.
         """
-        self.logger = Logger.get_instance()
 
     ####################
     ### GET INSTANCE ###
@@ -76,7 +75,7 @@ class ErrorHandler:
     ### HANDLE ###
     ##############
     @classmethod
-    def handle(cls, opcode:ErrorCode, origin:inspect.FrameType, message:str, extra_info:dict = None, critical:bool = False) -> None:
+    def handle(cls, opcode:ErrorCode, origin:FrameType, message:str, extra_info:dict = None, critical:bool = False) -> None:
         """
         ### Brief:
         The `handle` method gets error information and logs it into the system logger.
@@ -106,7 +105,6 @@ class ErrorHandler:
         ### Notes:
         - `extra_info` and `critical` can be ignored and not sent as parameters.
         """
-        handler = cls.get_instance()
         full_message = f"[Error {str(opcode.value)}] {message}"
 
         if extra_info: # If extra info is provided, add it to the message.
@@ -117,9 +115,9 @@ class ErrorHandler:
 
         if critical: # If critical is True, log as critical and exit the program.
             full_message += "\nThis error is not recoverable. Aborting system."
-            if not handler.logger.critical(full_message):
+            if not Logger.critical(full_message):
                 print(full_message)
             sys.exit(f"Critical error occurred (code {str(opcode.value)}). Exiting.")
         else: # If critical is False, log as error and continue.
-            if not handler.logger.error(full_message):
+            if not Logger.error(full_message):
                 print(full_message)
