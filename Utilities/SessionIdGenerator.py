@@ -10,6 +10,11 @@
 import uuid, inspect
 from Utilities.ErrorHandler import ErrorHandler, ErrorCode
 from Utilities.Logger import Logger
+from dataclasses import dataclass
+
+@dataclass
+class SessionId:
+    id:str
 
 class SessionIdGenerator:
     """
@@ -24,40 +29,37 @@ class SessionIdGenerator:
     ###########################
     ### GENERATE SESSION ID ###
     ###########################
-    @classmethod   
-    def generate_session_id(cls) -> str:
+    def generate_session_id(self) -> SessionId:
         """
         ### Brief:
         The `generate_session_id` method generates a unique session ID for a new exercise session.
         ### Returns:
-        - A string representing the unique session ID.
+        - A `SessionId` dataclass object representing the unique session ID.
         ### Notes:
         - Uses UUID v4 which is random-based and extremely unlikely to collide.
         - Errors (if any) are logged, and `None` is returned.
         """
         try:
-            session_id = str(uuid.uuid4())
+            session_id = SessionId(str(uuid.uuid4()))
             Logger.debug(f"Generated session ID: {session_id}")
             return session_id
         except MemoryError as e:
             ErrorHandler.handle(
                 opcode=ErrorCode.ERROR_GENERATING_SESSION_ID,
                 origin=inspect.currentframe(),
-                message="MemoryError while generating session ID.",
                 extra_info={
+                    "Exception type": type(e).__name__,
                     "Reason": "The system ran out of memory while generating the session ID."
-                },
-                critical=False
+                }
             )
             return None
         except OSError as e:
             ErrorHandler.handle(
                 opcode=ErrorCode.ERROR_GENERATING_SESSION_ID,
                 origin=inspect.currentframe(),
-                message="OSError while generating session ID.",
                 extra_info={
+                    "Exception type": type(e).__name__,
                     "Reason": "The OS random generator (os.urandom) failed."
-                },
-                critical=False
+                }
             )
             return None

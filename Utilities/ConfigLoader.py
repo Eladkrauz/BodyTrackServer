@@ -12,16 +12,36 @@ from enum import Enum as enum
 from json import JSONDecodeError
 from Utilities.ErrorHandler import ErrorHandler, ErrorCode
 
-class ConfigParameters(enum):
+class ConfigParameters:
     """
     ### Description:
     The `ConfigParameters` enum class represents all the server configuration parameters, as described in the configuration file.
     """
-    LOGGER_PATH = "logger_path"
-    LOGGER_NAME = "logger_name"
-    ARCHIVE_DIR_NAME = "archive_dir_name"
-    LOG_LEVEL = "log_level"
-    SUPPORTED_EXERCIES = "supported_exercises"
+    class Major(enum):
+        COMMUNICATION = "communication"
+        FRAME = "frame"
+        SESSION = "session"
+        LOG = "log"
+        
+    class Minor(enum):
+        # Communication.
+        PORT = "port"
+        HOST = "host"
+        TIMEOUT_SECONDS = "timeout_seconds"
+
+        # Frame.
+        HEIGHT = "height"
+        WIDTH = "width"
+
+        # Session.
+        SUPPORTED_EXERCIES = "supported_exercises"
+        MAXIMUM_CLIENTS = "maximum_clients"
+
+        # Log.
+        LOGGER_PATH = "logger_path"
+        LOGGER_NAME = "logger_name"
+        ARCHIVE_DIR_NAME = "archive_dir_name"
+        LOG_LEVEL = "log_level"
 
 class ConfigLoader:
     """
@@ -34,6 +54,7 @@ class ConfigLoader:
     - The configuration file path is written hard coded in the class constructor.
     """
     _instance = None  # Singleton instance.
+    _ready = False
 
     #########################
     ### CLASS CONSTRUCTOR ###
@@ -53,7 +74,7 @@ class ConfigLoader:
         - The `config_path` defaults to 'Utilities/Config/ServerConfiguration.JSON'.
         """
         if not os.path.exists(config_path):
-            raise FileNotFoundError(f"Configuration file not found at: {config_path}")
+            raise FileNotFoundError()
 
         with open(config_path, 'r') as file:
             self._config_data = dict(json.load(file))
@@ -80,39 +101,12 @@ class ConfigLoader:
         if cls._instance is None:
             try:
                 cls._instance = ConfigLoader()
-            except FileNotFoundError as e:
-                ErrorHandler.handle(
-                    opcode=ErrorCode.CONFIGURATION_FILE_NOT_EXIST,
-                    origin=inspect.currentframe(),
-                    message="Configuration file does not exist.",
-                    extra_info={
-                        "The file should be located in": "Utilities/Config/ServerConfiguration.JSON",
-                        "This is a critical error": "can't configure server."
-                    },
-                    critical=True
-                )
+            except FileNotFoundError:
+                ErrorHandler.imidiate_abort(error=ErrorCode.CONFIGURATION_FILE_DOES_NOT_EXIST, origin=inspect.currentframe())
             except JSONDecodeError as e:
-                ErrorHandler.handle(
-                    opcode=ErrorCode.CONFIGURATION_FILE_NOT_EXIST,
-                    origin=inspect.currentframe(),
-                    message="Error parsing the configuration JSON file.",
-                    extra_info={
-                        "Reason": "The data being deserialized is not a valid JSON document",
-                        "This is a critical error": "can't configure server."
-                    },
-                    critical=True
-                )
+                ErrorHandler.imidiate_abort(error=ErrorCode.JSON_FILE_DECODE_ERROR, origin=inspect.currentframe())
             except UnicodeDecodeError as e:
-                ErrorHandler.handle(
-                    opcode=ErrorCode.CONFIGURATION_FILE_NOT_EXIST,
-                    origin=inspect.currentframe(),
-                    message="Error parsing the configuration JSON file.",
-                    extra_info={
-                        "Reason": "The data being deserialized does not contain UTF-8, UTF-16 or UTF-32 encoded data",
-                        "This is a critical error": "can't configure server."
-                    },
-                    critical=True
-                )
+                ErrorHandler.imidiate_abort(error=ErrorCode.JSON_FILE_UNICODE_ERROR, origin=inspect.currentframe())
 
         return cls._instance
 
@@ -120,13 +114,13 @@ class ConfigLoader:
     ### GET ###
     ###########
     @classmethod
-    def get(cls, key:ConfigParameters, critical_value:bool) -> str:
+    def get(cls, key:list[ConfigParameters], critical_value:bool) -> str:
         """
         ### Brief:
         The `get` method returns a configuration value by key.
         ### Arguments:
         - `cls`: The class object.
-        - `key`: The key to fetch from the config file, as an enum element of `ConfigParameters` enum class.
+        - `key`: The key to fetch from the config file, as a list of enum elements of `ConfigParameters` enum class.
         - `critical_value`: A `bool` indicating if the value is critical for the server configuration. 
         ### Returns:
         - The value of the specified key, as configured in the configuration file.
@@ -135,16 +129,26 @@ class ConfigLoader:
         - Uses the `ConfigParameters` enum to ensure only predefined configuration keys are accessed, avoiding typos or inconsistent access.
         """
         try:
-            if not isinstance(key, str): key = key.value
-            return cls.get_instance()._config_data[key]
+            config_loader = cls.get_instance()
+            if not (isinstance(key, list) and not all(isinstance(k, ConfigParameters) for k in key)):
+                ErrorHandler.handle(error=ErrorCode.CONFIGURATION_KEY_IS_INVALID, origin=inspect.currentframe())
+            result = config_loader._config_data
+            for k in key:
+                value = k.value
+                result = result[value]
+            return result
         except KeyError as e:
-            ErrorHandler.handle(
-                opcode=ErrorCode.CONFIGURATION_PARAMETER_NOT_EXIST,
-                origin=inspect.currentframe(),
-                message=f"The paramter {key.value} does not exist in the configuration file.",
-                extra_info={
-                    "Please check": "the configuration file.",
-                    "Critical" if critical_value else "Not critical": "Can't configure server. Terminating system." if critical_value else "Can configure server anyway. Unexpected behavior can be seen."
-                },
-                critical=critical_value
-            )
+            ErrorHandler.handle(error=ErrorCode.CONFIGURATION_PARAMETER_DOES_NOT_EXIST, origin=inspect.currentframe())
+
+    ################
+    ### IS READY ###
+    ################
+    @classmethod
+    def is_ready(cls) -> bool:
+        return cls._ready
+    
+    @classmethod
+    def initialize(cls) -> None:
+        cls.get_instance()
+        cls._ready = True
+        print("[INFO]: ConfigLoader is initialized.")

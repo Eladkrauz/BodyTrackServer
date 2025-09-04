@@ -1,18 +1,21 @@
 {
-  "PORT": 5000,
-  "HOST": "0.0.0.0",
-  "POSE_MODEL_PATH": "Models/pose_model.tflite",
+  "communication": {
+    "port": 5000,
+    "host": "0.0.0.0",
+    "timeout_seconds": 30
+  },
   "frame": {
     "width": 640,
     "height": 480
   },
-  "timeout_seconds": 30,
-  "supported_exercises": [
-    "squat",
-    "bicep_curl",
-    "shoulder_raise"
-  ],
-  "enable_debug_mode": true,
+  "session": {
+    "supported_exercises": [
+      "squat",
+      "bicep_curl",
+      "shoulder_raise"
+    ],
+    "maximum_clients": 10
+  },
   "log": {
     "logger_path": "Utilities/Logs/ServerLogger.log",
     "logger_name": "BodyTrackLogger",

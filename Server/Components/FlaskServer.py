@@ -10,10 +10,23 @@
 from flask import Flask, request, jsonify
 from threading import Thread
 from Components.SessionManager import SessionManager
-from Components.PoseAnalyzer import PoseAnalyzer
 from Utilities.Logger import Logger
 from Utilities.ErrorHandler import ErrorHandler, ErrorCode
-import inspect
+from Common.ClientServerIcd import ClientServerIcd as ICD
+import inspect, ipaddress
+from enum import Enum as enum
+
+class HttpCodes(enum):
+    """
+    ### Description:
+    ** The `HttpCodes` enum class representes `HTTP` return codes.
+    """
+    OK           = 200
+    CREATED      = 201
+    BAD_REQUEST  = 400
+    UNAUTHORIZED = 401
+    NOT_FOUND    = 404
+    SERVER_ERROR = 500
 
 class FlaskServer:
     """
@@ -56,16 +69,16 @@ class FlaskServer:
             self.app.add_url_rule("/analyze", view_func=self.analyze_pose, methods=["POST"])
         except Exception as e:
             ErrorHandler.handle(
-                opcode=ErrorCode.CANT_ADD_URL_RULE_TO_FLASK_SERVER,
+                error=ErrorCode.CANT_ADD_URL_RULE_TO_FLASK_SERVER,
                 origin=inspect.currentframe(),
-                message="URL rule could not be added.",
                 extra_info={
                     "Exception": f"{type(e)}",
                     "Reason": f"{str(e)}"
-                },
-                critical=True
+                }
             )
 
+        # Session Manager.
+        self.session_manager = SessionManager()
 
     ###########
     ### RUN ###
@@ -104,6 +117,43 @@ class FlaskServer:
                 critical=True
             )
 
+    ###########################
+    ### PREPARE CLIENT INFO ###
+    ###########################
+    def prepare_client_info(self, client_ip:str, client_user_agent:str) -> dict[str, str] | ICD.ErrorType:
+        """
+        ### Brief:
+        The `prepare_client_info` method validates and assembles client metadata including IP address and User-Agent string.
+
+        ### Arguments:
+        - `client_ip` (str): The IP address extracted from the `request` object.
+        - `client_user_agent` (str): The User-Agent string from the `request` headers.
+
+        ### Returns:
+        - `dict[str, str]`: Dictionary with keys `'ip'` and `'user_agent'` if both are valid.
+        - `ICD.ErrorType`: Specific error enum if either IP or User-Agent is invalid.
+
+        ### Notes:
+        - Validates that `client_ip` is a proper IPv4/IPv6 address using the built-in `ipaddress` module.
+        - Ensures that a `User-Agent` header was provided by the client.
+        """
+        # Checking the IP address.
+        try:
+            if client_ip is None: raise ValueError
+            ipaddress.ip_address(client_ip)
+        except ValueError:
+            return ICD.ErrorType.CLIENT_IP_IS_INVALID
+        
+        # Checking the User Agent.
+        if client_user_agent is None:
+            return ICD.ErrorType.CLIENT_AGENT_IS_INVALID
+        
+        # If no errors occured.
+        return {
+            'ip': client_ip,
+            'user_agent': client_user_agent
+        }
+        
     #######################################
     ########## ENDPOINT HANDLERS ##########
     #######################################
@@ -118,22 +168,44 @@ class FlaskServer:
         ### Returns:
         - `tuple` containing the JSON response confirming server status, and a HTTP success code.
         """
+        client_ip = request.remote_addr or "unknown"
+        client_user_agent = request.headers.get("User-Agent", "unknown")
         Logger.info("Received ping request")
-        return jsonify({"status": "alive"}), 200
+        return jsonify({"status": "alive"}), HttpCodes.OK
 
-    #####################
-    ### START SESSION ###
-    #####################
-    def start_session(self) -> tuple:
+    ############################
+    ### REGISTER NEW SESSION ###
+    ############################
+    def register_new_session(self) -> tuple:
         """
         ### Brief:
-        The `start_session` method starts a new session for a client.
+        The `register_new_session` method register a new session for a client.
         ### Returns:
-        - `tuple` containing the JSON response confirming session start, and a HTTP success code.
+        - `tuple` containing the JSON response confirming session registered, and a HTTP success code.
         """
-        Logger.info("Session start request received")
-        # Future: Assign session ID or client metadata if needed
-        return jsonify({"session": "started"}), 200
+        # Get request's JSON data.
+        data = dict(request.get_json())
+        if data is None:
+            Logger.warning("Missing or invalid JSON in request")
+            return jsonify({ "error": ICD.ErrorType.INVALID_JSON_PAYLOAD_IN_REQUEST }), HttpCodes.BAD_REQUEST
+
+        # Extract required values.
+        exercise_type = data.get("exercise_type")
+        if not exercise_type:
+            Logger.warning("Missing 'exercise_type' in request")
+            return jsonify({ "error": ICD.ErrorType.MISSING_EXERCISE_TYPE_IN_REQUEST }), HttpCodes.BAD_REQUEST
+
+        # Check received client information.
+        client_info = self.prepare_client_info(
+            client_ip=request.remote_addr,
+            client_user_agent=request.headers.get("User-Agent", None)
+        )
+        if not isinstance(client_info, dict):
+            return jsonify({ "error": client_info.description }), client_info.value
+        
+        # Register client to SessionManager.
+        session_id = self.ses
+        return jsonify({"session": "started"}), HttpCodes.OK
 
     ###################
     ### END SESSION ###
@@ -147,7 +219,7 @@ class FlaskServer:
         """
         Logger.info("Session end request received")
         # Future: Cleanup logic, save session log, etc.
-        return jsonify({"session": "ended"}), 200
+        return jsonify({"session": "ended"}), HttpCodes.OK
 
     ####################
     ### ANALYZE POSE ###
@@ -164,7 +236,7 @@ class FlaskServer:
         # Ensure the request contains a file
         if 'frame' not in request.files:
             Logger.warning("Missing 'frame' in request files")
-            return jsonify({"error": "Missing frame"}), 400
+            return jsonify({"error": "Missing frame"}), HttpCodes.BAD_REQUEST
 
         frame = request.files['frame']
 
@@ -179,4 +251,4 @@ class FlaskServer:
             "angles": {"knee": 88, "hip": 160}
         }
 
-        return jsonify(feedback), 200
+        return jsonify(feedback), HttpCodes.OK
