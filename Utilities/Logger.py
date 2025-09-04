@@ -24,6 +24,7 @@ class Logger:
     - No need to get an instance of the `Logger` before logging, the methods are class methods and do it themselves.
     """
     _instance = None # The class object instance.
+    _ready = False
 
     #########################
     ### CLASS CONSTRUCTOR ###
@@ -39,12 +40,12 @@ class Logger:
         - It archives existing log file if exists and starts a new log session.
         """
         # Extract parameters from the configuration file.
-        from Utilities.ConfigLoader import ConfigLoader as Loader
-        logger_parameters = Loader.get(key='log', critical_value=True)
-        logger_path = logger_parameters['logger_path']
-        logger_name = logger_parameters['logger_name']
-        archive_dir = logger_parameters['archive_dir_name']
-        log_level = logger_parameters['log_level']
+        from Utilities.ConfigLoader import ConfigLoader, ConfigParameters
+        logger_parameters = ConfigLoader.get(key=[ConfigParameters.Major.LOG], critical_value=True)
+        logger_path = logger_parameters[ConfigParameters.Minor.LOGGER_PATH.value]
+        logger_name = logger_parameters[ConfigParameters.Minor.LOGGER_NAME.value]
+        archive_dir = logger_parameters[ConfigParameters.Minor.ARCHIVE_DIR_NAME.value]
+        log_level = logger_parameters[ConfigParameters.Minor.LOG_LEVEL.value]
 
         # Ensure log directory exists.
         os.makedirs(os.path.dirname(logger_path), exist_ok=True)
@@ -62,7 +63,7 @@ class Logger:
             # Create the archived log file.
             base_name = os.path.splitext(os.path.basename(logger_path))[0]
             extension = os.path.splitext(logger_path)[1]  # .log
-            archived_file = os.path.join(archive_dir, f"{base_name}_{datetime.now().strftime("%d-%m-%Y_%H_%M")}{extension}")
+            archived_file = os.path.join(archive_dir, f"{base_name}_{datetime.now().strftime("%d-%m-%Y_%H-%M")}{extension}")
             os.rename(logger_path, archived_file)
 
         self.logger = logging.getLogger(logger_name)
@@ -126,7 +127,7 @@ class Logger:
         - In case the logger is not configured or failed to be configured, the message won't be logged.
         """
         logObject = cls.get_instance()
-        if logObject is not None:
+        if logObject is not None and cls._ready:
             logObject.logger.info(msg)
             return True
         return False
@@ -148,7 +149,7 @@ class Logger:
         - In case the logger is not configured or failed to be configured, the message won't be logged.
         """
         logObject = cls.get_instance()
-        if logObject is not None:
+        if logObject is not None and cls._ready:
             logObject.logger.debug(msg)
             return True
         return False        
@@ -170,7 +171,7 @@ class Logger:
         - In case the logger is not configured or failed to be configured, the message won't be logged.
         """
         logObject = cls.get_instance()
-        if logObject is not None:
+        if logObject is not None and cls._ready:
             logObject.logger.warning(msg)
             return True
         return False
@@ -192,7 +193,7 @@ class Logger:
         - In case the logger is not configured or failed to be configured, the message won't be logged.
         """
         logObject = cls.get_instance()
-        if logObject is not None:
+        if logObject is not None and cls._ready:
             logObject.logger.error(msg)
             return True
         return False
@@ -214,7 +215,13 @@ class Logger:
         - In case the logger is not configured or failed to be configured, the message won't be logged.
         """
         logObject = cls.get_instance()
-        if logObject is not None:
+        if logObject is not None and cls._ready:
             logObject.logger.critical(msg)
             return True
         return False
+    
+    @classmethod
+    def initialize(cls) -> None:
+        cls.get_instance()
+        cls._ready = True
+        print("[INFO]: Logger is initialized.")
