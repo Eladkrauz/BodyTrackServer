@@ -37,6 +37,10 @@ class ErrorCode(enum):
     # EXERCISE_TYPE_DOES_NOT_EXIST           = auto()
     ERROR_GENERATING_SESSION_ID             = (8, "Error while generating session ID.", None, False)
 
+    # PoseAnalyzer
+    ERROR_INITIALIZING_POSE                 = (9, "Error initializing PoseAnalyzer", None, False)
+    FRAME_PREPROCESSING_ERROR               = (10, "Frame preprocessing Failed", None, False)
+    FRAME_VALIDATION_ERROR                  = (11, "Frame validate error", None, False)
     def __new__(cls, code:int, description:str, extra_info:dict = None, critical:bool = False):
         obj = object.__new__(cls)
         obj._value_ = code

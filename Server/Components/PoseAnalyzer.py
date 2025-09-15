@@ -10,10 +10,10 @@
 import cv2
 import numpy as np
 import mediapipe as mp
-from mediapipe.python.solutions import pose as mp_pose
 import inspect
 from Utilities.ErrorHandler import ErrorHandler, ErrorCode
 from Utilities.Logger import Logger
+from Utilities.ConfigLoader import ConfigLoader, ConfigParameters
 from typing import Optional
 
 
@@ -38,55 +38,71 @@ class PoseAnalyzer:
         The `__init__` method initializes the `PoseAnalyzer` class.
         """
         try:
+            # Load frame dimensions from config
+            self.frame_width = ConfigLoader.get(
+                [ConfigParameters.Major.FRAME, ConfigParameters.Minor.WIDTH],
+                critical_value=True
+            )
+            self.frame_height = ConfigLoader.get(
+                [ConfigParameters.Major.FRAME, ConfigParameters.Minor.HEIGHT],
+                critical_value=True
+            )
             self.mp_pose = mp.solutions.pose
-            self.pose = self.mp_pose.Pose(static_image_mode=False, 
+            self.pose = self.mp_pose.Pose(
+            static_image_mode=False, 
             model_complexity=1, 
             smooth_landmarks=True, 
             enable_segmentation=False, 
             min_detection_confidence=0.5,
-            min_tracking_confidence=0.5)
+            min_tracking_confidence=0.5
+            )
             self.mp_drawing = mp.solutions.drawing_utils
             self.mp_drawing_styles = mp.solutions.drawing_styles
             Logger.info("PoseAnalyzer initialized successfully.")
         except ValueError as e:
             ErrorHandler.handle(
-                opcode=ErrorCode.CANT_ADD_URL_RULE_TO_FLASK_SERVER,
+                error=ErrorCode.ERROR_INITIALIZING_POSE,
                 origin=inspect.currentframe(),
-                message="Invalid parameter passed to Mediapipe Pose.",
-                extra_info={"Reason": str(e)},
-                critical=True
+                extra_info={
+                    "Exception type": type(e).__name__,
+                    "Reason": "Invalid parameter passed to Mediapipe Pose."
+                }
             )
         except RuntimeError as e:
             ErrorHandler.handle(
-                opcode=ErrorCode.ERROR_INITIALIZING_POSE,
+                error=ErrorCode.ERROR_INITIALIZING_POSE,
                 origin=inspect.currentframe(),
-                message="Failed to initialize PoseAnalyzer.",
-                extra_info={"Reason": str(e)},
-                critical=True
+                extra_info={
+                    "Exception type": type(e).__name__,
+                    "Reason": "Failed to initialize PoseAnalyzer."
+                }
             )
         except OSError as e:
             ErrorHandler.handle(
-                opcode=ErrorCode.ERROR_INITIALIZING_POSE,
+                error=ErrorCode.ERROR_INITIALIZING_POSE,
                 origin=inspect.currentframe(),
-                message="OSError while accessing Mediapipe model files.",
-                extra_info={"Reason": str(e)},
-                critical=True
+                extra_info={
+                    "Exception type": type(e).__name__,
+                    "Reason": "OSError while accessing Mediapipe model files."
+                }
             )
         except MemoryError as e:
             ErrorHandler.handle(
-                opcode=ErrorCode.ERROR_INITIALIZING_POSE,
+                error=ErrorCode.ERROR_INITIALIZING_POSE,
                 origin=inspect.currentframe(),
-                message="MemoryError while initializing Mediapipe Pose.",
-                extra_info={"Reason": str(e)},
-                critical=True
+                extra_info={
+                    "Exception type": type(e).__name__,
+                    "Reason": "MemoryError while initializing Mediapipe Pose."
+                }
             )
         except Exception as e:
             ErrorHandler.handle(
-                opcode=ErrorCode.ERROR_INITIALIZING_POSE,
+                error=ErrorCode.ERROR_INITIALIZING_POSE,
                 origin=inspect.currentframe(),
-                message="Unexpected error while initializing Mediapipe Pose.",
-                extra_info={"Exception": str(type(e)), "Reason": str(e)},
-                critical=True
+                extra_info={
+                    "Exception type": type(e).__name__,
+                    "Reason": "Unexpected error while initializing Mediapipe Pose."
+                }
             )
 
 
@@ -94,7 +110,7 @@ class PoseAnalyzer:
     ### VALIDATE FRAME   ###
     ########################
     @staticmethod
-    def validate_frame(frame: np.ndarray) -> bool:
+    def validate_frame(frame: np.ndarray) -> Optional[ErrorCode]:
         """
         ### Brief:
         Validates that the input frame is a proper image suitable 
@@ -104,55 +120,54 @@ class PoseAnalyzer:
         - `frame` (np.ndarray): Input image frame to validate.
 
         ### Returns:
-        - `bool`: 
-          - True if the frame is valid.
-          - False if the frame is invalid (with errors logged).
+        - `None`: if the frame is valid.
+        - `ErrorCode`: the specific error encountered.
         """
         # 1. Check if frame is None
         if frame is None:
             ErrorHandler.handle(
-                opcode=ErrorCode.FRAME_PROCESSING_ERROR,
+                error=ErrorCode.FRAME_VALIDATION_ERROR,
                 origin=inspect.currentframe(),
-                message="Frame validation failed: frame is None.",
-                extra_info={"Reason": "No frame data provided."},
-                critical=False
+                extra_info={
+                    "Reason": "No frame data provided."
+                }
             )
-            Logger.error("Frame validation failed: frame is None.")
-            return False
+            return ErrorCode.FRAME_VALIDATION_ERROR
 
         # 2. Check if frame is a numpy array
         if not isinstance(frame, np.ndarray):
             ErrorHandler.handle(
-                opcode=ErrorCode.FRAME_PROCESSING_ERROR,
+                error=ErrorCode.FRAME_VALIDATION_ERROR,
                 origin=inspect.currentframe(),
-                message="Frame validation failed: not a NumPy array.",
-                extra_info={"Type": str(type(frame))},
-                critical=False
+                extra_info={
+                    "Reason": "Frame validation failed: not a NumPy array."
+                }
             )
-            Logger.error(f"Frame validation failed: not a NumPy array ({type(frame)}).")
-            return False
+            return ErrorCode.FRAME_VALIDATION_ERROR
+
 
         # 3. Check shape: must be 3D (H, W, C) with 3 channels (BGR)
         if frame.ndim != 3 or frame.shape[2] != 3:
             ErrorHandler.handle(
-                opcode=ErrorCode.FRAME_PROCESSING_ERROR,
+                error=ErrorCode.FRAME_VALIDATION_ERROR,
                 origin=inspect.currentframe(),
-                message="Frame validation failed: invalid dimensions.",
-                extra_info={"Shape": str(frame.shape)},
-                critical=False
+                extra_info={
+                    "Reason": "Frame validation failed: invalid dimensions."
+                }
             )
-            Logger.error(f"Frame validation failed: invalid shape {frame.shape}.")
-            return False
+            return ErrorCode.FRAME_VALIDATION_ERROR
+
 
         # If all checks passed
         Logger.info("Frame validation passed successfully.")
-        return True
+        return None
 
 
     ########################
     ####PreProcess Frame####
     ########################
-    def preprocess_frame(frame: np.ndarray, target_size: tuple[int, int] = (640, 480)) -> np.ndarray | None:
+    @classmethod
+    def preprocess_frame(cls, frame: np.ndarray) -> np.ndarray | ErrorCode:
         """
         ### Brief:
         Preprocesses an input frame before sending it to the MediaPipe Pose model.
@@ -165,53 +180,54 @@ class PoseAnalyzer:
 
         ### Arguments:
         - `frame` (np.ndarray): Raw frame captured from client video.
-        - `target_size` (tuple[int,int]): Desired width and height for resizing.
 
         ### Returns:
         - `np.ndarray` (RGB, uint8): The processed frame ready for model input.
-        - Returns `None` if preprocessing fails.
+        -  Returns ErrorCode if preprocessing fails.
         """
-        #צריך להוסיף בדיקה שנשלח פריים תקין בכלל לפני 
+        validation_error = cls.validate_frame(frame)
+        if validation_error is not None:
+            return validation_error
         try:
-            resized = cv2.resize(frame, target_size)
+            resized = cv2.resize(frame, (cls.frame_width, cls.frame_height))
         except cv2.error as e:
             ErrorHandler.handle(
-                opcode=ErrorCode.FRAME_PROCESSING_ERROR,
+                error=ErrorCode.FRAME_PREPROCESSING_ERROR,
                 origin=inspect.currentframe(),
-                message="OpenCV error during frame resizing.",
-                extra_info={"Reason": str(e)},
-                critical=False
+                extra_info={
+                    "Exception type": type(e).__name__,
+                    "Reason": "OpenCV error during frame resizing."
+                }
             )
-            Logger.error("Frame preprocessing failed at resize step.")
-            return None
+            return ErrorCode.FRAME_PREPROCESSING_ERROR
 
             # 3. Convert color space BGR → RGB
         try:
             converted = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
         except cv2.error as e:
             ErrorHandler.handle(
-                opcode=ErrorCode.FRAME_PROCESSING_ERROR,
+                error=ErrorCode.FRAME_PROCESSING_ERROR,
                 origin=inspect.currentframe(),
-                message="OpenCV error during color conversion (BGR→RGB).",
-                extra_info={"Reason": str(e)},
-                critical=False
+                extra_info={
+                    "Exception type": type(e).__name__,
+                    "Reason": "OpenCV error during color conversion (BGR→RGB)."
+                }
             )
-            Logger.error("Frame preprocessing failed at color conversion step.")
-            return None
+            return ErrorCode.FRAME_PREPROCESSING_ERROR
 
         # 4. Cast to uint8
         try:
-            processed = converted.astype(np.uint8)
+            processedFrame = converted.astype(np.uint8)
         except (ValueError, TypeError) as e:
             ErrorHandler.handle(
-                opcode=ErrorCode.FRAME_PROCESSING_ERROR,
+                error=ErrorCode.FRAME_PROCESSING_ERROR,
                 origin=inspect.currentframe(),
-                message="Failed to cast frame to uint8.",
-                extra_info={"Reason": str(e)},
-                critical=False
+                extra_info={
+                    "Exception type": type(e).__name__,
+                    "Reason": "Failed to cast frame to uint8."
+                }
             )
-            Logger.error("Frame preprocessing failed at uint8 cast step.")
-            return None
+            return ErrorCode.FRAME_PREPROCESSING_ERROR
         Logger.info("Frame preprocessing completed successfully.")
         return processedFrame
 
@@ -221,7 +237,7 @@ class PoseAnalyzer:
     #####################
     ### analyze_frame ###
     #####################       
-    def analyze_frame(self, frame: np.ndarray) -> Optional[np.ndarray]:
+    def analyze_frame(self, frame: np.ndarray) -> Optional[np.ndarray]| ErrorCode | None:
         """
         ### Brief:
         Processes a single video frame by converting it to RGB and running MediaPipe Pose
@@ -242,23 +258,69 @@ class PoseAnalyzer:
 
         If detection fails, returns `None`.
         """
+        preprocessed_result = self.preprocess_frame(frame)
+        if isinstance(preprocessed_result, ErrorCode):
+            return preprocessed_result
+        
         try:
-            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        except cv2.error as e:
+            media_pose_result = self.pose.process(preprocessed_result)
+        except TypeError as e:
             ErrorHandler.handle(
-                opcode=ErrorCode.FRAME_CONVERSION_FAILED,
+                error=ErrorCode.FRAME_ANALYSIS_ERROR,
                 origin=inspect.currentframe(),
-                message="cv2.error while converting frame to RGB.",
-                extra_info={"Reason": str(e)},
-                critical=False
+                extra_info={
+                    "Exception type": "TypeError",
+                    "Reason": "Invalid input type passed to MediaPipe Pose."
+                }
             )
-            return None
+            return ErrorCode.FRAME_ANALYSIS_ERROR
+        except ValueError as e:
+            ErrorHandler.handle(
+                error=ErrorCode.FRAME_ANALYSIS_ERROR,
+                origin=inspect.currentframe(),
+                extra_info={
+                    "Exception type": "ValueError",
+                    "Reason": "Frame shape or dimensions not supported (expected H, W, 3)."
+                }
+            )
+            return ErrorCode.FRAME_ANALYSIS_ERROR
+        except IndexError as e:
+            ErrorHandler.handle(
+                error=ErrorCode.FRAME_ANALYSIS_ERROR,
+                origin=inspect.currentframe(),
+                extra_info={
+                    "Exception type": "IndexError",
+                    "Reason": "Channel index out of range while accessing frame."
+                }
+            )
+            return ErrorCode.FRAME_ANALYSIS_ERROR
+        except MemoryError as e:
+            ErrorHandler.handle(
+                error=ErrorCode.FRAME_ANALYSIS_ERROR,
+                origin=inspect.currentframe(),
+                extra_info={
+                    "Exception type": "MemoryError",
+                    "Reason": "Insufficient memory while running MediaPipe Pose."
+                }
+            )
+            return ErrorCode.FRAME_ANALYSIS_ERROR        
+        except RuntimeError as e:
+            ErrorHandler.handle(
+                error=ErrorCode.FRAME_ANALYSIS_ERROR,
+                origin=inspect.currentframe(),
+                extra_info={
+                    "Exception type": "RuntimeError",
+                    "Reason": "Internal MediaPipe runtime error."
+                }
+            )
+            return ErrorCode.FRAME_ANALYSIS_ERROR        
         except Exception as e:
             ErrorHandler.handle(
-                opcode=ErrorCode.FRAME_CONVERSION_FAILED,
+                error=ErrorCode.FRAME_ANALYSIS_ERROR,
                 origin=inspect.currentframe(),
-                message="Unexpected error while converting frame to RGB.",
-                extra_info={"Exception": str(type(e)), "Reason": str(e)},
-                critical=False
+                extra_info={
+                    "Exception type": type(e).__name__,
+                    "Reason": "Unexpected error during pose analysis."
+                }
             )
-            return None
+            return ErrorCode.FRAME_ANALYSIS_ERROR
