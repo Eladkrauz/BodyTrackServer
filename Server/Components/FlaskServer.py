@@ -19,7 +19,7 @@ from enum import Enum as enum
 class HttpCodes(enum):
     """
     ### Description:
-    ** The `HttpCodes` enum class representes `HTTP` return codes.
+    The `HttpCodes` enum class representes `HTTP` return codes.
     """
     OK           = 200
     CREATED      = 201
@@ -31,12 +31,10 @@ class HttpCodes(enum):
 class FlaskServer:
     """
     ### Description:
-    **The `FlaskServer` class serves as the HTTP interface for the `BodyTrack` server.**
+    The `FlaskServer` class serves as the HTTP interface for the `BodyTrack` server.
     
-    It uses `Flask` to handle incoming requests from the Android client, including:
-    - `ping` for connection checks
-    - `start_session` to initiate a tracking session per user
-    - `analyze_pose` to send frame data for posture analysis
+    It uses `Flask` to handle incoming requests from the Android client.
+
     ### Notes:
     This class connects the networking layer with the internal components (like `SessionManager`
     and `PoseAnalyzer`), and manages the routing and responses. It is the entry point for all
@@ -50,9 +48,11 @@ class FlaskServer:
         """
         ### Brief:
         The `__init__` method initializes the `Flask` server with specified host and port. 
+        
         ### Arguments:
         - `host`: The IP address to bind the server to (default: all interfaces).
         - `port`: The port on which to listen for incoming requests (default: 8080).
+        
         ### Notes:
         - The default `host` IP address is 0.0.0.0 (all interfaces).
         - The default `port` is 8080.
@@ -64,9 +64,13 @@ class FlaskServer:
         # Bind routes to handler functions.
         try:
             self.app.add_url_rule("/ping", view_func=self.ping, methods=["GET"])
-            self.app.add_url_rule("/session/start", view_func=self.start_session, methods=["POST"])
-            self.app.add_url_rule("/session/end", view_func=self.end_session, methods=["POST"])
-            self.app.add_url_rule("/analyze", view_func=self.analyze_pose, methods=["POST"])
+            self.app.add_url_rule("/register/new/session", view_func=self._register_new_session, methods=["POST"])
+            self.app.add_url_rule("/unregister/session", view_func=self._unregister_session, methods=["POST"])
+            self.app.add_url_rule("/start/session", view_func=self._start_session, methods=["POST"])
+            self.app.add_url_rule("/pause/session", view_func=self._pause_session, methods=["POST"])
+            self.app.add_url_rule("/resume/session", view_func=self._resume_session, methods=["POST"])
+            self.app.add_url_rule("/end/session", view_func=self._end_session, methods=["POST"])
+            self.app.add_url_rule("/analyze", view_func=self._analyze_pose, methods=["POST"])
         except Exception as e:
             ErrorHandler.handle(
                 error=ErrorCode.CANT_ADD_URL_RULE_TO_FLASK_SERVER,
@@ -98,6 +102,7 @@ class FlaskServer:
         """
         ### Brief:
         The `run_async` method starts the `Flask` server in a separate thread so it doesn't block the main program.
+        
         ### Notes:
         Useful if the server needs to run in parallel with other tasks.
         """        
@@ -120,10 +125,10 @@ class FlaskServer:
     ###########################
     ### PREPARE CLIENT INFO ###
     ###########################
-    def prepare_client_info(self, client_ip:str, client_user_agent:str) -> dict[str, str] | ICD.ErrorType:
+    def _prepare_client_info(self, client_ip:str, client_user_agent:str) -> dict[str, str] | ICD.ErrorType:
         """
         ### Brief:
-        The `prepare_client_info` method validates and assembles client metadata including IP address and User-Agent string.
+        The `_prepare_client_info` method validates and assembles client metadata including IP address and User-Agent string.
 
         ### Arguments:
         - `client_ip` (str): The IP address extracted from the `request` object.
@@ -153,7 +158,70 @@ class FlaskServer:
             'ip': client_ip,
             'user_agent': client_user_agent
         }
+    
+    #####################
+    ### ERROR TO DICT ###
+    #####################
+    def _error_to_dict(self, error:ICD.ErrorType) -> dict:
+        """
+        ### Brief:
+        The `_error_to_dict` method gets an `ICD.ErrorType` enum class object, and returns
+        a dictionary containg relavant information about the error, to be returned to the client side.
         
+        ### Arguments:
+        - `error` (ICD.ErrorType): The error type to be added to the returned dictionary.
+        
+        ### Returns:
+        - A dictionary containg relavant information about the provided error.
+        
+        ### Notes:
+        - `error` must be a valid `ICD.ErrorType` object.
+        """
+        # In case the provided error type is unrecognized.
+        if not isinstance(error, ICD.ErrorType):
+            ErrorHandler.handle(error=ErrorCode.UNRECOGNIZED_ICD_ERROR_TYPE, origin=inspect.currentframe())
+        else:
+            return {
+                'message_type': ICD.MessageType.ERROR.value,
+                'opcode': error.value,
+                'title': error.name,
+                'description': error.description
+            }
+        
+    ########################
+    ### RESPONSE TO DICT ###
+    ########################
+    def _response_to_dict(self, response:ICD.ResponseType, information:dict = None) -> dict:
+        """
+        ### Brief:
+        The `_response_to_dict` method gets an `ICD.ResponseType` enum class object, and returns
+        a dictionary containg relavant information about the response, to be returned to the client side.
+        
+        ### Arguments:
+        - `response` (ICD.ResponseType): The response type to be added to the returned dictionary.
+        - `information` (dict): An extra information dictionary to be added to the respone. Defaults to None.
+        
+        ### Returns:
+        - A dictionary containg relavant information about the provided response.
+        
+        ### Notes:
+        - `response` must be a valid `ICD.ResponseType` object.
+        - `information` can be ignored and not sent.
+        """
+        # In case the provided response type is unrecognized.
+        if not isinstance(response, ICD.ResponseType):
+            ErrorHandler.handle(error=ErrorCode.UNRECOGNIZED_ICD_RESPONSE_TYPE, origin=inspect.currentframe())
+        else:
+            dict_to_return = {
+                'message_type': ICD.MessageType.RESPONSE.value,
+                'opcode': response.value,
+                'title': response.name,
+                'description': response.description
+            }
+            if information is not None:
+                dict_to_return.update(information)
+            return dict_to_return  
+              
     #######################################
     ########## ENDPOINT HANDLERS ##########
     #######################################
@@ -165,90 +233,258 @@ class FlaskServer:
         """
         ### Brief:
         The `ping` method represents a simple `GET` request to check if the server is reachable.
+        
         ### Returns:
-        - `tuple` containing the JSON response confirming server status, and a HTTP success code.
+        - `tuple` containing the JSON response confirming server status, and a HTTP code.
         """
-        client_ip = request.remote_addr or "unknown"
-        client_user_agent = request.headers.get("User-Agent", "unknown")
         Logger.info("Received ping request")
-        return jsonify({"status": "alive"}), HttpCodes.OK
+        return jsonify(self._response_to_dict(ICD.ResponseType.ALIVE)), HttpCodes.OK
 
     ############################
     ### REGISTER NEW SESSION ###
     ############################
-    def register_new_session(self) -> tuple:
+    def _register_new_session(self) -> tuple:
         """
         ### Brief:
-        The `register_new_session` method register a new session for a client.
+        The `_register_new_session` method registers a new session in the system for a specific exercise type.
+
         ### Returns:
-        - `tuple` containing the JSON response confirming session registered, and a HTTP success code.
+        - `tuple`: A JSON response indicating success or failure, along with the appropriate HTTP code.
+
+        ### Notes:
+        - The request must include a valid `exercise_type` in the JSON payload.
+        - The method validates the client's IP and User-Agent before registration.
+        - If the client is already registered, or if the exercise type is unsupported, appropriate errors are returned.
+        - On success, a unique session ID is returned to the client.
         """
         # Get request's JSON data.
         data = dict(request.get_json())
         if data is None:
             Logger.warning("Missing or invalid JSON in request")
-            return jsonify({ "error": ICD.ErrorType.INVALID_JSON_PAYLOAD_IN_REQUEST }), HttpCodes.BAD_REQUEST
+            return jsonify(self._error_to_dict(ICD.ErrorType.INVALID_JSON_PAYLOAD_IN_REQUEST)), HttpCodes.BAD_REQUEST
 
         # Extract required values.
-        exercise_type = data.get("exercise_type")
-        if not exercise_type:
+        exercise_type = data.get("exercise_type", None)
+        if exercise_type is None or (isinstance(exercise_type, bool) and exercise_type is False):
             Logger.warning("Missing 'exercise_type' in request")
-            return jsonify({ "error": ICD.ErrorType.MISSING_EXERCISE_TYPE_IN_REQUEST }), HttpCodes.BAD_REQUEST
+            return jsonify(self._error_to_dict(ICD.ErrorType.MISSING_EXERCISE_TYPE_IN_REQUEST)), HttpCodes.BAD_REQUEST
 
         # Check received client information.
-        client_info = self.prepare_client_info(
+        client_info_result = self._prepare_client_info(
             client_ip=request.remote_addr,
             client_user_agent=request.headers.get("User-Agent", None)
         )
-        if not isinstance(client_info, dict):
-            return jsonify({ "error": client_info.description }), client_info.value
+        if not isinstance(client_info_result, dict): # It is an ICD.ErrorType instance.
+            return jsonify(self._error_to_dict(client_info_result)), HttpCodes.BAD_REQUEST
         
-        # Register client to SessionManager.
-        session_id = self.ses
-        return jsonify({"session": "started"}), HttpCodes.OK
+        # If arrived here, the `client_info_result` of `_prepare_client_info` is a dictionary
+        # containing information about the client.
 
+        # Register client to SessionManager.
+        registration_result = self.session_manager.register_new_session(exercise_type, client_info_result)
+        # Checking the result.
+        if isinstance(registration_result, ICD.ErrorType): # An error with registration.
+            if registration_result is ICD.ErrorType.EXERCISE_TYPE_NOT_SUPPORTED:
+                return jsonify(self._error_to_dict(registration_result)), HttpCodes.BAD_REQUEST
+            else:
+                return jsonify(self._error_to_dict(registration_result)), HttpCodes.SERVER_ERROR
+        else: # The result is a valid SessionId.
+                return jsonify(self._response_to_dict(
+                    response=ICD.ResponseType.CLIENT_REGISTERED_SUCCESSFULLY,
+                    information={'session_id': registration_result.id})
+                ), HttpCodes.OK
+
+    ##########################
+    ### UNREGISTER SESSION ###
+    ##########################   
+    def _unregister_session(self) -> tuple:
+        """
+        ### Brief:
+        The `_unregister_session` method removes a registered session before it starts.
+
+        ### Returns:
+        - `tuple`: A JSON response with a message and corresponding HTTP code.
+
+        ### Notes:
+        - The request must include a valid `session_id`.
+        - This only applies to sessions in the `REGISTERED` state.
+        - Returns an error if the session is already active, paused, ended, or doesn't exist.
+        """
+        # Get request's JSON data.
+        data = dict(request.get_json())
+        if data is None:
+            Logger.warning("Missing or invalid JSON in request")
+            return jsonify(self._error_to_dict(ICD.ErrorType.INVALID_JSON_PAYLOAD_IN_REQUEST)), HttpCodes.BAD_REQUEST
+        
+        # Extract required values.
+        session_id = data.get("session_id", None)
+        if session_id is None:
+            Logger.warning("Missing 'session_id' in request")
+            return jsonify(self._error_to_dict(ICD.ErrorType.MISSING_SESSION_ID_IN_REQUEST)), HttpCodes.BAD_REQUEST
+        
+        # Trying to unregister the session.
+        unregister_session_result = self.session_manager.unregister_session(session_id)
+        if isinstance(unregister_session_result, ICD.ErrorType): # If an error occured.
+            return jsonify(self._error_to_dict(unregister_session_result)), HttpCodes.BAD_REQUEST
+        else: # If the session unregistered successfully.
+            return jsonify(self._response_to_dict(unregister_session_result)), HttpCodes.OK        
+    
+    #####################
+    ### START SESSION ###
+    #####################
+    def _start_session(self):
+        """
+        ### Brief:
+        The `_start_session` method starts a previously registered session and moves it to the active state.
+
+        ### Returns:
+        - `tuple`: A JSON response indicating the result and an appropriate HTTP code.
+
+        ### Notes:
+        - The request must include a valid `session_id` in the JSON payload.
+        - Only sessions in the `REGISTERED` state can be started.
+        - Returns an error if the session is invalid, already started, or the server has reached the maximum number of concurrent sessions.
+        """
+        # Get request's JSON data.
+        data = dict(request.get_json())
+        if data is None:
+            Logger.warning("Missing or invalid JSON in request")
+            return jsonify(self._error_to_dict(ICD.ErrorType.INVALID_JSON_PAYLOAD_IN_REQUEST)), HttpCodes.BAD_REQUEST
+
+        # Extract required values.
+        session_id = data.get("session_id", None)
+        if session_id is None:
+            Logger.warning("Missing 'session_id' in request")
+            return jsonify(self._error_to_dict(ICD.ErrorType.MISSING_SESSION_ID_IN_REQUEST)), HttpCodes.BAD_REQUEST
+        
+        # Trying to start the session.
+        start_session_result = self.session_manager.start_session(session_id)
+        if isinstance(start_session_result, ICD.ErrorType): # If an error occured.
+            if isinstance(start_session_result, ICD.ErrorType.MAX_CLIENT_REACHED):
+                return jsonify(self._error_to_dict(start_session_result)), HttpCodes.SERVER_ERROR
+            else:
+                return jsonify(self._error_to_dict(start_session_result)), HttpCodes.BAD_REQUEST
+        else: # If the session started successfully.
+            return jsonify(self._response_to_dict(start_session_result)), HttpCodes.OK
+            
+    #####################
+    ### PAUSE SESSION ###
+    #####################
+    def _pause_session(self) -> tuple:
+        """
+        ### Brief:
+        The `_pause_session` method pauses a currently active session.
+
+        ### Returns:
+        - `tuple`: A JSON response with a message and corresponding HTTP code.
+
+        ### Notes:
+        - The request must include a valid `session_id`.
+        - The session must be in the `ACTIVE` state.
+        - Returns an error if the session is not found or is not currently active.
+        """
+        # Get request's JSON data.
+        data = dict(request.get_json())
+        if data is None:
+            Logger.warning("Missing or invalid JSON in request")
+            return jsonify(self._error_to_dict(ICD.ErrorType.INVALID_JSON_PAYLOAD_IN_REQUEST)), HttpCodes.BAD_REQUEST
+
+        # Extract required values.
+        session_id = data.get("session_id", None)
+        if session_id is None:
+            Logger.warning("Missing 'session_id' in request")
+            return jsonify(self._error_to_dict(ICD.ErrorType.MISSING_SESSION_ID_IN_REQUEST)), HttpCodes.BAD_REQUEST
+        
+        # Trying to pause the session.
+        pause_session_result = self.session_manager.pause_session(session_id)
+        if isinstance(pause_session_result, ICD.ErrorType): # If an error occured.
+            return jsonify(self._error_to_dict(pause_session_result)), HttpCodes.BAD_REQUEST
+        else: # If the session unregistered successfully.
+            return jsonify(self._response_to_dict(pause_session_result)), HttpCodes.OK    
+
+    ######################
+    ### RESUME SESSION ###
+    ######################
+    def _resume_session(self) -> tuple:
+        """
+        ### Brief:
+        The `_resume_session` method resumes a session that is currently paused.
+
+        ### Returns:
+        - `tuple`: A JSON response with a message and corresponding HTTP code.
+
+        ### Notes:
+        - The request must include a valid `session_id`.
+        - The session must be in the `PAUSED` state.
+        - Returns an error if the session is not found or if maximum client limit has been reached.
+        """
+        # Get request's JSON data.
+        data = dict(request.get_json())
+        if data is None:
+            Logger.warning("Missing or invalid JSON in request")
+            return jsonify(self._error_to_dict(ICD.ErrorType.INVALID_JSON_PAYLOAD_IN_REQUEST)), HttpCodes.BAD_REQUEST
+
+        # Extract required values.
+        session_id = data.get("session_id", None)
+        if session_id is None:
+            Logger.warning("Missing 'session_id' in request")
+            return jsonify(self._error_to_dict(ICD.ErrorType.MISSING_SESSION_ID_IN_REQUEST)), HttpCodes.BAD_REQUEST
+        
+        # Trying to resume the session.
+        resume_session_result = self.session_manager.resume_session(session_id)
+        if isinstance(resume_session_result, ICD.ErrorType): # If an error occured.
+            if isinstance(resume_session_result, ICD.ErrorType.MAX_CLIENT_REACHED):
+                return jsonify(self._error_to_dict(resume_session_result)), HttpCodes.SERVER_ERROR
+            else:
+                return jsonify(self._error_to_dict(resume_session_result)), HttpCodes.BAD_REQUEST
+        else: # If the session resumed successfully.
+            return jsonify(self._response_to_dict(resume_session_result)), HttpCodes.OK
+        
     ###################
     ### END SESSION ###
     ###################
-    def end_session(self):
+    def _end_session(self):
         """
         ### Brief:
-        The `end_session` method ends the current session.
+        The `_end_session` method ends a session that is either active or paused.
+
         ### Returns:
-        - `tuple` containing the JSON response confirming session end, and a HTTP success code.
+        - `tuple`: A JSON response with a message and corresponding HTTP code.
+
+        ### Notes:
+        - The request must include a valid `session_id`.
+        - This moves the session to the `ENDED` state.
+        - Returns an error if the session is not found or already ended.
         """
-        Logger.info("Session end request received")
-        # Future: Cleanup logic, save session log, etc.
-        return jsonify({"session": "ended"}), HttpCodes.OK
+        # Get request's JSON data.
+        data = dict(request.get_json())
+        if data is None:
+            Logger.warning("Missing or invalid JSON in request")
+            return jsonify(self._error_to_dict(ICD.ErrorType.INVALID_JSON_PAYLOAD_IN_REQUEST)), HttpCodes.BAD_REQUEST
+
+        # Extract required values.
+        session_id = data.get("session_id", None)
+        if session_id is None:
+            Logger.warning("Missing 'session_id' in request")
+            return jsonify(self._error_to_dict(ICD.ErrorType.MISSING_SESSION_ID_IN_REQUEST)), HttpCodes.BAD_REQUEST
+        
+        # Trying to end the session.
+        end_session_result = self.session_manager.end_session(session_id)
+        if isinstance(end_session_result, ICD.ErrorType): # If an error occured.
+            return jsonify(self._error_to_dict(end_session_result)), HttpCodes.BAD_REQUEST
+        else: # If the session ended successfully.
+            return jsonify(self._response_to_dict(end_session_result)), HttpCodes.OK    
 
     ####################
     ### ANALYZE POSE ###
     ####################
-    def analyze_pose(self):
+    def _analyze_pose(self):
         """
         ### Brief:
-        The `analyze_pose` method accepts a `POST` request containing an image frame and analyzes the user's pose.
+        The `_analyze_pose` method receives and processes pose data from the client for a given session.
+
         ### Returns:
-        - `tuple` containing the JSON response with key pose data, feedback or error info, and a HTTP success code.
+        - `tuple`: A JSON response with pose analysis results or error information.
         """
-        Logger.info("Received pose analysis request")
-
-        # Ensure the request contains a file
-        if 'frame' not in request.files:
-            Logger.warning("Missing 'frame' in request files")
-            return jsonify({"error": "Missing frame"}), HttpCodes.BAD_REQUEST
-
-        frame = request.files['frame']
-
-        # Save or process frame (placeholder for pose estimation logic)
-        Logger.debug("Frame received, processing...")
-
-        # Here you would call your PoseEstimator, ErrorDetector, etc.
-        # For now, simulate with dummy data
-        feedback = {
-            "feedback": "Good posture!",
-            "confidence": 0.91,
-            "angles": {"knee": 88, "hip": 160}
-        }
-
-        return jsonify(feedback), HttpCodes.OK
+        # TODO: To be implemented.
+        pass

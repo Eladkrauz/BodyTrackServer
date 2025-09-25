@@ -31,11 +31,26 @@ class ErrorCode(enum):
     CONFIGURATION_KEY_IS_INVALID            = (6, "The key sent is not a valid list of ConfigParameters", None, True)
 
     # Flask.
-    CANT_ADD_URL_RULE_TO_FLASK_SERVER       = (7, "URL rule could not be added.", None, True)
+    CANT_ADD_URL_RULE_TO_FLASK_SERVER       = (100, "URL rule could not be added.", None, True)
+    UNRECOGNIZED_ICD_ERROR_TYPE             = (101, "The provided ICD error type is not recognized", None, True)
+    UNRECOGNIZED_ICD_RESPONSE_TYPE          = (102, "The provided ICD response type is not recognized", None, True)
 
-    # # Session Manager.
-    # EXERCISE_TYPE_DOES_NOT_EXIST           = auto()
-    ERROR_GENERATING_SESSION_ID             = (8, "Error while generating session ID.", None, False)
+    # Session Manager.
+    EXERCISE_TYPE_DOES_NOT_EXIST            = (200, "The provided exercise type is not supported in the system", None, False)
+    ERROR_GENERATING_SESSION_ID             = (201, "Error while generating session ID.", None, False)
+    MAX_CLIENT_REACHED                      = (202, "The maximum of concurrent clients has reached.", None, False)
+    INVALID_SESSION_ID                      = (203, "The provided session ID is invalid.", None, False)
+    CLIENT_IS_NOT_REGISTERED                = (204, "The client is not registered to the system.", None, False)
+    CLIENT_IS_ALREADY_REGISTERED            = (205, "The client is already registered to the system.", None, False)
+    CLIENT_IS_NOT_ACTIVE                    = (206, "The client is not in an active session.", None, False)
+    CLIENT_IS_ALREADY_ACTIVE                = (207, "The client is already in an active session.", None, False)
+    CLIENT_IS_NOT_PAUSED                    = (208, "The client is not in a paused session.", None, False)
+    CLIENT_IS_ALREADY_PAUSED                = (209, "The client is already in a paused session.", None, False)
+    CLIENT_IS_NOT_ENDED                     = (210, "The client is not in an ended session.", None, False)
+    CLIENT_IS_ALREADY_ENDED                 = (211, "The client is already in an ended session.", None, False)
+    CLIENT_IS_ONLY_REGISTERED               = (212, "The client is only registered, did not start yet.", None, False)
+    SEARCH_TYPE_IS_NOT_SUPPORTED            = (213, "The provided search type is not supported.", None, True)
+    SESSION_STATUS_IS_NOT_RECOGNIZED        = (214, "The provided session status is not recognized.", None, True)
 
     def __new__(cls, code:int, description:str, extra_info:dict = None, critical:bool = False):
         obj = object.__new__(cls)
