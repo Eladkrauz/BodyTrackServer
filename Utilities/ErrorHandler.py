@@ -52,6 +52,10 @@ class ErrorCode(enum):
     SEARCH_TYPE_IS_NOT_SUPPORTED            = (213, "The provided search type is not supported.", None, True)
     SESSION_STATUS_IS_NOT_RECOGNIZED        = (214, "The provided session status is not recognized.", None, True)
 
+    # PoseAnalyzer
+    ERROR_INITIALIZING_POSE                 = (9, "Error initializing PoseAnalyzer", None, False)
+    FRAME_PREPROCESSING_ERROR               = (10, "Frame preprocessing Failed", None, False)
+    FRAME_VALIDATION_ERROR                  = (11, "Frame validate error", None, False)
     def __new__(cls, code:int, description:str, extra_info:dict = None, critical:bool = False):
         obj = object.__new__(cls)
         obj._value_ = code
