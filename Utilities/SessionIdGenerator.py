@@ -94,7 +94,7 @@ class SessionIdGenerator:
     ###########################
     ### IS SESSION ID VALID ###
     ###########################
-    def _is_session_id_valid(session_id:str) -> bool:
+    def _is_session_id_valid(self, session_id:str) -> bool:
         """
         ### Brief:
         The `_is_session_id_valid` method checks if a provided session id is a valid one.

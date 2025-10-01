@@ -38,6 +38,7 @@ class ClientServerIcd:
         CLIENT_IS_NOT_ENDED                 = (210, "The client is not in an ended session.")
         CLIENT_IS_ALREADY_ENDED             = (211, "The client is already in an ended session.")
         CLIENT_IS_ONLY_REGISTERED           = (212, "The client is only registered, did not start yet.")
+        FRAME_INITIAL_VALIDATION_FAILED     = (213, "The initial validation process of the frame failed.")
 
         def __new__(cls, code, description):
             obj = object.__new__(cls)

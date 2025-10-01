@@ -8,6 +8,7 @@
 ### IMPORTS ###
 ###############
 import inspect, threading
+import numpy as np
 from threading import Lock
 from types import FrameType
 from datetime import datetime
@@ -96,6 +97,54 @@ class SessionData:
         else: Error.handle(error=ErrorCode.SESSION_STATUS_IS_NOT_RECOGNIZED, origin=inspect.currentframe())
         self.time['last_activity'] = now
 
+########################
+### FRAME DATA CLASS ###
+########################
+@dataclass
+class FrameData:
+    """
+    ### Description:
+    The `FrameData` dataclass represents a single video frame in an active session.
+    
+    ### Attributes:
+    - `session_id` (SessionId): Unique identifier of the session.
+    - `frame_id` (int): Sequential ID of the frame.
+    - `content` (np.ndarray): The frame image (BGR format, NumPy array).
+    """
+    session_id: SessionId
+    frame_id:   int
+    content:    np.ndarray
+
+    ######################
+    ### VALIDATE FRAME ###
+    ######################
+    def validate(self) -> None:
+        """
+        ### Brief:
+        The `validate` method performs lightweight validation of the frame data.
+        
+        ### Notes:
+        - Ensures the frame exists and is a NumPy array.
+        - Leaves deeper checks (shape, channels) to `PoseAnalyzer`.
+        """
+        if self.content is None:
+            Error.handle(
+                error=ErrorCode.FRAME_VALIDATION_ERROR,
+                origin=inspect.currentframe(),
+                extra_info={"Reason": "Frame content is None."}
+            )
+            raise ValueError("Invalid FrameData: content is None.")
+
+        if not isinstance(self.content, np.ndarray):
+            Error.handle(
+                error=ErrorCode.FRAME_VALIDATION_ERROR,
+                origin=inspect.currentframe(),
+                extra_info={"Reason": "Frame content is not a NumPy array."}
+            )
+            raise TypeError("Invalid FrameData: content is not a NumPy array.")
+
+        Log.debug(f"FrameData {self.frame_id} (Session {self.session_id.id}) validated successfully.")
+
 #############################
 ### SESSION MANAGER CLASS ###
 #############################
@@ -121,13 +170,15 @@ class SessionManager:
         self.supported_exercises:list = ConfigLoader.get(key=[
             ConfigParameters.Major.SESSION,
             ConfigParameters.Minor.SUPPORTED_EXERCIES
-        ])
+        ],
+        critical_value=True)
 
         # Maximum clients at the same time.
         self.maximum_clients:int = ConfigLoader.get(key=[
             ConfigParameters.Major.SESSION,
             ConfigParameters.Minor.MAXIMUM_CLIENTS
-        ])
+        ],
+        critical_value=True)
 
     ############################
     ### REGISTER NEW SESSION ###
@@ -438,11 +489,27 @@ class SessionManager:
             return error_to_return
         
     #####################
-    ### PROCESS FRAME ###
+    ### ANALYZE FRAME ###
     #####################
-    # def process_frame(self, session_id:str, frame:FrameData) -> FrameFeedback | ICD.ErrorType:
-        # pass
-        # TODO: To be implemented.
+    def analyze_frame(self, session_id:str, frame_id:int, frame_content:np.ndarray) -> ICD.ResponseType | ICD.ErrorType:
+        frame_data:FrameData = FrameData(
+            session_id=session_id,
+            frame_id=frame_id,
+            content=frame_content
+        )
+        try:
+            # Performing an initial frame validation before analyzing the pose.
+            frame_data.validate()
+        except (ValueError, TypeError) as e:
+            Error.handle(
+                error=ErrorCode.FRAME_INITIAL_VALIDATION_FAILED,
+                origin=inspect.currentframe(),
+                extra_info={
+                    "Exception type": f"{type(e).__name__}",
+                    "Reason": f"{str(e)}"
+                }
+            )
+            return ICD.ErrorType.FRAME_INITIAL_VALIDATION_FAILED
 
     ###############################################
     #################### TASKS ####################

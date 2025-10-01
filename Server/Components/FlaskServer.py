@@ -112,14 +112,12 @@ class FlaskServer:
             server_thread.start()
         except RuntimeError as e:
             ErrorHandler.handle(
-                opcode=ErrorCode.CANT_ADD_URL_RULE_TO_FLASK_SERVER,
+                error=ErrorCode.CANT_ADD_URL_RULE_TO_FLASK_SERVER,
                 origin=inspect.currentframe(),
-                message="The method 'start' was called more than once on the same thread object.",
                 extra_info={
                     "Exception": f"{type(e)}",
                     "Reason": f"{str(e)}"
-                },
-                critical=True
+                }
             )
 
     ###########################
