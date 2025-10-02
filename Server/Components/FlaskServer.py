@@ -14,12 +14,13 @@ from Utilities.Logger import Logger
 from Utilities.ErrorHandler import ErrorHandler, ErrorCode
 from Common.ClientServerIcd import ClientServerIcd as ICD
 import inspect, ipaddress
-from enum import Enum as enum
+import base64, cv2
+import numpy as np
 
-class HttpCodes(enum):
+class HttpCodes():
     """
     ### Description:
-    The `HttpCodes` enum class representes `HTTP` return codes.
+    The `HttpCodes` class representes `HTTP` return codes.
     """
     OK           = 200
     CREATED      = 201
@@ -164,13 +165,13 @@ class FlaskServer:
         """
         ### Brief:
         The `_error_to_dict` method gets an `ICD.ErrorType` enum class object, and returns
-        a dictionary containg relavant information about the error, to be returned to the client side.
+        a dictionary containing relavant information about the error, to be returned to the client side.
         
         ### Arguments:
         - `error` (ICD.ErrorType): The error type to be added to the returned dictionary.
         
         ### Returns:
-        - A dictionary containg relavant information about the provided error.
+        - A dictionary containing relavant information about the provided error.
         
         ### Notes:
         - `error` must be a valid `ICD.ErrorType` object.
@@ -193,14 +194,14 @@ class FlaskServer:
         """
         ### Brief:
         The `_response_to_dict` method gets an `ICD.ResponseType` enum class object, and returns
-        a dictionary containg relavant information about the response, to be returned to the client side.
+        a dictionary containing relavant information about the response, to be returned to the client side.
         
         ### Arguments:
         - `response` (ICD.ResponseType): The response type to be added to the returned dictionary.
         - `information` (dict): An extra information dictionary to be added to the respone. Defaults to None.
         
         ### Returns:
-        - A dictionary containg relavant information about the provided response.
+        - A dictionary containing relavant information about the provided response.
         
         ### Notes:
         - `response` must be a valid `ICD.ResponseType` object.
@@ -479,10 +480,63 @@ class FlaskServer:
     def _analyze_pose(self):
         """
         ### Brief:
-        The `_analyze_pose` method receives and processes pose data from the client for a given session.
+        The `_analyze_pose` method receives a video frame from the client, forwards it
+        to the SessionManager for analysis, and returns the calculated feedback, or an error code.
+
+        ### Expected Request JSON:
+        ```
+        {
+            "session_id": "abc123",
+            "frame_id": 17,
+            "frame_content": "<base64 JPEG/PNG image>"
+        }
+        ```
 
         ### Returns:
-        - `tuple`: A JSON response with pose analysis results or error information.
+        - JSON containing analysed frame feedback on success.
+        - JSON with error info on error.
         """
-        # TODO: To be implemented.
-        pass
+        # Get request's JSON data.
+        data = dict(request.get_json())
+        if not data:
+            Logger.warning("Missing or invalid JSON in analyze_pose request")
+            return jsonify(self._error_to_dict(ICD.ErrorType.INVALID_JSON_PAYLOAD_IN_REQUEST)), HttpCodes.BAD_REQUEST
+
+        # Extract required fields.
+        session_id:str  = data.get("session_id", None)
+        frame_id:str    = data.get("frame_id", None)
+        content_b64:str = data.get("frame_content", None)
+
+        if session_id is None or frame_id is None or content_b64 is None:
+            Logger.warning("Missing fields in analyze_pose request")
+            return jsonify(self._error_to_dict(ICD.ErrorType.MISSING_FRAME_DATA_IN_REQUEST)), HttpCodes.BAD_REQUEST
+
+        # Decode base64 to np.ndarray.
+        try:
+            frame_bytes:bytes = base64.b64decode(content_b64)
+            np_arr:np.ndarray = np.frombuffer(frame_bytes, np.uint8)
+            frame_content:np.ndarray = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)  # BGR frame
+        except Exception as e:
+            Logger.error(f"Frame decoding failed: {e}")
+            return jsonify(self._error_to_dict(ICD.ErrorType.FRAME_DECODING_FAILED)), HttpCodes.BAD_REQUEST
+
+        # Call SessionManager to analyze.
+        analysis_result = self.session_manager.analyze_frame(session_id, frame_id, frame_content)
+
+        # Handle errors.
+        if isinstance(analysis_result, ICD.ErrorType):
+            return jsonify(self._error_to_dict(analysis_result)), HttpCodes.BAD_REQUEST
+
+        # Return success.
+        return jsonify(self._response_to_dict(
+            response=ICD.ResponseType.FRAME_ANALYZED_SUCCESSFULLY,
+            information=analysis_result
+        )), HttpCodes.OK
+        '''
+        The returned value from analyze_frame (in case of success) will be a dict:
+        {
+            'session_id': ...,
+            'frame_id': ...,
+            'feedback': { ... }        
+        }
+        '''

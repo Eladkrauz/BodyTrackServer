@@ -11,11 +11,86 @@ import cv2, inspect
 import numpy as np
 import mediapipe as mp
 import mediapipe.python.solutions.pose as Pose
+from mediapipe.framework.formats import landmark_pb2
 from Utilities.ErrorHandler import ErrorHandler, ErrorCode
 from Utilities.Logger import Logger
 from Utilities.ConfigLoader import ConfigLoader, ConfigParameters
-from typing import Optional
+from typing import Optional, NamedTuple
 from Components.SessionManager import FrameData as FrameData
+
+############################
+### POSE LANDMARKS ALIAS ###
+############################
+"""
+### Description:
+`PoseArray` is a NumPy array containing body landmarks extracted from MediaPipe Pose.
+Its shape is (33, 4), one row per landmark.
+
+### Data type:
+`np.float32`
+
+### Explanation:
+Each row corresponds to a single body landmark as defined in MediaPipe's 33-point skeleton model. The four columns represent:
+- [i, 0] → x-coordinate (float, normalized to [0, 1], relative to frame width)
+- [i, 1] → y-coordinate (float, normalized to [0, 1], relative to frame height)
+- [i, 2] → z-coordinate (float, relative depth; negative = closer to camera)
+- [i, 3] → visibility score (float in [0, 1], confidence that landmark is visible)
+
+### Example:
+`[0.5123, 0.7341, -0.1045, 0.9987]`
+Landmark at ~51% width, 73% height, slightly closer to camera, ~99.9% visible.
+"""
+PoseLandmarks = np.ndarray
+
+###################################
+### POSE LANDMARK INDICES CLASS ###
+###################################
+class PoseLandmarkIndices:
+    """
+    ### Description:
+    The `PoseLandmarkIndices` class defines constants for the 33 body landmarks
+    detected by MediaPipe Pose. Each constant corresponds to a row index in the PoseArray (33x4 NumPy array).
+
+    ### Columns in PoseArray:
+    - [i, 0] → x (float, normalized to [0,1], relative to frame width)
+    - [i, 1] → y (float, normalized to [0,1], relative to frame height)
+    - [i, 2] → z (float, relative depth; negative = closer to camera)
+    - [i, 3] → visibility (float in [0,1], probability landmark is visible)
+    """
+    NOSE              = 0
+    LEFT_EYE_INNER    = 1
+    LEFT_EYE          = 2
+    LEFT_EYE_OUTER    = 3
+    RIGHT_EYE_INNER   = 4
+    RIGHT_EYE         = 5
+    RIGHT_EYE_OUTER   = 6
+    LEFT_EAR          = 7
+    RIGHT_EAR         = 8
+    MOUTH_LEFT        = 9
+    MOUTH_RIGHT       = 10
+    LEFT_SHOULDER     = 11
+    RIGHT_SHOULDER    = 12
+    LEFT_ELBOW        = 13
+    RIGHT_ELBOW       = 14
+    LEFT_WRIST        = 15
+    RIGHT_WRIST       = 16
+    LEFT_PINKY        = 17
+    RIGHT_PINKY       = 18
+    LEFT_INDEX        = 19
+    RIGHT_INDEX       = 20
+    LEFT_THUMB        = 21
+    RIGHT_THUMB       = 22
+    LEFT_HIP          = 23
+    RIGHT_HIP         = 24
+    LEFT_KNEE         = 25
+    RIGHT_KNEE        = 26
+    LEFT_ANKLE        = 27
+    RIGHT_ANKLE       = 28
+    LEFT_HEEL         = 29
+    RIGHT_HEEL        = 30
+    LEFT_FOOT_INDEX   = 31
+    RIGHT_FOOT_INDEX  = 32
+    NUM_OF_LANDMARKS  = 33
 
 ###########################
 ### POSE ANALYZER CLASS ###
@@ -242,7 +317,7 @@ class PoseAnalyzer:
     #####################
     ### analyze_frame ###
     #####################       
-    def analyze_frame(self, frame_data:FrameData) -> Optional[np.ndarray]| ErrorCode | None:
+    def analyze_frame(self, frame_data:FrameData) -> Optional[PoseLandmarks]| ErrorCode:
         """
         ### Brief:
         Processes a single video frame by converting it to RGB and running MediaPipe Pose
@@ -252,7 +327,7 @@ class PoseAnalyzer:
         - `frame_data` (FrameData): Input frame data to be analyzed.
 
         ### Returns:
-        - `Optional[np.ndarray]`:
+        - `Optional[PoseLandmarks]`:
         A NumPy array of shape `(33, 4)` if landmarks are detected, where each row corresponds
         to one human body landmark with the following columns:
         - `[i, 0]`: x-coordinate (float, normalized to [0,1], relative to image width).
@@ -260,7 +335,7 @@ class PoseAnalyzer:
         - `[i, 2]`: z-coordinate (float, relative depth, negative = closer to camera).
         - `[i, 3]`: visibility score (float in [0,1], probability that the landmark is visible).
 
-        If detection fails, returns `None`.
+        If detection fails, returns `ErrorCode`.
         """
         # Validate the frame.
         validation_result = self.validate_frame(frame_data.content)
@@ -277,9 +352,40 @@ class PoseAnalyzer:
             Logger.info(f"Frame {frame_data.frame_id} of session {frame_data.session_id} - preprocessed successfully.")
         
         try:
-            analyzing_result = self.pose.process(preprocessing_result)
-            Logger.info(f"Frame {frame_data.frame_id} of session {frame_data.session_id} - analyzed successfully.")
-            return analyzing_result
+            # Run MediaPipe Pose
+            result = self.pose.process(preprocessing_result)
+
+            pose_landmarks:Optional[landmark_pb2.NormalizedLandmarkList] = result.pose_landmarks
+            if pose_landmarks is None:
+                ErrorHandler.handle(
+                    error=ErrorCode.FRAME_ANALYSIS_ERROR,
+                    origin=inspect.currentframe(),
+                    extra_info={ "Reason": "The returned pose landmarks object is None" }
+                )
+                return ErrorCode.FRAME_ANALYSIS_ERROR
+            
+            # Creating the output array from the landmarks returned from MediaPipe.
+            landmarks_array:PoseLandmarks = np.array([
+                [lm.x, lm.y, lm.z, lm.visibility] for lm in pose_landmarks.landmark
+            ], dtype=np.float32)
+            # If the size is invalid.
+            if len(landmarks_array) != PoseLandmarkIndices.NUM_OF_LANDMARKS:
+                ErrorHandler.handle(
+                    error=ErrorCode.FRAME_ANALYSIS_ERROR,
+                    origin=inspect.currentframe(),
+                    extra_info={
+                        "Reason": "The output landmarks array size is invalid",
+                        "Contains": f"{len(landmarks_array)} rows",
+                        "Supposed to contain": f"{PoseLandmarkIndices.NUM_OF_LANDMARKS} rows (landmarks)"
+                    }
+                )
+                return ErrorCode.FRAME_ANALYSIS_ERROR
+
+            Logger.info(f"Extracted {landmarks_array.shape[0]} landmarks "
+                        f"from frame {frame_data.frame_id} (Session {frame_data.session_id}).")
+            
+            # Returning the output landmarks array.
+            return landmarks_array
         except TypeError as e:
             ErrorHandler.handle(
                 error=ErrorCode.FRAME_ANALYSIS_ERROR,

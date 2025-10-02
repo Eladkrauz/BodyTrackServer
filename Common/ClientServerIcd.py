@@ -23,6 +23,8 @@ class ClientServerIcd:
         INVALID_JSON_PAYLOAD_IN_REQUEST     = (102, "The JSON payload in the request is invalid.")
         MISSING_EXERCISE_TYPE_IN_REQUEST    = (103, "The request does not contain an exercise type.")
         MISSING_SESSION_ID_IN_REQUEST       = (104, "The request does not contain a session id.")
+        MISSING_FRAME_DATA_IN_REQUEST       = (105, "The request does not contain frame data, which should include session id, frame id and frame content.")
+        FRAME_DECODING_FAILED               = (106, "The request contains frame content that could not be decoded.")
 
         # Session.
         CANT_REGISTER_CLIENT_TO_SESSION     = (200, "The system can't register the client to a new session.")
@@ -57,6 +59,7 @@ class ClientServerIcd:
         CLIENT_SESSION_IS_RESUMED           = (103, "The client's session is resumed.")
         CLIENT_SESSION_IS_ENDED             = (104, "The client's session is ended.")
         CLIENT_SESSION_IS_UNREGISTERED      = (105, "The client's session is unregistered.")
+        FRAME_ANALYZED_SUCCESSFULLY         = (106, "The frame analyzed successfully.")
 
         def __new__(cls, code, description):
             obj = object.__new__(cls)

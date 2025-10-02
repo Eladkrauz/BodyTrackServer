@@ -31,11 +31,11 @@ class SessionStatus(enum):
     ### Description:
     The `SessionStatus` enum class represents the statuses a session can be in.
     """
-    REGISTERED = auto()
-    ACTIVE     = auto()
-    ENDED      = auto()
-    PAUSED     = auto()
-    NONE       = auto()
+    REGISTERED    = auto()
+    ACTIVE        = auto()
+    ENDED         = auto()
+    PAUSED        = auto()
+    NOT_IN_SYSTEM = auto()
 
 ##############################
 ### SEARCH TYPE ENUM CLASS ###
@@ -122,6 +122,10 @@ class FrameData:
         """
         ### Brief:
         The `validate` method performs lightweight validation of the frame data.
+
+        ### Raises:
+        - `ValueError` is the frame content is `None`
+        - `TypeError` if the frame content is not an `np.ndarray`
         
         ### Notes:
         - Ensures the frame exists and is a NumPy array.
@@ -129,7 +133,7 @@ class FrameData:
         """
         if self.content is None:
             Error.handle(
-                error=ErrorCode.FRAME_VALIDATION_ERROR,
+                error=ErrorCode.FRAME_INITIAL_VALIDATION_FAILED,
                 origin=inspect.currentframe(),
                 extra_info={"Reason": "Frame content is None."}
             )
@@ -137,7 +141,7 @@ class FrameData:
 
         if not isinstance(self.content, np.ndarray):
             Error.handle(
-                error=ErrorCode.FRAME_VALIDATION_ERROR,
+                error=ErrorCode.FRAME_INITIAL_VALIDATION_FAILED,
                 origin=inspect.currentframe(),
                 extra_info={"Reason": "Frame content is not a NumPy array."}
             )
@@ -219,7 +223,7 @@ class SessionManager:
         session_status:SessionStatus = self._search(key=client_info['ip'], search_type=SearchType.IP, include_ended=False)
 
         # If client is already registered.
-        if session_status is not SessionStatus.NONE:
+        if session_status is not SessionStatus.NOT_IN_SYSTEM:
             error_to_return, error_to_log = self._session_status_to_error(session_status)
             Error.handle(error=error_to_log, origin=inspect.currentframe())
             return error_to_return
@@ -492,6 +496,20 @@ class SessionManager:
     ### ANALYZE FRAME ###
     #####################
     def analyze_frame(self, session_id:str, frame_id:int, frame_content:np.ndarray) -> ICD.ResponseType | ICD.ErrorType:
+        # Checking if the session id is valid and packing it.
+        session_id:SessionId = self.id_generator.pack_string_to_session_id(session_id) 
+        if session_id is None:
+            return ICD.ErrorType.INVALID_SESSION_ID
+        
+        # Checking if the session is active or paused.
+        session_status:SessionStatus = self._search(key=session_id, search_type=SearchType.ID)
+        if session_status is not SessionStatus.ACTIVE:
+            Error.handle(
+                error=ErrorCode.CLIENT_IS_NOT_ACTIVE,
+                origin=inspect.currentframe()
+            )
+            return ICD.ErrorType.CLIENT_IS_NOT_ACTIVE
+
         frame_data:FrameData = FrameData(
             session_id=session_id,
             frame_id=frame_id,
@@ -500,16 +518,10 @@ class SessionManager:
         try:
             # Performing an initial frame validation before analyzing the pose.
             frame_data.validate()
-        except (ValueError, TypeError) as e:
-            Error.handle(
-                error=ErrorCode.FRAME_INITIAL_VALIDATION_FAILED,
-                origin=inspect.currentframe(),
-                extra_info={
-                    "Exception type": f"{type(e).__name__}",
-                    "Reason": f"{str(e)}"
-                }
-            )
+        except (ValueError, TypeError):
             return ICD.ErrorType.FRAME_INITIAL_VALIDATION_FAILED
+        
+        # TODO: Perform further calculations: joint, error detection, feedback summary.
 
     ###############################################
     #################### TASKS ####################
@@ -550,7 +562,7 @@ class SessionManager:
         - `include_ended` (bool): Whether to include ended sessions in the search. Default is `True`.
         
         ### Returns:
-        - `SessionStatus`: The status of the session if found, otherwise `SessionStatus.NONE`.
+        - `SessionStatus`: The status of the session if found, otherwise `SessionStatus.NOT_IN_SYSTEM`.
         
         ### Raises:
         - `ValueError`: If the type of `key` does not match the `search_type`.
@@ -588,7 +600,7 @@ class SessionManager:
         if include_ended and self._is_client_in_ended_session(client_ip, session_id):
             return SessionStatus.ENDED
 
-        return SessionStatus.NONE
+        return SessionStatus.NOT_IN_SYSTEM
 
     ############################
     ### IS CLIENT REGISTERED ###
