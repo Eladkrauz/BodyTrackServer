@@ -25,10 +25,11 @@ class ClientServerIcd:
         MISSING_SESSION_ID_IN_REQUEST       = (104, "The request does not contain a session id.")
         MISSING_FRAME_DATA_IN_REQUEST       = (105, "The request does not contain frame data, which should include session id, frame id and frame content.")
         FRAME_DECODING_FAILED               = (106, "The request contains frame content that could not be decoded.")
+        INTERNAL_SERVER_ERROR               = (107, "There was an internal server error.")
 
         # Session.
         CANT_REGISTER_CLIENT_TO_SESSION     = (200, "The system can't register the client to a new session.")
-        EXERCISE_TYPE_NOT_SUPPORTED         = (201, "The provided exercise type is not supported.")
+        EXERCISE_TYPE_DOES_NOT_EXIST        = (201, "The provided exercise type is not supported.")
         MAX_CLIENT_REACHED                  = (202, "The maximum of concurrent clients has reached.")
         INVALID_SESSION_ID                  = (203, "The provided session ID is not valid.")
         CLIENT_IS_NOT_REGISTERED            = (204, "The client is not registered to the system.")
@@ -40,7 +41,13 @@ class ClientServerIcd:
         CLIENT_IS_NOT_ENDED                 = (210, "The client is not in an ended session.")
         CLIENT_IS_ALREADY_ENDED             = (211, "The client is already in an ended session.")
         CLIENT_IS_ONLY_REGISTERED           = (212, "The client is only registered, did not start yet.")
-        FRAME_INITIAL_VALIDATION_FAILED     = (213, "The initial validation process of the frame failed.")
+        INVALID_EXTENDED_EVALUATION_PARAM   = (213, "The parameter of extended evaluation is not valid.")
+
+        # PoseAnalyzer, JointAnalyzer and frame processing.
+        FRAME_INITIAL_VALIDATION_FAILED     = (300, "The initial validation process of the frame failed.")
+        FRAME_ANALYZING_FAILED              = (301, "Failed to analyze frame.")
+        JOINT_ANALYZING_FAILED              = (302, "Failed to calculate frame joint angles.")
+        TOO_MANY_INVALID_ANGLES             = (303, "Too many invalid angles in the provided frame")
 
         def __new__(cls, code, description):
             obj = object.__new__(cls)
@@ -54,12 +61,14 @@ class ClientServerIcd:
 
         # Session.
         CLIENT_REGISTERED_SUCCESSFULLY      = (100, "The client was registered successfully.")
-        CLIENT_SESSION_IS_ACTIVE            = (101, "The client's session is active.")
-        CLIENT_SESSION_IS_PAUSED            = (102, "The client's session is paused.")
-        CLIENT_SESSION_IS_RESUMED           = (103, "The client's session is resumed.")
-        CLIENT_SESSION_IS_ENDED             = (104, "The client's session is ended.")
-        CLIENT_SESSION_IS_UNREGISTERED      = (105, "The client's session is unregistered.")
-        FRAME_ANALYZED_SUCCESSFULLY         = (106, "The frame analyzed successfully.")
+        CLIENT_SESSION_IS_REGISTERED        = (101, "The client's session is registered.")
+        CLIENT_SESSION_IS_ACTIVE            = (102, "The client's session is active.")
+        CLIENT_SESSION_IS_PAUSED            = (103, "The client's session is paused.")
+        CLIENT_SESSION_IS_RESUMED           = (104, "The client's session is resumed.")
+        CLIENT_SESSION_IS_ENDED             = (105, "The client's session is ended.")
+        CLIENT_SESSION_IS_UNREGISTERED      = (106, "The client's session is unregistered.")
+        CLIENT_SESSION_IS_NOT_IN_SYSTEM     = (107, "The client's session is not in the system.")
+        FRAME_ANALYZED_SUCCESSFULLY         = (108, "The frame analyzed successfully.")
 
         def __new__(cls, code, description):
             obj = object.__new__(cls)

@@ -15,12 +15,12 @@ from mediapipe.framework.formats import landmark_pb2
 from Utilities.ErrorHandler import ErrorHandler, ErrorCode
 from Utilities.Logger import Logger
 from Utilities.ConfigLoader import ConfigLoader, ConfigParameters
-from typing import Optional, NamedTuple
+from typing import Optional
 from Components.SessionManager import FrameData as FrameData
 
-############################
-### POSE LANDMARKS ALIAS ###
-############################
+##################################
+### POSE LANDMARKS ARRAY ALIAS ###
+##################################
 """
 ### Description:
 `PoseArray` is a NumPy array containing body landmarks extracted from MediaPipe Pose.
@@ -40,15 +40,15 @@ Each row corresponds to a single body landmark as defined in MediaPipe's 33-poin
 `[0.5123, 0.7341, -0.1045, 0.9987]`
 Landmark at ~51% width, 73% height, slightly closer to camera, ~99.9% visible.
 """
-PoseLandmarks = np.ndarray
+PoseLandmarksArray = np.ndarray
 
-###################################
-### POSE LANDMARK INDICES CLASS ###
-###################################
-class PoseLandmarkIndices:
+###########################
+### POSE LANDMARK CLASS ###
+###########################
+class PoseLandmark:
     """
     ### Description:
-    The `PoseLandmarkIndices` class defines constants for the 33 body landmarks
+    The `PoseLandmark` class defines constants for the 33 body landmarks
     detected by MediaPipe Pose. Each constant corresponds to a row index in the PoseArray (33x4 NumPy array).
 
     ### Columns in PoseArray:
@@ -315,7 +315,7 @@ class PoseAnalyzer:
         return frame_content
 
     #####################
-    ### analyze_frame ###
+    ### ANALYZE FRAME ###
     #####################       
     def analyze_frame(self, frame_data:FrameData) -> Optional[PoseLandmarks]| ErrorCode:
         """
@@ -365,18 +365,18 @@ class PoseAnalyzer:
                 return ErrorCode.FRAME_ANALYSIS_ERROR
             
             # Creating the output array from the landmarks returned from MediaPipe.
-            landmarks_array:PoseLandmarks = np.array([
+            landmarks_array:PoseLandmarksArray = np.array([
                 [lm.x, lm.y, lm.z, lm.visibility] for lm in pose_landmarks.landmark
             ], dtype=np.float32)
             # If the size is invalid.
-            if len(landmarks_array) != PoseLandmarkIndices.NUM_OF_LANDMARKS:
+            if len(landmarks_array) != PoseLandmark.NUM_OF_LANDMARKS:
                 ErrorHandler.handle(
                     error=ErrorCode.FRAME_ANALYSIS_ERROR,
                     origin=inspect.currentframe(),
                     extra_info={
                         "Reason": "The output landmarks array size is invalid",
                         "Contains": f"{len(landmarks_array)} rows",
-                        "Supposed to contain": f"{PoseLandmarkIndices.NUM_OF_LANDMARKS} rows (landmarks)"
+                        "Supposed to contain": f"{PoseLandmarks.NUM_OF_LANDMARKS} rows (landmarks)"
                     }
                 )
                 return ErrorCode.FRAME_ANALYSIS_ERROR

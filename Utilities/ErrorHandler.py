@@ -7,12 +7,12 @@
 ###############
 ### IMPORTS ###
 ###############
-import sys
+import sys, inspect
 from os.path import basename
 from enum import Enum as enum
-from enum import auto
 from types import FrameType
 from Utilities.Logger import Logger as Logger
+from Common.ClientServerIcd import ClientServerIcd as ICD
 
 ########################
 ### ERROR CODE CLASS ###
@@ -52,12 +52,23 @@ class ErrorCode(enum):
     SEARCH_TYPE_IS_NOT_SUPPORTED            = (213, "The provided search type is not supported.", None, True)
     SESSION_STATUS_IS_NOT_RECOGNIZED        = (214, "The provided session status is not recognized.", None, True)
     FRAME_INITIAL_VALIDATION_FAILED         = (215, "The initial validation process of the frame failed.", None, False)
+    INVALID_EXTENDED_EVALUATION_PARAM       = (216, "The parameter of extended evaluation is not valid.", None, False)
 
-    # PoseAnalyzer
+    # PoseAnalyzer.
     ERROR_INITIALIZING_POSE                 = (300, "Error initializing PoseAnalyzer", None, False)
     FRAME_PREPROCESSING_ERROR               = (301, "Frame preprocessing failed", None, False)
     FRAME_VALIDATION_ERROR                  = (302, "Frame validation failed", None, False)
     FRAME_ANALYSIS_ERROR                    = (303, "Frame analysis failed", None, False)
+
+    # JointAnalyzer.
+    VECTOR_VALIDATION_FAILED                = (400, "Vector validation has failed.", None, False)
+    ANGLE_VALIDATION_FAILED                 = (401, "Angle validation has failed.", None, False)
+    ANGLE_CALCULATION_FAILED                = (402, "Angle calculation has failed.", None, False)
+    JOINT_CALCULATION_ERROR                 = (403, "Joint calculation has failed.", None, False)
+    LANDMARK_VISIBILITY_IS_INVALID          = (404, "The landmark's visibility is invalid", None, False)
+    DIMENSION_OF_ANGLE_IS_INVALID           = (405, "The angle's dimension is invalid", None, False)
+    TOO_MANY_INVALID_ANGLES                 = (406, "Too many invalid angles in the provided frame", None, False)
+
 
     def __new__(cls, code:int, description:str, extra_info:dict = None, critical:bool = False):
         obj = object.__new__(cls)
@@ -155,3 +166,35 @@ class ErrorHandler:
         ### Arguments
         """
         cls.handle(error=error, origin=origin, do_not_log=True)
+
+    ######################
+    ### CONVERT TO ICD ###
+    ######################
+    @classmethod
+    def convert_to_icd(cls, error_code:ErrorCode) -> ICD.ErrorType:
+        """
+        ### Brief:
+        The `convert_to_icd` method dynamically converts an `ErrorCode` into
+        the corresponding `ICD.ErrorType` based on matching enum names.
+
+        ### Arguments:
+        `error_code` (ErrorCode): The error code to be converted.
+
+        ### Returns:
+        The corresponding `ICD.ErrorType` object.
+
+        ### Notes:
+        If no matching `ICD.ErrorType` exists, returns `ICD.ErrorType.INTERNAL_SERVER_ERROR`
+        and logs `ErrorCode.UNRECOGNIZED_ICD_ERROR_TYPE`.
+        """
+        try:
+            # Try to access ICD.ErrorType member by name.
+            return ICD.ErrorType[error_code.name]
+        except Exception as e:
+            # If not found, log and return default
+            cls.handle(
+                error=ErrorCode.UNRECOGNIZED_ICD_ERROR_TYPE,
+                origin=inspect.currentframe(),
+                extra_info={ "Provided error": f"Value: {error_code.value}, Name: {error_code.name}" }
+            )
+            return ICD.ErrorType.INTERNAL_SERVER_ERROR

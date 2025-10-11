@@ -7,10 +7,9 @@
 ###############
 ### IMPORTS ###
 ###############
-import inspect, threading
+import inspect, threading, time
 import numpy as np
-from threading import Lock
-from types import FrameType
+from threading import RLock
 from datetime import datetime
 from enum import Enum as enum
 from enum import auto
@@ -18,10 +17,12 @@ from dataclasses import dataclass, field
 from typing import Optional, Dict, Any
 from Utilities.SessionIdGenerator import SessionIdGenerator, SessionId
 from Utilities.ConfigLoader import ConfigLoader, ConfigParameters
-from Utilities.ErrorHandler import ErrorHandler as Error
+from Utilities.ErrorHandler import ErrorHandler as ErrorHandler
 from Utilities.ErrorHandler import ErrorCode
 from Common.ClientServerIcd import ClientServerIcd as ICD
-from Utilities.Logger import Logger as Log
+from Utilities.Logger import Logger as Logger
+from Components.PoseAnalyzer import PoseAnalyzer as PoseAnalyzer
+from Components.JointAnalyzer import JointAnalyzer as JointAnalyzer
 
 #################################
 ### SESSION STATUS ENUM CLASS ###
@@ -44,6 +45,42 @@ class SearchType(enum):
     IP = auto()
     ID = auto()
 
+#####################
+### EXERCISE TYPE ###
+#####################
+class ExerciseType(enum):
+    SQUAT           = "squat"
+    BICEPS_CURL     = "biceps_curl"
+    LATERAL_RAISE   = "lateral_raise"
+
+    ###########
+    ### GET ###
+    ###########
+    @staticmethod
+    def get(exercise_type: str) -> 'ExerciseType':
+        """
+        ### Brief:
+        The `get` method converts a string into an `ExerciseType` enum value.
+
+        ### Arguments:
+        - `exercise_type` (str): The exercise name, case-insensitive.
+
+        ### Returns:
+        - `ExerciseType`: The corresponding enum value.
+
+        ### Raises:
+        - `ValueError`: If the provided exercise type is unsupported.
+        """
+        if not isinstance(exercise_type, str):
+            raise TypeError("Expected a string for exercise_type.")
+
+        normalized = exercise_type.strip().lower()
+        for et in ExerciseType:
+            if et.value == normalized:
+                return et
+
+        raise ValueError(f"Unsupported exercise: {exercise_type}")
+
 ##########################
 ### SESSION DATA CLASS ###
 ##########################
@@ -56,10 +93,10 @@ class SessionData:
     ### Fields:
     - `session_id` (str): Unique session identifier.
     - `client_info` (dict[str, Any]): Metadata about the client device/IP.
-    - `exercise_type` (str): The type of exercise (e.g., "squats", "pushups").
+    - `exercise_type` (ExerciseType): The type of exercise (e.g., "squats", "pushups").
     - `time` (dict[str, datetime]): Timestamps about the sessions.
     - `frames_received` (int): Total number of frames received during the session.
-    - `status` (str): Current session status, e.g., "active", "ended", "paused".
+    - `extended_evaluation` (bool): Indicates whether evaluate the frame with extended joints or only core.
     - `analysis_data` (dict[str, Any]): Holds pose analysis results and feedback (optional).
     """
     ###########################
@@ -67,7 +104,7 @@ class SessionData:
     ###########################
     session_id: SessionId
     client_info: Dict[str, Any]
-    exercise_type: str
+    exercise_type: ExerciseType
     time: Dict[str, Optional[datetime]] = field(default_factory=lambda: {
         "registered": datetime.now(),
         "started": None,
@@ -76,25 +113,31 @@ class SessionData:
         "last_activity": datetime.now()
     })
     frames_received: int = 0
+    extended_evaluation: bool = False
     analysis_data: Dict[str, Any] = field(default_factory=dict)
 
     #########################
     ### UPDATE TIME STAMP ###
     #########################
-    def update_time_stamp(self, session_status:SessionStatus) -> None:
+    def update_time_stamp(self, session_status:SessionStatus = None) -> None:
         """
         ### Brief:
         The `update_time_stamp` method updates the times of a `SessionData` object.
 
         ### Arguments:
         - `session_status` (SessionStatus): The type of time to be updated.
+
+        ### Notes:
+        - `session_status` defaults to `None`. If so: updating just the `last_activity` time stamp.
         """
         now = datetime.now()
-        if    session_status is SessionStatus.REGISTERED: self.time['registered'] = now
-        elif  session_status is SessionStatus.ACTIVE:     self.time['started']    = now
-        elif  session_status is SessionStatus.PAUSED:     self.time['paused']     = now
-        elif  session_status is SessionStatus.ENDED:      self.time['ended']      = now
-        else: Error.handle(error=ErrorCode.SESSION_STATUS_IS_NOT_RECOGNIZED, origin=inspect.currentframe())
+        if session_status is not None:
+            if    session_status is SessionStatus.REGISTERED: self.time['registered'] = now
+            elif  session_status is SessionStatus.ACTIVE:     self.time['started']    = now
+            elif  session_status is SessionStatus.PAUSED:     self.time['paused']     = now
+            elif  session_status is SessionStatus.ENDED:      self.time['ended']      = now
+            else: ErrorHandler.handle(error=ErrorCode.SESSION_STATUS_IS_NOT_RECOGNIZED, origin=inspect.currentframe())
+
         self.time['last_activity'] = now
 
 ########################
@@ -132,7 +175,7 @@ class FrameData:
         - Leaves deeper checks (shape, channels) to `PoseAnalyzer`.
         """
         if self.content is None:
-            Error.handle(
+            ErrorHandler.handle(
                 error=ErrorCode.FRAME_INITIAL_VALIDATION_FAILED,
                 origin=inspect.currentframe(),
                 extra_info={"Reason": "Frame content is None."}
@@ -140,14 +183,14 @@ class FrameData:
             raise ValueError("Invalid FrameData: content is None.")
 
         if not isinstance(self.content, np.ndarray):
-            Error.handle(
+            ErrorHandler.handle(
                 error=ErrorCode.FRAME_INITIAL_VALIDATION_FAILED,
                 origin=inspect.currentframe(),
                 extra_info={"Reason": "Frame content is not a NumPy array."}
             )
             raise TypeError("Invalid FrameData: content is not a NumPy array.")
 
-        Log.debug(f"FrameData {self.frame_id} (Session {self.session_id.id}) validated successfully.")
+        Logger.debug(f"FrameData {self.frame_id} (Session {self.session_id.id}) validated successfully.")
 
 #############################
 ### SESSION MANAGER CLASS ###
@@ -157,11 +200,19 @@ class SessionManager:
     ### CLASS CONSTRUCTOR ###
     #########################
     def __init__(self):
+        """
+        ### Brief:
+        The `__init__` method initialized the `SessionManager` instance.
+        """
+        # Components.
+        self.pose_analyzer  = PoseAnalyzer()
+        self.joint_analyzer = JointAnalyzer()
+
         # Locks.
-        self.registered_lock     :Lock = threading.Lock()
-        self.active_sessions_lock:Lock = threading.Lock()
-        self.paused_sessions_lock:Lock = threading.Lock()
-        self.ended_sessions_lock :Lock = threading.Lock()
+        self.registered_lock     :RLock = threading.RLock()
+        self.active_sessions_lock:RLock = threading.RLock()
+        self.paused_sessions_lock:RLock = threading.RLock()
+        self.ended_sessions_lock :RLock = threading.RLock()
 
         # Sessions.
         self.id_generator:SessionIdGenerator = SessionIdGenerator()
@@ -183,6 +234,42 @@ class SessionManager:
             ConfigParameters.Minor.MAXIMUM_CLIENTS
         ],
         critical_value=True)
+
+        # Start cleanup background thread.
+        self.cleanup_interval_minutes = ConfigLoader.get(key=[
+            ConfigParameters.Major.TASKS,
+            ConfigParameters.Minor.CLEANUP_INTERVAL_MINUTES
+        ],
+        critical_value=True)
+        self.max_registration_minutes = ConfigLoader.get(key=[
+            ConfigParameters.Major.TASKS,
+            ConfigParameters.Minor.MAX_REGISTRATION_MINUTES
+        ],
+        critical_value=True)
+        self.max_inactive_minutes = ConfigLoader.get(key=[
+            ConfigParameters.Major.TASKS,
+            ConfigParameters.Minor.MAX_INACTIVE_MINUTS
+        ],
+        critical_value=True)
+        self.max_pause_minutes = ConfigLoader.get(key=[
+            ConfigParameters.Major.TASKS,
+            ConfigParameters.Minor.MAX_PAUSE_MINUTES
+        ],
+        critical_value=True)
+        self.max_ended_retention = ConfigLoader.get(key=[
+            ConfigParameters.Major.TASKS,
+            ConfigParameters.Minor.MAX_ENDED_RETENTION
+        ],
+        critical_value=True)
+
+        self._cleanup_thread = threading.Thread(
+            target=self._cleanup_task,
+            daemon=True
+        )
+        self._cleanup_thread.start()
+        Logger.info("Session cleanup background thread started.")
+
+        Logger.info("SessionManager initialized successfully")
 
     ############################
     ### REGISTER NEW SESSION ###
@@ -206,26 +293,27 @@ class SessionManager:
         - Uses a lock to ensure thread-safe access to the session registry.
         """
         # If exercise type is invalid or not supported.
-        if not self._is_exercise_supported(exercise_type):
-            Error.handle(
+        provided_type:str = exercise_type
+        exercise_type:ExerciseType = self._is_exercise_supported(provided_type)
+        if exercise_type is None:
+            ErrorHandler.handle(
                 error=ErrorCode.EXERCISE_TYPE_DOES_NOT_EXIST,
                 origin=inspect.currentframe(),
                 extra_info={
                     "Sent from:": client_info.get('id', 'N/A'), 
                     "Supported exercises are": self.supported_exercises,
-                    "Provided": exercise_type
-                },
-                critical=False
+                    "Provided": provided_type
+                }
             )
-            return ICD.ErrorType.EXERCISE_TYPE_NOT_SUPPORTED
-        
+            return ErrorHandler.convert_to_icd(ErrorCode.EXERCISE_TYPE_DOES_NOT_EXIST)
+
         # Searching if the client exists already.
         session_status:SessionStatus = self._search(key=client_info['ip'], search_type=SearchType.IP, include_ended=False)
 
         # If client is already registered.
         if session_status is not SessionStatus.NOT_IN_SYSTEM:
             error_to_return, error_to_log = self._session_status_to_error(session_status)
-            Error.handle(error=error_to_log, origin=inspect.currentframe())
+            ErrorHandler.handle(error=error_to_log, origin=inspect.currentframe())
             return error_to_return
         
         session_id:SessionId = self.id_generator.generate_session_id()
@@ -240,7 +328,7 @@ class SessionManager:
         with self.registered_lock:
             self.registered[session_id] = new_session
 
-        Log.info(f"Session ID {session_id} was registered successfully to client {new_session.client_info['ip']}")
+        Logger.info(f"Session ID {session_id} was registered successfully to client {new_session.client_info['ip']}")
         return session_id
     
     ##########################
@@ -274,19 +362,21 @@ class SessionManager:
         # If the client is not in the registered dictionary - can't be unregistered.    
         else:
             error_to_return, error_to_log = self._session_status_to_error(session_status)
-            Error.handle(error=error_to_log, origin=inspect.currentframe())
+            ErrorHandler.handle(error=error_to_log, origin=inspect.currentframe())
             return error_to_return
 
     #####################
     ### START SESSION ###
     #####################
-    def start_session(self, session_id:str) -> ICD.ResponseType | ICD.ErrorType:
+    def start_session(self, session_id:str, extended_evaluation:bool) -> ICD.ResponseType | ICD.ErrorType:
         """
         ### Brief:
         The `start_session` method starts a session that is currently in the `REGISTERED` state, transitioning it to `ACTIVE`.
         
         ### Arguments:
         - `session_id` (str): The session ID string received from the client.
+        - `extended_evaluation` (bool): If `True`, calculate all biomechanical angles; 
+        if `False`, calculate only those needed for evaluating correctness (core movement).
         
         ### Returns:
         - `ICD.ResponseType`: Returns `CLIENT_SESSION_IS_ACTIVE` if the session is successfully activated.
@@ -300,13 +390,21 @@ class SessionManager:
         if session_id is None:
             return ICD.ErrorType.INVALID_SESSION_ID
         
+        # Checking if the exetended evaluation parameter is valid.
+        if extended_evaluation is None or not isinstance(extended_evaluation, bool):
+            ErrorHandler.handle(
+                error=ErrorCode.INVALID_EXTENDED_EVALUATION_PARAM,
+                origin=inspect.currentframe()
+            )
+            return ErrorHandler.convert_to_icd(ErrorCode.INVALID_EXTENDED_EVALUATION_PARAM)
+        
         # If the client is registered - meaning it has not started a session yet.
         session_status:SessionStatus = self._search(key=session_id, search_type=SearchType.ID)
         if session_status is SessionStatus.REGISTERED:
             with self.active_sessions_lock:
                 # If active sessions reached maximum concurrent clients.
                 if self._is_active_sessions_full():
-                    Error.handle(
+                    ErrorHandler.handle(
                         error=ErrorCode.MAX_CLIENT_REACHED,
                         origin=inspect.currentframe(),
                         extra_info={
@@ -314,7 +412,7 @@ class SessionManager:
                             "Allowed amount": self.maximum_clients
                         }
                     )
-                    return ICD.ErrorType.MAX_CLIENT_REACHED
+                    return ErrorHandler.convert_to_icd(ErrorCode.MAX_CLIENT_REACHED)
                 
                 # If the session has room to become active.
                 else:
@@ -326,12 +424,13 @@ class SessionManager:
 
             # Updating fields of the session.
             self.active_sessions[session_id].update_time_stamp(SessionStatus.ACTIVE)
+            self.active_sessions[session_id].extended_evaluation = extended_evaluation
             return ICD.ResponseType.CLIENT_SESSION_IS_ACTIVE
 
         # If the client is not registered or already started - it can't start the session.
         else:
             error_to_return, error_to_log = self._session_status_to_error(session_status)
-            Error.handle(error=error_to_log, origin=inspect.currentframe())
+            ErrorHandler.handle(error=error_to_log, origin=inspect.currentframe())
             return error_to_return
 
     #####################
@@ -374,7 +473,7 @@ class SessionManager:
         
         else: # If the session is not paused.
             error_to_return, error_to_log = self._session_status_to_error(session_status)
-            Error.handle(error=error_to_log, origin=inspect.currentframe())
+            ErrorHandler.handle(error=error_to_log, origin=inspect.currentframe())
             return error_to_return
 
     ######################
@@ -410,7 +509,7 @@ class SessionManager:
             with self.active_sessions_lock:
                 # If active sessions reached maximum concurrent clients.
                 if self._is_active_sessions_full():
-                    Error.handle(
+                    ErrorHandler.handle(
                         error=ErrorCode.MAX_CLIENT_REACHED,
                         origin=inspect.currentframe(),
                         extra_info={
@@ -418,7 +517,7 @@ class SessionManager:
                             "Allowed amount": self.maximum_clients
                         }
                     )
-                    return ICD.ErrorType.MAX_CLIENT_REACHED
+                    return ErrorHandler.convert_to_icd(ErrorCode.MAX_CLIENT_REACHED)
                 
                 # If the session has room to become active.
                 else:
@@ -433,7 +532,7 @@ class SessionManager:
         
         else: # If the session is not paused.
             error_to_return, error_to_log = self._session_status_to_error(session_status)
-            Error.handle(error=error_to_log, origin=inspect.currentframe())
+            ErrorHandler.handle(error=error_to_log, origin=inspect.currentframe())
             return error_to_return
 
     ###################
@@ -485,11 +584,11 @@ class SessionManager:
                     self.ended_sessions[session_id] = session_data
 
                 self.ended_sessions[session_id].update_time_stamp(SessionStatus.ENDED)
-                return ICD.ResponseType.CLIENT_SESSION_IS_RESUMED
+                return ICD.ResponseType.CLIENT_SESSION_IS_ENDED
         
         else: # If the session is not active or paused.Ø
             error_to_return, error_to_log = self._session_status_to_error(session_status)
-            Error.handle(error=error_to_log, origin=inspect.currentframe())
+            ErrorHandler.handle(error=error_to_log, origin=inspect.currentframe())
             return error_to_return
         
     #####################
@@ -504,11 +603,11 @@ class SessionManager:
         # Checking if the session is active or paused.
         session_status:SessionStatus = self._search(key=session_id, search_type=SearchType.ID)
         if session_status is not SessionStatus.ACTIVE:
-            Error.handle(
+            ErrorHandler.handle(
                 error=ErrorCode.CLIENT_IS_NOT_ACTIVE,
                 origin=inspect.currentframe()
             )
-            return ICD.ErrorType.CLIENT_IS_NOT_ACTIVE
+            return ErrorHandler.convert_to_icd(ErrorCode.CLIENT_IS_NOT_ACTIVE)
 
         frame_data:FrameData = FrameData(
             session_id=session_id,
@@ -521,12 +620,132 @@ class SessionManager:
         except (ValueError, TypeError):
             return ICD.ErrorType.FRAME_INITIAL_VALIDATION_FAILED
         
-        # TODO: Perform further calculations: joint, error detection, feedback summary.
+        self.active_sessions.get(session_id).update_time_stamp() # Updating last activity.
+        self.active_sessions.get(session_id).frames_received += 1
+        
+        ### Analyzing Pose --- using PoseAnalyzer.
+        pose_analyzer_result = self.pose_analyzer.analyze_frame(frame_data)
+        if isinstance(pose_analyzer_result, ErrorCode): # Otherwise, the result is an np.ndarray instance.
+            return ErrorHandler.convert_to_icd(pose_analyzer_result)
+        
+        ### Calculatin Joints --- using JointAnalyzer.
+        # Getting exercise type and the extended evaluation parameter.
+        exercise_type:ExerciseType = self.active_sessions.get(session_id).exercise_type
+        extended_evaluation:bool   = self.active_sessions.get(session_id).extended_evaluation
+
+        # Calculating joint angles.
+        joint_analyzer_result = self.joint_analyzer.calculate_joints(
+            exercise_type=exercise_type,
+            landmarks=pose_analyzer_result,
+            extended_evaluation=extended_evaluation
+        )
+        if isinstance(joint_analyzer_result, ErrorCode): # Otherwise, the result is a dictionary of joints.
+            return ErrorHandler.convert_to_icd(joint_analyzer_result)
+    
+    ##########################
+    ### GET SESSION STATUS ###
+    ##########################
+    def get_session_status(self, session_id:str) -> ICD.ResponseType | ICD.ErrorType:
+        """
+        ### Brief:
+        The `get_session_status` method returns the current status (as an `ICD.ResponseType`)
+        of the provided session_id string.
+
+        ### Arguments:
+        `session_id` (str): The session id to be checked.
+
+        ### Returns:
+        - `ICD.ResponseType` with the relevant session status.
+        - `ICD.ErrorType` if the `_search` method raised an error.
+
+        ### Notes:
+        Returns `CLIENT_SESSION_IS_NOT_IN_SYSTEM` if the session doesn't exist in any dictionary.
+        """
+        session_id = self.id_generator.pack_string_to_session_id(session_id)
+        if session_id is None:
+            return ICD.ErrorType.INVALID_SESSION_ID
+        
+        try:
+            status = self._search(key=session_id, search_type=SearchType.ID)
+            if status is SessionStatus.REGISTERED: return ICD.ResponseType.CLIENT_SESSION_IS_REGISTERED
+            if status is SessionStatus.ACTIVE:     return ICD.ResponseType.CLIENT_SESSION_IS_ACTIVE
+            if status is SessionStatus.PAUSED:     return ICD.ResponseType.CLIENT_SESSION_IS_PAUSED
+            if status is SessionStatus.ENDED:      return ICD.ResponseType.CLIENT_SESSION_IS_ENDED
+            else:                                  return ICD.ResponseType.CLIENT_SESSION_IS_NOT_IN_SYSTEM
+        except Exception:
+            return ICD.ErrorType.INTERNAL_SERVER_ERROR
 
     ###############################################
     #################### TASKS ####################
     ###############################################
-    # TODO: To be added here: tasks like - clearing the ended_sessions dictionary once in a while.
+
+    ####################
+    ### CLEANUP TASK ###
+    ####################
+    def _cleanup_task(self) -> None:
+        """
+        The `_cleanup_task` method periodically scans and removes stale sessions
+        across all states:
+        - Registered (never started)
+        - Active (no frames recently)
+        - Paused (never resumed)
+        - Ended (expired retention window)
+        """
+        while True:
+            now = datetime.now()
+
+            # Registered but idle.
+            with self.registered_lock:
+                to_remove = [
+                    sid for sid, data in list(self.registered.items())
+                    if (now - data.time["registered"]).total_seconds() > self.max_registration_minutes * 60
+                ]
+                for sid in to_remove:
+                    self.registered.pop(sid, None)
+                    Logger.info(f"[Cleanup] Auto-unregistered idle session {sid} after {self.max_registration_minutes} minutes.")
+
+            # Active but inactive.
+            with self.active_sessions_lock:
+                to_end = [
+                    sid for sid, data in list(self.active_sessions.items())
+                    if (now - data.time["last_activity"]).total_seconds() > self.max_inactive_minutes * 60
+                ]
+                for sid in to_end:
+                    data = self.active_sessions.pop(sid, None)
+                    if data:
+                        with self.ended_sessions_lock:
+                            data.update_time_stamp(SessionStatus.ENDED)
+                            self.ended_sessions[sid] = data
+                        Logger.info(f"[Cleanup] Auto-ended inactive session {sid} after {self.max_inactive_minutes} minutes idle.")
+
+            # Paused but expired.
+            with self.paused_sessions_lock:
+                to_end = [
+                    sid for sid, data in list(self.paused_sessions.items())
+                    if data.time["paused"] is not None
+                    and (now - data.time["paused"]).total_seconds() > self.max_pause_minutes * 60
+                ]
+                for sid in to_end:
+                    data = self.paused_sessions.pop(sid, None)
+                    if data:
+                        with self.ended_sessions_lock:
+                            data.update_time_stamp(SessionStatus.ENDED)
+                            self.ended_sessions[sid] = data
+                        Logger.info(f"[Cleanup] Auto-ended paused session {sid} after {self.max_pause_minutes} minutes paused.")
+
+            # Ended sessions purge.
+            with self.ended_sessions_lock:
+                to_delete = [
+                    sid for sid, data in list(self.ended_sessions.items())
+                    if data.time["ended"] is not None
+                    and (now - data.time["ended"]).total_seconds() > self.max_ended_retention * 60
+                ]
+                for sid in to_delete:
+                    self.ended_sessions.pop(sid, None)
+                    Logger.info(f"[Cleanup] Deleted ended session {sid} after retention window.")
+
+            # Sleep until next cycle.
+            time.sleep(self.cleanup_interval_minutes * 60)
 
     ##########################################################
     #################### HELPER FUNCTIONS ####################
@@ -580,7 +799,7 @@ class SessionManager:
                 raise ValueError("Expected SessionId for session ID.")
             session_id = key
         else:
-            Error.handle(
+            ErrorHandler.handle(
                 error=ErrorCode.SEARCH_TYPE_IS_NOT_SUPPORTED,
                 origin=inspect.currentframe(),
                 extra_info={
@@ -588,7 +807,7 @@ class SessionManager:
                     'supported': f"{SearchType.IP.name} or {SearchType.ID.name}"
                 }
             )
-            raise None
+            return None
 
         # Begin session search.
         if self._is_client_registered(client_ip, session_id):
@@ -745,20 +964,24 @@ class SessionManager:
     #############################
     ### IS EXERCISE SUPPORTED ###
     #############################
-    def _is_exercise_supported(self, exercise_type:str) -> bool:
+    def _is_exercise_supported(self, exercise_type:str) -> ExerciseType | None:
         """
         ### Brief:
         The `_is_exercise_supported` method gets an exercise type and returns whether it's supported or not.
+        If it is supported returns an `ExerciseType` object, or `None` if not supported.
         
         ### Arguments:
         `exercise_type` (str): The exercise type.
         
         ### Returns:
-        `True` if the exercise is supported, `False` if not.
+        `ExerciseType` object if supported, `None` if not.
         """
         if exercise_type is None:
-            return False
+            return None
         elif exercise_type not in self.supported_exercises:
-            return False
+            return None
         else:
-            return True
+            try:
+                return ExerciseType.get(exercise_type)
+            except:
+                return None

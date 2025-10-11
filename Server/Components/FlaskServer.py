@@ -7,7 +7,7 @@
 ###############
 ### IMPORTS ###
 ###############
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Response
 from threading import Thread
 from Components.SessionManager import SessionManager
 from Utilities.Logger import Logger
@@ -64,14 +64,15 @@ class FlaskServer:
 
         # Bind routes to handler functions.
         try:
-            self.app.add_url_rule("/ping", view_func=self.ping, methods=["GET"])
+            self.app.add_url_rule("/ping",                 view_func=self.ping,                  methods=["GET"])
             self.app.add_url_rule("/register/new/session", view_func=self._register_new_session, methods=["POST"])
-            self.app.add_url_rule("/unregister/session", view_func=self._unregister_session, methods=["POST"])
-            self.app.add_url_rule("/start/session", view_func=self._start_session, methods=["POST"])
-            self.app.add_url_rule("/pause/session", view_func=self._pause_session, methods=["POST"])
-            self.app.add_url_rule("/resume/session", view_func=self._resume_session, methods=["POST"])
-            self.app.add_url_rule("/end/session", view_func=self._end_session, methods=["POST"])
-            self.app.add_url_rule("/analyze", view_func=self._analyze_pose, methods=["POST"])
+            self.app.add_url_rule("/unregister/session",   view_func=self._unregister_session,   methods=["POST"])
+            self.app.add_url_rule("/start/session",        view_func=self._start_session,        methods=["POST"])
+            self.app.add_url_rule("/pause/session",        view_func=self._pause_session,        methods=["POST"])
+            self.app.add_url_rule("/resume/session",       view_func=self._resume_session,       methods=["POST"])
+            self.app.add_url_rule("/end/session",          view_func=self._end_session,          methods=["POST"])
+            self.app.add_url_rule("/analyze",              view_func=self._analyze_pose,         methods=["POST"])
+            self.app.add_url_rule("/session/status",       view_func=self._session_status,       methods=["GET"])
         except Exception as e:
             ErrorHandler.handle(
                 error=ErrorCode.CANT_ADD_URL_RULE_TO_FLASK_SERVER,
@@ -228,13 +229,16 @@ class FlaskServer:
     ############
     ### PING ###
     ############
-    def ping(self) -> tuple:
+    def ping(self) -> tuple[Response, HttpCodes]:
         """
         ### Brief:
         The `ping` method represents a simple `GET` request to check if the server is reachable.
         
         ### Returns:
         - `tuple` containing the JSON response confirming server status, and a HTTP code.
+
+        ### Use:
+        Used by the client at startup or during connectivity checks to verify that the server is reachable.
         """
         Logger.info("Received ping request")
         return jsonify(self._response_to_dict(ICD.ResponseType.ALIVE)), HttpCodes.OK
@@ -242,7 +246,7 @@ class FlaskServer:
     ############################
     ### REGISTER NEW SESSION ###
     ############################
-    def _register_new_session(self) -> tuple:
+    def _register_new_session(self) -> tuple[Response, HttpCodes]:
         """
         ### Brief:
         The `_register_new_session` method registers a new session in the system for a specific exercise type.
@@ -255,6 +259,9 @@ class FlaskServer:
         - The method validates the client's IP and User-Agent before registration.
         - If the client is already registered, or if the exercise type is unsupported, appropriate errors are returned.
         - On success, a unique session ID is returned to the client.
+
+        ### Use:
+        Called when the user enters the exercise instructions screen to register a new session.
         """
         # Get request's JSON data.
         data = dict(request.get_json())
@@ -296,7 +303,7 @@ class FlaskServer:
     ##########################
     ### UNREGISTER SESSION ###
     ##########################   
-    def _unregister_session(self) -> tuple:
+    def _unregister_session(self) -> tuple[Response, HttpCodes]:
         """
         ### Brief:
         The `_unregister_session` method removes a registered session before it starts.
@@ -308,6 +315,9 @@ class FlaskServer:
         - The request must include a valid `session_id`.
         - This only applies to sessions in the `REGISTERED` state.
         - Returns an error if the session is already active, paused, ended, or doesn't exist.
+
+        ### Use:
+        Triggered when the user cancels or returns to the home screen before starting the session.
         """
         # Get request's JSON data.
         data = dict(request.get_json())
@@ -331,7 +341,7 @@ class FlaskServer:
     #####################
     ### START SESSION ###
     #####################
-    def _start_session(self):
+    def _start_session(self) -> tuple[Response, HttpCodes]:
         """
         ### Brief:
         The `_start_session` method starts a previously registered session and moves it to the active state.
@@ -343,6 +353,9 @@ class FlaskServer:
         - The request must include a valid `session_id` in the JSON payload.
         - Only sessions in the `REGISTERED` state can be started.
         - Returns an error if the session is invalid, already started, or the server has reached the maximum number of concurrent sessions.
+
+        ### Use:
+        Called when the user starts exercising, activating the registered session.
         """
         # Get request's JSON data.
         data = dict(request.get_json())
@@ -369,7 +382,7 @@ class FlaskServer:
     #####################
     ### PAUSE SESSION ###
     #####################
-    def _pause_session(self) -> tuple:
+    def _pause_session(self) -> tuple[Response, HttpCodes]:
         """
         ### Brief:
         The `_pause_session` method pauses a currently active session.
@@ -381,6 +394,9 @@ class FlaskServer:
         - The request must include a valid `session_id`.
         - The session must be in the `ACTIVE` state.
         - Returns an error if the session is not found or is not currently active.
+
+        ### Use:
+        Sent when the user pauses a workout (temporarily suspends analysis).
         """
         # Get request's JSON data.
         data = dict(request.get_json())
@@ -404,7 +420,7 @@ class FlaskServer:
     ######################
     ### RESUME SESSION ###
     ######################
-    def _resume_session(self) -> tuple:
+    def _resume_session(self) -> tuple[Response, HttpCodes]:
         """
         ### Brief:
         The `_resume_session` method resumes a session that is currently paused.
@@ -416,6 +432,9 @@ class FlaskServer:
         - The request must include a valid `session_id`.
         - The session must be in the `PAUSED` state.
         - Returns an error if the session is not found or if maximum client limit has been reached.
+
+        ### Use:
+        Triggered when the user resumes the workout after pausing.
         """
         # Get request's JSON data.
         data = dict(request.get_json())
@@ -442,7 +461,7 @@ class FlaskServer:
     ###################
     ### END SESSION ###
     ###################
-    def _end_session(self):
+    def _end_session(self) -> tuple[Response, HttpCodes]:
         """
         ### Brief:
         The `_end_session` method ends a session that is either active or paused.
@@ -454,6 +473,9 @@ class FlaskServer:
         - The request must include a valid `session_id`.
         - This moves the session to the `ENDED` state.
         - Returns an error if the session is not found or already ended.
+
+        ### Use:
+        Called when the user finishes exercising or the session timer expires.
         """
         # Get request's JSON data.
         data = dict(request.get_json())
@@ -477,7 +499,7 @@ class FlaskServer:
     ####################
     ### ANALYZE POSE ###
     ####################
-    def _analyze_pose(self):
+    def _analyze_pose(self) -> tuple[Response, HttpCodes]:
         """
         ### Brief:
         The `_analyze_pose` method receives a video frame from the client, forwards it
@@ -495,6 +517,9 @@ class FlaskServer:
         ### Returns:
         - JSON containing analysed frame feedback on success.
         - JSON with error info on error.
+
+        ### Use:
+        Used repeatedly during an active session to send each camera frame for pose analysis.
         """
         # Get request's JSON data.
         data = dict(request.get_json())
@@ -540,3 +565,39 @@ class FlaskServer:
             'feedback': { ... }        
         }
         '''
+
+    ######################
+    ### SESSION STATUS ###
+    ######################
+    def _session_status(self) -> tuple[Response, HttpCodes]:
+        """
+        ### Brief:
+        The `_session_status` method receives a session id from the client, forwards it
+        to the SessionManager and returns the session status, or an error code.
+
+        ### Returns:
+        - JSON containing session stauts if exists.
+        - JSON with error info if does not exist.
+
+        ### Use:
+        Used by the client to periodically check whether their session is still
+        active, paused, ended, or cleaned up by the server.
+        """
+        # Get request's JSON data.
+        data = dict(request.get_json())
+        if not data:
+            Logger.warning("Missing or invalid JSON in analyze_pose request")
+            return jsonify(self._error_to_dict(ICD.ErrorType.INVALID_JSON_PAYLOAD_IN_REQUEST)), HttpCodes.BAD_REQUEST
+
+        # Extract required fields.
+        session_id:str = data.get("session_id", None)
+        if session_id is None:
+            Logger.warning("Missing fields in analyze_pose request")
+            return jsonify(self._error_to_dict(ICD.ErrorType.MISSING_FRAME_DATA_IN_REQUEST)), HttpCodes.BAD_REQUEST
+        
+        # Get the status.
+        session_status_icd = self.session_manager.get_session_status(session_id)
+        if isinstance(session_status_icd, ICD.ErrorType):
+            return jsonify(self._error_to_dict(session_status_icd)), HttpCodes.SERVER_ERROR
+        else:
+            return jsonify(self._response_to_dict(session_status_icd)), HttpCodes.OK

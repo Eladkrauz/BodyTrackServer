@@ -16,10 +16,21 @@
     ],
     "maximum_clients": 10
   },
+  "tasks": {
+    "cleanup_interval_minutes": 10,
+    "max_registration_minutes": 10,
+    "max_inactive_minutes": 3,
+    "max_pause_minutes": 10,
+    "max_ended_retention": 30    
+  },
   "log": {
     "logger_path": "Utilities/Logs/ServerLogger.log",
     "logger_name": "BodyTrackLogger",
     "archive_dir_name": "Archive",
     "log_level": "DEBUG"
+  },
+  "joints": {
+    "visibility_threshold": 0.5,
+    "min_valid_joint_ratio": 0.7
   }
 }
