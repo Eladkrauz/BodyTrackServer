@@ -17,7 +17,7 @@ class ClientServerIcd:
         ERROR                               = 3
 
     class ErrorType(enum):
-        # Client-server communication.
+        # Client-server communication, including database operations failures.
         CLIENT_IP_IS_INVALID                = (100, "The provided IP is invalid.")
         CLIENT_AGENT_IS_INVALID             = (101, "The provided client agent is invalid.")
         INVALID_JSON_PAYLOAD_IN_REQUEST     = (102, "The JSON payload in the request is invalid.")
@@ -26,6 +26,16 @@ class ClientServerIcd:
         MISSING_FRAME_DATA_IN_REQUEST       = (105, "The request does not contain frame data, which should include session id, frame id and frame content.")
         FRAME_DECODING_FAILED               = (106, "The request contains frame content that could not be decoded.")
         INTERNAL_SERVER_ERROR               = (107, "There was an internal server error.")
+        USER_ALREADY_EXISTS                 = (108, "The user already exists in the system.")
+        DATABASE_INSERT_FAILED              = (109, "Failed to insert to database.")
+        DATABASE_QUERY_FAILED               = (110, "Failed to query the database.")
+        DATABASE_UPDATE_FAILED              = (111, "Failed to update the database.")
+        DATABASE_DELETE_FAILED              = (112, "Failed to delete from the database")
+        USER_INVALID_CREDENTIALS            = (113, "The provided user credentials are invalid.")
+        USER_IS_ALREADY_LOGGED_IN           = (114, "The user with the given credentials is already logged in.")
+        USER_IS_NOT_LOGGED_IN               = (115, "The user with the given credentials is not logged in.")
+        USER_NOT_FOUND                      = (116, "The user with the given user id is not found in the system.")
+
 
         # Session.
         CANT_REGISTER_CLIENT_TO_SESSION     = (200, "The system can't register the client to a new session.")

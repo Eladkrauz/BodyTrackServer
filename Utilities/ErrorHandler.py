@@ -30,10 +30,21 @@ class ErrorCode(enum):
     CONFIGURATION_PARAMETER_DOES_NOT_EXIST  = (5, "The key sent does not exist in the configuration file.", {"Please check": "the configuration file.", "Critical": "Can't configure server. Terminating system."}, True)
     CONFIGURATION_KEY_IS_INVALID            = (6, "The key sent is not a valid list of ConfigParameters", None, True)
 
-    # Flask.
+    # Flask and database management.
     CANT_ADD_URL_RULE_TO_FLASK_SERVER       = (100, "URL rule could not be added.", None, True)
     UNRECOGNIZED_ICD_ERROR_TYPE             = (101, "The provided ICD error type is not recognized", None, True)
     UNRECOGNIZED_ICD_RESPONSE_TYPE          = (102, "The provided ICD response type is not recognized", None, True)
+    DATABASE_CONNECTION_FAILED              = (103, "The connection to the database has failed.", None, True)
+    DATABASE_SCHEMA_CREATION_FAILED         = (104, "The creation of the database schema has failed.", None, True)
+    USER_ALREADY_EXISTS                     = (105, "The user already exists in the system.", None, False)
+    DATABASE_INSERT_FAILED                  = (106, "Failed to insert to database.", None, False)
+    DATABASE_QUERY_FAILED                   = (107, "Failed to query the database.", None, False)
+    DATABASE_UPDATE_FAILED                  = (108, "Failed to update the database.", None, False)
+    DATABASE_DELETE_FAILED                  = (109, "Failed to delete from the database.", None, False)
+    USER_INVALID_CREDENTIALS                = (110, "The provided user credentials are invalid.", None, False)
+    USER_IS_ALREADY_LOGGED_IN               = (111, "The user with the given credentials is already logged in.", None, False)
+    USER_IS_NOT_LOGGED_IN                   = (112, "The user with the given credentials is not logged in.", None, False)
+    USER_NOT_FOUND                          = (113, "The user with the given user id is not found in the system.", None, False)
 
     # Session Manager.
     EXERCISE_TYPE_DOES_NOT_EXIST            = (200, "The provided exercise type is not supported in the system", None, False)
@@ -89,8 +100,10 @@ class ErrorHandler:
     using standardized error codes, detailed messages, and optional contextual
     information, while supporting both non-critical logging and critical failures
     that gracefully terminate the system.
+
     ### Notes:
-    - No need to get an instance of `ErrorHandler` before handling an error, the methods are class methods and do it themselves.
+    No need to get an instance of `ErrorHandler` before handling an error,
+    the methods are class methods and do it themselves.
     """
 
     #########################
@@ -107,15 +120,16 @@ class ErrorHandler:
         """
         ### Brief:
         The `handle` method gets error information and logs it into the system logger.
+
         ### Arguments:
-        - `cls`: The class object.
         - `error`: The error from `ErrorCode` enum class.
         - `origin`: The origin of the error. Use `inspect.currentframe()` to get the origin.
         - `extra_info`: An extra dictionary, can be added as extra information to the information of the error. Defaults to None.
         - `do_not_log`: A boolean indicating if to log the error or not. Defaults to False (meaning: log the error).
+
         ### Explanation:
         After importing the `ErrorHandler` and `ErrorCode`, call `handle` this way:
-        ```python
+        ```
         from Utilities.ErrorHandler import ErrorHandler, ErrorCode
         ErrorHandler.handle(
             error=ErrorCode.ERROR_TYPE,
@@ -127,11 +141,31 @@ class ErrorHandler:
             do_not_log=False # Ignore this argument. Only for internal use.
         )
         ```
-        #### 
+        This is how a valid `ErrorCode` looks like:
+        ```
+        ERROR_NAME = (
+            error_opcode, # An integer representing the error code.
+            error_reason, # A string representing the error reason.
+            extra_info,   # A dict containing extra info about the error. Can be None.
+            abort         # A bool value. If True the system aborts after logging the error
+        )
+        ```
+        For example:
+        ```
+        USER_ALREADY_EXISTS = (
+            105,                                      # The opcode is 105.
+            "The user already exists in the system.", # The reason for the error.
+            None,                                     # No extra information.
+            False                                     # The system won't abort.
+        )
+        ```
         ### Notes:
         - `do_not_log` and `extra_info` can be ignored and not sent as parameters.
         - Please make sure `extra_info` does not contain keys the same as the keys inside `ErrorCode.ERROR_TYPE` you sent.
         """
+        if not isinstance(error, ErrorCode):
+            raise TypeError("The provided error is not a valid ErrorCode object.")
+        
         full_message = f"[Error {str(error.value)}] {error.description}"
 
         # Updating the extra info.
@@ -191,7 +225,7 @@ class ErrorHandler:
             # Try to access ICD.ErrorType member by name.
             return ICD.ErrorType[error_code.name]
         except Exception as e:
-            # If not found, log and return default
+            # If not found, log and return default.
             cls.handle(
                 error=ErrorCode.UNRECOGNIZED_ICD_ERROR_TYPE,
                 origin=inspect.currentframe(),
