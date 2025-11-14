@@ -1,5 +1,5 @@
 ############################################################
-################### BODY TRACK // SERVER ###################
+########## BODY TRACK // SERVER // COMMUNICATION ###########
 ############################################################
 #################### CLASS: FlaskServer ####################
 ############################################################
@@ -9,26 +9,20 @@
 ###############
 from flask import Flask, request, jsonify, Response
 from threading import Thread
-from Components.SessionManager import SessionManager
-from Utilities.Logger import Logger
-from Utilities.ErrorHandler import ErrorHandler, ErrorCode
-from Common.ClientServerIcd import ClientServerIcd as ICD
 import inspect, ipaddress
 import base64, cv2
 import numpy as np
 
-class HttpCodes():
-    """
-    ### Description:
-    The `HttpCodes` class representes `HTTP` return codes.
-    """
-    OK           = 200
-    CREATED      = 201
-    BAD_REQUEST  = 400
-    UNAUTHORIZED = 401
-    NOT_FOUND    = 404
-    SERVER_ERROR = 500
+from Server.Pipeline.SessionManager import SessionManager
+from Server.Utilities.Logger import Logger
+from Server.Utilities.Error.ErrorHandler import ErrorHandler
+from Server.Utilities.Error.ErrorCode import ErrorCode
+from Common.ClientServerIcd import ClientServerIcd as ICD
+from Server.Communication.HttpCodes import HttpCodes
 
+##########################
+### FLASK SERVER CLASS ###
+##########################
 class FlaskServer:
     """
     ### Description:

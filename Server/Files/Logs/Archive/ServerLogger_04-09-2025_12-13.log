@@ -1,0 +1,12 @@
+#############################
+##### BODY TRACK LOGGER #####
+#############################
+2025-09-04 12:11:54,812 - CRITICAL - [Error 7] URL rule could not be added.
+Exception: <class 'Exception'>
+Reason: Bye
+Origin: File - Main.py | Function - main | Line - 19
+This error is not recoverable.
+
+#############################################################
+##### This log file was archived on 2025-09-04 12:13:11 #####
+#############################################################

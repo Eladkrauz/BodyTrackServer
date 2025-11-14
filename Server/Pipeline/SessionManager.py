@@ -1,5 +1,5 @@
 ###############################################################
-##################### BODY TRACK // SERVER ####################
+############### BODY TRACK // SERVER // PIPELINE ##############
 ###############################################################
 #################### CLASS: SessionManager ####################
 ###############################################################
@@ -11,186 +11,21 @@ import inspect, threading, time
 import numpy as np
 from threading import RLock
 from datetime import datetime
-from enum import Enum as enum
-from enum import auto
-from dataclasses import dataclass, field
-from typing import Optional, Dict, Any
-from Utilities.SessionIdGenerator import SessionIdGenerator, SessionId
-from Utilities.ConfigLoader import ConfigLoader, ConfigParameters
-from Utilities.ErrorHandler import ErrorHandler as ErrorHandler
-from Utilities.ErrorHandler import ErrorCode
+
+from Server.Utilities.SessionIdGenerator import SessionIdGenerator, SessionId
+from Server.Utilities.Config.ConfigLoader import ConfigLoader
+from Server.Utilities.Config.ConfigParameters import ConfigParameters
+from Server.Utilities.Error.ErrorHandler import ErrorHandler
+from Server.Utilities.Error.ErrorCode import ErrorCode
+from Server.Utilities.Logger import Logger as Logger
+from Server.Pipeline.PoseAnalyzer import PoseAnalyzer
+from Server.Pipeline.JointAnalyzer import JointAnalyzer
 from Common.ClientServerIcd import ClientServerIcd as ICD
-from Utilities.Logger import Logger as Logger
-from Components.PoseAnalyzer import PoseAnalyzer as PoseAnalyzer
-from Components.JointAnalyzer import JointAnalyzer as JointAnalyzer
-
-#################################
-### SESSION STATUS ENUM CLASS ###
-#################################
-class SessionStatus(enum):
-    """
-    ### Description:
-    The `SessionStatus` enum class represents the statuses a session can be in.
-    """
-    REGISTERED    = auto()
-    ACTIVE        = auto()
-    ENDED         = auto()
-    PAUSED        = auto()
-    NOT_IN_SYSTEM = auto()
-
-##############################
-### SEARCH TYPE ENUM CLASS ###
-##############################
-class SearchType(enum):
-    IP = auto()
-    ID = auto()
-
-#####################
-### EXERCISE TYPE ###
-#####################
-class ExerciseType(enum):
-    SQUAT           = "squat"
-    BICEPS_CURL     = "biceps_curl"
-    LATERAL_RAISE   = "lateral_raise"
-
-    ###########
-    ### GET ###
-    ###########
-    @staticmethod
-    def get(exercise_type: str) -> 'ExerciseType':
-        """
-        ### Brief:
-        The `get` method converts a string into an `ExerciseType` enum value.
-
-        ### Arguments:
-        - `exercise_type` (str): The exercise name, case-insensitive.
-
-        ### Returns:
-        - `ExerciseType`: The corresponding enum value.
-
-        ### Raises:
-        - `ValueError`: If the provided exercise type is unsupported.
-        """
-        if not isinstance(exercise_type, str):
-            raise TypeError("Expected a string for exercise_type.")
-
-        normalized = exercise_type.strip().lower()
-        for et in ExerciseType:
-            if et.value == normalized:
-                return et
-
-        raise ValueError(f"Unsupported exercise: {exercise_type}")
-
-##########################
-### SESSION DATA CLASS ###
-##########################
-@dataclass
-class SessionData:
-    """
-    ### Brief:
-    The `SessionData` represents metadata and runtime details for a single exercise session.
-
-    ### Fields:
-    - `session_id` (str): Unique session identifier.
-    - `client_info` (dict[str, Any]): Metadata about the client device/IP.
-    - `exercise_type` (ExerciseType): The type of exercise (e.g., "squats", "pushups").
-    - `time` (dict[str, datetime]): Timestamps about the sessions.
-    - `frames_received` (int): Total number of frames received during the session.
-    - `extended_evaluation` (bool): Indicates whether evaluate the frame with extended joints or only core.
-    - `analysis_data` (dict[str, Any]): Holds pose analysis results and feedback (optional).
-    """
-    ###########################
-    ### SESSION DATA FIELDS ###
-    ###########################
-    session_id: SessionId
-    client_info: Dict[str, Any]
-    exercise_type: ExerciseType
-    time: Dict[str, Optional[datetime]] = field(default_factory=lambda: {
-        "registered": datetime.now(),
-        "started": None,
-        "paused": None,
-        "ended": None,
-        "last_activity": datetime.now()
-    })
-    frames_received: int = 0
-    extended_evaluation: bool = False
-    analysis_data: Dict[str, Any] = field(default_factory=dict)
-
-    #########################
-    ### UPDATE TIME STAMP ###
-    #########################
-    def update_time_stamp(self, session_status:SessionStatus = None) -> None:
-        """
-        ### Brief:
-        The `update_time_stamp` method updates the times of a `SessionData` object.
-
-        ### Arguments:
-        - `session_status` (SessionStatus): The type of time to be updated.
-
-        ### Notes:
-        - `session_status` defaults to `None`. If so: updating just the `last_activity` time stamp.
-        """
-        now = datetime.now()
-        if session_status is not None:
-            if    session_status is SessionStatus.REGISTERED: self.time['registered'] = now
-            elif  session_status is SessionStatus.ACTIVE:     self.time['started']    = now
-            elif  session_status is SessionStatus.PAUSED:     self.time['paused']     = now
-            elif  session_status is SessionStatus.ENDED:      self.time['ended']      = now
-            else: ErrorHandler.handle(error=ErrorCode.SESSION_STATUS_IS_NOT_RECOGNIZED, origin=inspect.currentframe())
-
-        self.time['last_activity'] = now
-
-########################
-### FRAME DATA CLASS ###
-########################
-@dataclass
-class FrameData:
-    """
-    ### Description:
-    The `FrameData` dataclass represents a single video frame in an active session.
-    
-    ### Attributes:
-    - `session_id` (SessionId): Unique identifier of the session.
-    - `frame_id` (int): Sequential ID of the frame.
-    - `content` (np.ndarray): The frame image (BGR format, NumPy array).
-    """
-    session_id: SessionId
-    frame_id:   int
-    content:    np.ndarray
-
-    ######################
-    ### VALIDATE FRAME ###
-    ######################
-    def validate(self) -> None:
-        """
-        ### Brief:
-        The `validate` method performs lightweight validation of the frame data.
-
-        ### Raises:
-        - `ValueError` is the frame content is `None`
-        - `TypeError` if the frame content is not an `np.ndarray`
-        
-        ### Notes:
-        - Ensures the frame exists and is a NumPy array.
-        - Leaves deeper checks (shape, channels) to `PoseAnalyzer`.
-        """
-        if self.content is None:
-            ErrorHandler.handle(
-                error=ErrorCode.FRAME_INITIAL_VALIDATION_FAILED,
-                origin=inspect.currentframe(),
-                extra_info={"Reason": "Frame content is None."}
-            )
-            raise ValueError("Invalid FrameData: content is None.")
-
-        if not isinstance(self.content, np.ndarray):
-            ErrorHandler.handle(
-                error=ErrorCode.FRAME_INITIAL_VALIDATION_FAILED,
-                origin=inspect.currentframe(),
-                extra_info={"Reason": "Frame content is not a NumPy array."}
-            )
-            raise TypeError("Invalid FrameData: content is not a NumPy array.")
-
-        Logger.debug(f"FrameData {self.frame_id} (Session {self.session_id.id}) validated successfully.")
+from Server.Data.Session.SessionStatus import SessionStatus
+from Server.Data.Session.SearchType import SearchType
+from Server.Data.Session.ExerciseType import ExerciseType
+from Server.Data.Session.SessionData import SessionData
+from Server.Data.Session.FrameData import FrameData
 
 #############################
 ### SESSION MANAGER CLASS ###
@@ -423,9 +258,12 @@ class SessionManager:
                         self.active_sessions[session_id] = session_data
 
             # Updating fields of the session.
-            self.active_sessions[session_id].update_time_stamp(SessionStatus.ACTIVE)
-            self.active_sessions[session_id].extended_evaluation = extended_evaluation
-            return ICD.ResponseType.CLIENT_SESSION_IS_ACTIVE
+            if self.active_sessions[session_id].update_time_stamp(SessionStatus.ACTIVE) is not None:
+                ErrorHandler.handle(error=ErrorCode.SESSION_STATUS_IS_NOT_RECOGNIZED, origin=inspect.currentframe())
+                return ICD.ErrorType.INTERNAL_SERVER_ERROR
+            else:
+                self.active_sessions[session_id].extended_evaluation = extended_evaluation
+                return ICD.ResponseType.CLIENT_SESSION_IS_ACTIVE
 
         # If the client is not registered or already started - it can't start the session.
         else:
@@ -468,8 +306,11 @@ class SessionManager:
                     # Adding it to the active sessions dictionary.
                     self.paused_sessions[session_id] = session_data
 
-                self.paused_sessions[session_id].update_time_stamp(SessionStatus.PAUSED)
-                return ICD.ResponseType.CLIENT_SESSION_IS_RESUMED
+                if self.paused_sessions[session_id].update_time_stamp(SessionStatus.PAUSED) is not None:
+                    ErrorHandler.handle(error=ErrorCode.SESSION_STATUS_IS_NOT_RECOGNIZED, origin=inspect.currentframe())
+                    return ICD.ErrorType.INTERNAL_SERVER_ERROR
+                else:
+                    return ICD.ResponseType.CLIENT_SESSION_IS_RESUMED
         
         else: # If the session is not paused.
             error_to_return, error_to_log = self._session_status_to_error(session_status)
@@ -527,8 +368,11 @@ class SessionManager:
                         # Adding it to the active sessions dictionary.
                         self.active_sessions[session_id] = session_data
 
-                    self.active_sessions[session_id].update_time_stamp(SessionStatus.ACTIVE)
-                    return ICD.ResponseType.CLIENT_SESSION_IS_RESUMED
+                    if self.active_sessions[session_id].update_time_stamp(SessionStatus.ACTIVE) is not None:
+                        ErrorHandler.handle(error=ErrorCode.SESSION_STATUS_IS_NOT_RECOGNIZED, origin=inspect.currentframe())
+                        return ICD.ErrorType.INTERNAL_SERVER_ERROR
+                    else:
+                        return ICD.ResponseType.CLIENT_SESSION_IS_RESUMED
         
         else: # If the session is not paused.
             error_to_return, error_to_log = self._session_status_to_error(session_status)
@@ -573,8 +417,11 @@ class SessionManager:
                     # Adding it to the ended sessions dictionary.
                     self.ended_sessions[session_id] = session_data
 
-                self.ended_sessions[session_id].update_time_stamp(SessionStatus.ENDED)
-                return ICD.ResponseType.CLIENT_SESSION_IS_RESUMED
+                if self.ended_sessions[session_id].update_time_stamp(SessionStatus.ENDED) is not None:
+                    ErrorHandler.handle(error=ErrorCode.SESSION_STATUS_IS_NOT_RECOGNIZED, origin=inspect.currentframe())
+                    return ICD.ErrorType.INTERNAL_SERVER_ERROR
+                else:
+                    return ICD.ResponseType.CLIENT_SESSION_IS_RESUMED
         elif session_status is SessionStatus.PAUSED: # If the session is active.
             with self.paused_sessions_lock:
                 with self.ended_sessions_lock:
@@ -583,8 +430,11 @@ class SessionManager:
                     # Adding it to the ended sessions dictionary.
                     self.ended_sessions[session_id] = session_data
 
-                self.ended_sessions[session_id].update_time_stamp(SessionStatus.ENDED)
-                return ICD.ResponseType.CLIENT_SESSION_IS_ENDED
+                if self.ended_sessions[session_id].update_time_stamp(SessionStatus.ENDED) is not None:
+                    ErrorHandler.handle(error=ErrorCode.SESSION_STATUS_IS_NOT_RECOGNIZED, origin=inspect.currentframe())
+                    return ICD.ErrorType.INTERNAL_SERVER_ERROR
+                else:
+                    return ICD.ResponseType.CLIENT_SESSION_IS_ENDED
         
         else: # If the session is not active or paused.Ø
             error_to_return, error_to_log = self._session_status_to_error(session_status)
@@ -600,7 +450,7 @@ class SessionManager:
         if session_id is None:
             return ICD.ErrorType.INVALID_SESSION_ID
         
-        # Checking if the session is active or paused.
+        # Checking if the session is active.
         session_status:SessionStatus = self._search(key=session_id, search_type=SearchType.ID)
         if session_status is not SessionStatus.ACTIVE:
             ErrorHandler.handle(
@@ -620,7 +470,10 @@ class SessionManager:
         except (ValueError, TypeError):
             return ICD.ErrorType.FRAME_INITIAL_VALIDATION_FAILED
         
-        self.active_sessions.get(session_id).update_time_stamp() # Updating last activity.
+        if self.active_sessions.get(session_id).update_time_stamp() is not None: # Updating last activity.
+            ErrorHandler.handle(error=ErrorCode.SESSION_STATUS_IS_NOT_RECOGNIZED, origin=inspect.currentframe())
+            return ICD.ErrorType.INTERNAL_SERVER_ERROR
+        
         self.active_sessions.get(session_id).frames_received += 1
         
         ### Analyzing Pose --- using PoseAnalyzer.
@@ -714,7 +567,9 @@ class SessionManager:
                     data = self.active_sessions.pop(sid, None)
                     if data:
                         with self.ended_sessions_lock:
-                            data.update_time_stamp(SessionStatus.ENDED)
+                            if data.update_time_stamp(SessionStatus.ENDED) is not None:
+                                ErrorHandler.handle(error=ErrorCode.SESSION_STATUS_IS_NOT_RECOGNIZED, origin=inspect.currentframe())
+                                return ICD.ErrorType.INTERNAL_SERVER_ERROR
                             self.ended_sessions[sid] = data
                         Logger.info(f"[Cleanup] Auto-ended inactive session {sid} after {self.max_inactive_minutes} minutes idle.")
 
@@ -729,7 +584,9 @@ class SessionManager:
                     data = self.paused_sessions.pop(sid, None)
                     if data:
                         with self.ended_sessions_lock:
-                            data.update_time_stamp(SessionStatus.ENDED)
+                            if data.update_time_stamp(SessionStatus.ENDED) is not None:
+                                ErrorHandler.handle(error=ErrorCode.SESSION_STATUS_IS_NOT_RECOGNIZED, origin=inspect.currentframe())
+                                return ICD.ErrorType.INTERNAL_SERVER_ERROR
                             self.ended_sessions[sid] = data
                         Logger.info(f"[Cleanup] Auto-ended paused session {sid} after {self.max_pause_minutes} minutes paused.")
 

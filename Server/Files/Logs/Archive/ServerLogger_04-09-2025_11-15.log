@@ -1,0 +1,12 @@
+#############################
+##### BODY TRACK LOGGER #####
+#############################
+2025-09-01 23:43:57,418 - CRITICAL - [Error 3] The paramter supported_exercises does not exist in the configuration file.
+Please check: the configuration file.
+Critical: Can't configure server. Terminating system.
+Origin: File - ConfigLoader.py | Function - get | Line - 142
+This error is not recoverable. Aborting system.
+
+#############################################################
+##### This log file was archived on 2025-09-04 11:15:51 #####
+#############################################################

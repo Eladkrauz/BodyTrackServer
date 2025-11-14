@@ -2,3 +2,4 @@ Utilities/Logs/*
 Utilities/Logs/Archive/*
 __pycache__/
 *.pyc
+.vscode/*

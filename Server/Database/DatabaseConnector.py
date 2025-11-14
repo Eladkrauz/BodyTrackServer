@@ -1,5 +1,5 @@
 ############################################################
-################### BODY TRACK // SERVER ###################
+############# BODY TRACK // SERVER // DATABASE #############
 ############################################################
 ################# CLASS: DatabaseConnector #################
 ############################################################
@@ -10,10 +10,12 @@
 from sqlalchemy import create_engine, Column, Integer, String, Float, ForeignKey, DateTime, Text, Boolean, desc
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship, Session as OrmSession
 from datetime import datetime
-from Utilities.Logger import Logger
-from Utilities.ErrorHandler import ErrorHandler, ErrorCode
-from typing import Optional, List, Dict
 import inspect
+from typing import Optional, List, Dict
+
+from Server.Utilities.Logger import Logger
+from Server.Utilities.Error.ErrorHandler import ErrorHandler
+from Server.Utilities.Error.ErrorCode import ErrorCode
 
 Base = declarative_base()
 

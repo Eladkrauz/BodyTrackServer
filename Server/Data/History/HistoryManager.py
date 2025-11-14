@@ -1,5 +1,5 @@
 ############################################################
-################# BODY TRACK // COMPONENTS #################
+######### BODY TRACK // SERVER // DATA // HISTORY ##########
 ############################################################
 ################## CLASS: HistoryManager ###################
 ############################################################
@@ -9,11 +9,13 @@
 ###############
 import time, inspect
 from typing import Dict, Any, List
-from Utilities.Logger import Logger
-from Utilities.ErrorHandler import ErrorHandler, ErrorCode
-from Components.SessionManager import ExerciseType
-from Components.JointAnalyzer import JointAngle
-from Components.PhaseDetector import PhaseType
+
+from Server.Utilities.Logger import Logger
+from Server.Utilities.Error.ErrorHandler import ErrorHandler
+from Server.Utilities.Error.ErrorCode import ErrorCode
+from Server.Data.Session.ExerciseType import ExerciseType
+from Server.Data.Joints.JointAngle import JointAngle
+from Server.Data.Phase.PhaseType import PhaseType
 
 #############################
 ### HISTORY MANAGER CLASS ###

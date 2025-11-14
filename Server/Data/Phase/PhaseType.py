@@ -1,7 +1,7 @@
 ############################################################
-################# BODY TRACK // COMPONENTS #################
+############# BODY TRACK SERVER // DATA // PHASE ###########
 ############################################################
-################### CLASS: PhaseDetector ###################
+################### CLASS: PhaseType #######################
 ############################################################
 
 ###############
@@ -9,9 +9,8 @@
 ###############
 from enum import Enum as enum
 from enum import auto
-from Components.SessionManager import ExerciseType
-from Utilities.ErrorHandler import ErrorHandler, ErrorCode
-import inspect
+from Server.Data.Session.ExerciseType import ExerciseType
+from Server.Utilities.Error.ErrorCode import ErrorCode
 
 ########################
 ### PHASE TYPE CLASS ###
@@ -80,5 +79,7 @@ class PhaseType:
         elif exercise_type == ExerciseType.BICEPS_CURL:   return PhaseType.BicepsCurl.NONE
         elif exercise_type == ExerciseType.LATERAL_RAISE: return PhaseType.LateralRaise.NONE
         else:
+            from Server.Utilities.Error.ErrorHandler import ErrorHandler
+            import inspect
             ErrorHandler.handle(error=ErrorCode.EXERCISE_TYPE_DOES_NOT_EXIST, origin=inspect.currentframe())
             return ErrorCode.EXERCISE_TYPE_DOES_NOT_EXIST

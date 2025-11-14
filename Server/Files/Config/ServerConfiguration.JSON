@@ -24,7 +24,7 @@
     "max_ended_retention": 30    
   },
   "log": {
-    "logger_path": "Utilities/Logs/ServerLogger.log",
+    "logger_path": "Server/Files/Logs/ServerLogger.log",
     "logger_name": "BodyTrackLogger",
     "archive_dir_name": "Archive",
     "log_level": "DEBUG"

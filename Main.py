@@ -1,21 +1,19 @@
-from Utilities.Logger import Logger as Log
-from Utilities.ErrorHandler import ErrorHandler as Error
-from Utilities.ErrorHandler import ErrorCode as ErrorCode
-from Utilities.ConfigLoader import ConfigLoader as Config
-from Utilities.ConfigLoader import ConfigParameters
-from Server.Components.SessionManager import SessionData
-from Common.ClientServerIcd import ClientServerIcd as ICD
+from Server.Utilities.Logger import Logger as Log
+from Server.Utilities.Error.ErrorHandler import ErrorHandler
+from Server.Utilities.Error.ErrorCode import ErrorCode
+from Server.Utilities.Config.ConfigLoader import ConfigLoader
+from Server.Utilities.Config.ConfigParameters import ConfigParameters
 
 import inspect
 
 def main() -> None:
-    Config.initialize()
+    ConfigLoader.initialize()
     Log.initialize()
     key = ConfigParameters.Minor.ARCHIVE_DIR_NAME
     try:
         raise Exception("Bye")
     except Exception as e:
-        Error.handle(
+        ErrorHandler.handle(
             error=ErrorCode.CANT_ADD_URL_RULE_TO_FLASK_SERVER,
             origin=inspect.currentframe(),
             extra_info={
@@ -24,5 +22,5 @@ def main() -> None:
             }
         )
 
-    print(Config.get([ConfigParameters.Major.COMMUNICATION, ConfigParameters.Minor.HOST], True))
+    print(ConfigLoader.get([ConfigParameters.Major.COMMUNICATION, ConfigParameters.Minor.HOST], True))
 main()

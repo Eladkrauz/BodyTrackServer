@@ -1,5 +1,5 @@
 ############################################################
-################# BODY TRACK // UTILITIES ##################
+############ BODY TRACK // SERVER // UTILITIES #############
 ############################################################
 ###################### CLASS: Logger #######################
 ############################################################
@@ -7,7 +7,7 @@
 ###############
 ### IMPORTS ###
 ###############
-import logging, os, inspect
+import logging, os
 from datetime import datetime
 
 class Logger:
@@ -40,7 +40,8 @@ class Logger:
         - It archives existing log file if exists and starts a new log session.
         """
         # Extract parameters from the configuration file.
-        from Utilities.ConfigLoader import ConfigLoader, ConfigParameters
+        from Server.Utilities.Config.ConfigLoader import ConfigLoader
+        from Server.Utilities.Config.ConfigParameters import ConfigParameters
         logger_parameters = ConfigLoader.get(key=[ConfigParameters.Major.LOG], critical_value=True)
         logger_path = logger_parameters[ConfigParameters.Minor.LOGGER_PATH.value]
         logger_name = logger_parameters[ConfigParameters.Minor.LOGGER_NAME.value]

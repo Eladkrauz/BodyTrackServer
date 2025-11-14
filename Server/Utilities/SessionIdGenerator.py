@@ -1,5 +1,5 @@
 ############################################################
-################# BODY TRACK // UTILITIES ##################
+############ BODY TRACK // SERVER // UTILITIES #############
 ############################################################
 ################ CLASS: SessionIdGenerator #################
 ############################################################
@@ -8,8 +8,9 @@
 ### IMPORTS ###
 ###############
 import uuid, inspect
-from Utilities.ErrorHandler import ErrorHandler, ErrorCode
-from Utilities.Logger import Logger
+from Server.Utilities.Error.ErrorHandler import ErrorHandler
+from Server.Utilities.Error.ErrorCode import ErrorCode
+from Server.Utilities.Logger import Logger
 from dataclasses import dataclass
 
 @dataclass
