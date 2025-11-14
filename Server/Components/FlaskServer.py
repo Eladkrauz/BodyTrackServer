@@ -72,7 +72,7 @@ class FlaskServer:
             self.app.add_url_rule("/resume/session",       view_func=self._resume_session,       methods=["POST"])
             self.app.add_url_rule("/end/session",          view_func=self._end_session,          methods=["POST"])
             self.app.add_url_rule("/analyze",              view_func=self._analyze_pose,         methods=["POST"])
-            self.app.add_url_rule("/session/status",       view_func=self._session_status,       methods=["GET"])
+            self.app.add_url_rule("/session/status",       view_func=self._session_status,       methods=["POST"])
         except Exception as e:
             ErrorHandler.handle(
                 error=ErrorCode.CANT_ADD_URL_RULE_TO_FLASK_SERVER,
@@ -125,14 +125,10 @@ class FlaskServer:
     ###########################
     ### PREPARE CLIENT INFO ###
     ###########################
-    def _prepare_client_info(self, client_ip:str, client_user_agent:str) -> dict[str, str] | ICD.ErrorType:
+    def _prepare_client_info(self) -> dict[str, str] | ICD.ErrorType:
         """
         ### Brief:
         The `_prepare_client_info` method validates and assembles client metadata including IP address and User-Agent string.
-
-        ### Arguments:
-        - `client_ip` (str): The IP address extracted from the `request` object.
-        - `client_user_agent` (str): The User-Agent string from the `request` headers.
 
         ### Returns:
         - `dict[str, str]`: Dictionary with keys `'ip'` and `'user_agent'` if both are valid.
@@ -144,12 +140,19 @@ class FlaskServer:
         """
         # Checking the IP address.
         try:
+            if request.headers.getlist("X-Forwarded-For"):
+                # 'X-Forwarded-For' can be a list: [client, proxy1, proxy2].
+                # The "real" client IP is the first one.
+                client_ip = request.headers.getlist("X-Forwarded-For")[0]
+            else:
+                client_ip = request.remote_addr
             if client_ip is None: raise ValueError
             ipaddress.ip_address(client_ip)
         except ValueError:
             return ICD.ErrorType.CLIENT_IP_IS_INVALID
         
         # Checking the User Agent.
+        client_user_agent = request.headers.get("User-Agent", None)
         if client_user_agent is None:
             return ICD.ErrorType.CLIENT_AGENT_IS_INVALID
         
@@ -276,10 +279,7 @@ class FlaskServer:
             return jsonify(self._error_to_dict(ICD.ErrorType.MISSING_EXERCISE_TYPE_IN_REQUEST)), HttpCodes.BAD_REQUEST
 
         # Check received client information.
-        client_info_result = self._prepare_client_info(
-            client_ip=request.remote_addr,
-            client_user_agent=request.headers.get("User-Agent", None)
-        )
+        client_info_result = self._prepare_client_info()
         if not isinstance(client_info_result, dict): # It is an ICD.ErrorType instance.
             return jsonify(self._error_to_dict(client_info_result)), HttpCodes.BAD_REQUEST
         

@@ -80,6 +80,10 @@ class ErrorCode(enum):
     DIMENSION_OF_ANGLE_IS_INVALID           = (405, "The angle's dimension is invalid", None, False)
     TOO_MANY_INVALID_ANGLES                 = (406, "Too many invalid angles in the provided frame", None, False)
 
+    # HistoryManager.
+    HISTORY_MANAGER_INIT_ERROR              = (500, "Failed to initialize HistoryManager", None, False)
+    
+
 
     def __new__(cls, code:int, description:str, extra_info:dict = None, critical:bool = False):
         obj = object.__new__(cls)

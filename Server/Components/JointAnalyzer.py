@@ -35,7 +35,7 @@ class Joint:
     - For 2-point joints: used with `_line_against_horizontal_angle()`
     """
     name:      str
-    landmarks: tuple
+    landmarks: tuple[PoseLandmark, PoseLandmark] | tuple[PoseLandmark, PoseLandmark, PoseLandmark]
 
 ###################
 ### JOINT ANGLE ###
@@ -52,7 +52,7 @@ class JointAngle:
     ### SQUAT ###
     #############
     class Squat:
-        # Core joints (always calculated)
+        # Core joints (always calculated).
         LEFT_KNEE   = Joint("left_knee_angle",   (PoseLandmark.LEFT_HIP,       PoseLandmark.LEFT_KNEE,     PoseLandmark.LEFT_ANKLE))
         RIGHT_KNEE  = Joint("right_knee_angle",  (PoseLandmark.RIGHT_HIP,      PoseLandmark.RIGHT_KNEE,    PoseLandmark.RIGHT_ANKLE))
         LEFT_HIP    = Joint("left_hip_angle",    (PoseLandmark.LEFT_SHOULDER,  PoseLandmark.LEFT_HIP,      PoseLandmark.LEFT_KNEE))
@@ -60,7 +60,7 @@ class JointAngle:
         TRUNK_TILT  = Joint("trunk_tilt_angle",  (PoseLandmark.LEFT_HIP,       PoseLandmark.LEFT_SHOULDER, PoseLandmark.LEFT_EAR))
         CORE        = [LEFT_KNEE, RIGHT_KNEE, LEFT_HIP, RIGHT_HIP, TRUNK_TILT]
 
-        # Extended joints (optional)
+        # Extended joints (optional).
         LEFT_ANKLE  = Joint("left_ankle_angle",  (PoseLandmark.LEFT_KNEE,      PoseLandmark.LEFT_ANKLE,    PoseLandmark.LEFT_FOOT_INDEX))
         RIGHT_ANKLE = Joint("right_ankle_angle", (PoseLandmark.RIGHT_KNEE,     PoseLandmark.RIGHT_ANKLE,   PoseLandmark.RIGHT_FOOT_INDEX))
         KNEE_VALGUS = Joint("knee_valgus_angle", (PoseLandmark.LEFT_HIP,       PoseLandmark.LEFT_KNEE,     PoseLandmark.LEFT_ANKLE))

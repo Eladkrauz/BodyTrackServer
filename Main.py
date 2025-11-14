@@ -4,7 +4,6 @@ from Utilities.ErrorHandler import ErrorCode as ErrorCode
 from Utilities.ConfigLoader import ConfigLoader as Config
 from Utilities.ConfigLoader import ConfigParameters
 from Server.Components.SessionManager import SessionData
-from Utilities.SessionIdGeneratorMock import GenerateSessionId
 from Common.ClientServerIcd import ClientServerIcd as ICD
 
 import inspect

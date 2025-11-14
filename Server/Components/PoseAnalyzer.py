@@ -317,7 +317,7 @@ class PoseAnalyzer:
     #####################
     ### ANALYZE FRAME ###
     #####################       
-    def analyze_frame(self, frame_data:FrameData) -> Optional[PoseLandmarks]| ErrorCode:
+    def analyze_frame(self, frame_data:FrameData) -> Optional[PoseLandmarksArray]| ErrorCode:
         """
         ### Brief:
         Processes a single video frame by converting it to RGB and running MediaPipe Pose
@@ -376,7 +376,7 @@ class PoseAnalyzer:
                     extra_info={
                         "Reason": "The output landmarks array size is invalid",
                         "Contains": f"{len(landmarks_array)} rows",
-                        "Supposed to contain": f"{PoseLandmarks.NUM_OF_LANDMARKS} rows (landmarks)"
+                        "Supposed to contain": f"{PoseLandmark.NUM_OF_LANDMARKS} rows (landmarks)"
                     }
                 )
                 return ErrorCode.FRAME_ANALYSIS_ERROR
