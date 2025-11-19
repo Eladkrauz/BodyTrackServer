@@ -15,6 +15,7 @@ from Server.Utilities.Error.ErrorHandler import ErrorCode
 from Server.Utilities.Logger import Logger
 from Server.Data.Pose.PoseLandmarks import PoseLandmarksArray
 from Server.Data.Pose.PoseQuality import PoseQuality
+from Server.Data.Pose.PoseQualityResult import PoseQualityResult
 
 ####################################
 ### POSE QUALITY MANAGER CLASS #####
@@ -32,7 +33,8 @@ class PoseQualityManager:
         - Low visibility / partial body
         - Subject too far / too close
         - Unstable movement between frames
-    - Returns a single PoseQuality enum indicating the detected dominant problem.
+    - Return a single `PoseQualityResult` per frame.
+
 
     ### Notes:
     This class only detects and reports pose quality issues.
@@ -314,7 +316,7 @@ class PoseQualityManager:
     ##########################
     ### EVALUATE LANDMARKS ###
     ##########################
-    def evaluate_landmarks(self, landmarks: PoseLandmarksArray) -> PoseQuality | ErrorCode:
+    def evaluate_landmarks(self, landmarks: PoseLandmarksArray) -> PoseQualityResult | ErrorCode:
         """
         ### Brief:
         The `evaluate_landmarks` method evaluates the quality of a pose frame based on landmark
@@ -326,14 +328,17 @@ class PoseQualityManager:
         (x, y, z, visibility) for each detected landmark.
 
         ### Returns:
-        - `PoseQuality`: A single enum describing the detected issue:
-            - `OK`           → All checks passed.
-            - `NO_PERSON`    → No valid person detected.
-            - `LOW_VISIBILITY` → Mean visibility too low.
-            - `PARTIAL_BODY` → Too many landmarks with low visibility.
-            - `TOO_FAR`      → Person is too small in frame.
-            - `TOO_CLOSE`    → Person is too large in frame.
-            - `UNSTABLE`     → Sudden movement between frames.
+        - `PoseQualityResult`: Contains:
+            - `PoseQuality`: A single enum describing the detected issue:
+                - `OK`           → All checks passed.
+                - `NO_PERSON`    → No valid person detected.
+                - `LOW_VISIBILITY` → Mean visibility too low.
+                - `PARTIAL_BODY` → Too many landmarks with low visibility.
+                - `TOO_FAR`      → Person is too small in frame.
+                - `TOO_CLOSE`    → Person is too large in frame.
+                - `UNSTABLE`     → Sudden movement between frames.
+            - `mean_visibility` (float): Average visibility of all landmarks.
+            - `bbox_area` (float): Computed bounding-box area of the pose.
         - `ErrorCode`: If an internal error occurs during evaluation.
 
         ### Notes:
@@ -341,54 +346,89 @@ class PoseQualityManager:
         - Updates `last_landmarks` only when meaningful for temporal analysis.
         """
         try:
-            # Shape validation (missing, broken, or incomplete data).
+            # Shape validation
             if self._is_no_person_by_shape(landmarks):
                 self.last_landmarks = None
-                return PoseQuality.NO_PERSON
+                return PoseQualityResult(
+                    quality=PoseQuality.NO_PERSON,
+                    mean_visibility=0.0,
+                    bbox_area=0.0
+                )
 
-            # Cast and sanitize.
+            # Cast and sanitize
             x_array = np.nan_to_num(landmarks[:, 0], nan=0.0)
             y_array = np.nan_to_num(landmarks[:, 1], nan=0.0)
-            visibility_array = np.nan_to_num(landmarks[:, 3] if landmarks.shape[1] >= 4 else landmarks[:, 2], nan=0.0)
+            visibility_array = np.nan_to_num(
+                landmarks[:, 3] if landmarks.shape[1] >= 4 else landmarks[:, 2],
+                nan=0.0
+            )
 
-            # Precompute bbox & current_xy once.
+            # Precomputed values
             area = self._bbox_area(x_array, y_array)
             current_xy = np.stack([x_array, y_array], axis=1)
+            mean_vis = float(np.mean(visibility_array)) if visibility_array.size > 0 else 0.0
 
-            # Fatal / checks first.
-            # No person checks 
+            # --- PRIORITY: NO PERSON ---
             if self._is_no_person_by_bbox(area):
                 self.last_landmarks = None
-                return PoseQuality.NO_PERSON
+                return PoseQualityResult(
+                    quality=PoseQuality.NO_PERSON,
+                    mean_visibility=mean_vis,
+                    bbox_area=area
+                )
 
-            # Distance checks .
+            # --- TOO FAR ---
             if self._is_too_far(area):
-                # keep last landmarks for temporal continuity (optional)
                 self.last_landmarks = current_xy.copy()
-                return PoseQuality.TOO_FAR
+                return PoseQualityResult(
+                    quality=PoseQuality.TOO_FAR,
+                    mean_visibility=mean_vis,
+                    bbox_area=area
+                )
 
+            # --- TOO CLOSE ---
             if self._is_too_close(area):
                 self.last_landmarks = current_xy.copy()
-                return PoseQuality.TOO_CLOSE
+                return PoseQualityResult(
+                    quality=PoseQuality.TOO_CLOSE,
+                    mean_visibility=mean_vis,
+                    bbox_area=area
+                )
 
-            # Visibility-based checks.
+            # --- LOW VISIBILITY ---
             if self._is_low_visibility(visibility_array):
                 self.last_landmarks = current_xy.copy()
-                return PoseQuality.LOW_VISIBILITY
+                return PoseQualityResult(
+                    quality=PoseQuality.LOW_VISIBILITY,
+                    mean_visibility=mean_vis,
+                    bbox_area=area
+                )
 
+            # --- PARTIAL BODY ---
             if self._is_partial_body(visibility_array):
                 self.last_landmarks = current_xy.copy()
-                return PoseQuality.PARTIAL_BODY
+                return PoseQualityResult(
+                    quality=PoseQuality.PARTIAL_BODY,
+                    mean_visibility=mean_vis,
+                    bbox_area=area
+                )
 
-            # Temporal stability check.
+            # --- UNSTABLE ---
             if self._is_unstable(current_xy):
-                # update last and report instability
                 self.last_landmarks = current_xy.copy()
-                return PoseQuality.UNSTABLE
+                return PoseQualityResult(
+                    quality=PoseQuality.UNSTABLE,
+                    mean_visibility=mean_vis,
+                    bbox_area=area
+                )
 
-            # Everything is okay.
+            # --- OK ---
             self.last_landmarks = current_xy.copy()
-            return PoseQuality.OK
+            return PoseQualityResult(
+                quality=PoseQuality.OK,
+                mean_visibility=mean_vis,
+                bbox_area=area
+            )
 
         except MemoryError:
             self.last_landmarks = None
