@@ -70,7 +70,7 @@ class PoseAnalyzer:
                 smooth_landmarks         = True,  # Apply temporal smoothing to reduce landmark jitter between frames. 
                 enable_segmentation      = False, # Disable segmentation mask (not needed for exercise tracking).
                 min_detection_confidence = 0.5,   # Discard detections below 50% confidence.
-                min_tracking_confidence  = 0.5    # aintain stable tracking across frames if confidence ≥ 50%.
+                min_tracking_confidence  = 0.5    # Maintain stable tracking across frames if confidence ≥ 50%.
             )
 
             # Load MediaPipe drawing utilities for optional visualization.
@@ -80,7 +80,7 @@ class PoseAnalyzer:
             # Works together with mp_drawing to render pose annotations consistently.
             self.mp_drawing_styles = mp.solutions.drawing_styles
 
-            Logger.info("PoseAnalyzer initialized successfully.")
+            Logger.info("PoseAnalyzer: Initialized successfully.")
         except ValueError as e:
             ErrorHandler.handle(
                 error=ErrorCode.ERROR_INITIALIZING_POSE,
@@ -282,10 +282,21 @@ class PoseAnalyzer:
             Logger.info(f"Frame {frame_data.frame_id} of session {frame_data.session_id} - preprocessed successfully.")
         
         try:
-            # Run MediaPipe Pose
+            # Run MediaPipe Pose.
             result = self.pose.process(preprocessing_result)
 
-            pose_landmarks:Optional[landmark_pb2.NormalizedLandmarkList] = result.pose_landmarks
+            # Convert results to NormalizedLandmarkList.
+            pose_landmarks:Optional[landmark_pb2.NormalizedLandmarkList] = getattr(result, "pose_landmarks", None)
+            if pose_landmarks is None:
+                ErrorHandler.handle(
+                    error=ErrorCode.FRAME_ANALYSIS_ERROR,
+                    origin=inspect.currentframe(),
+                    extra_info={ "Reason": "The returned pose landmarks object is None" }
+                )
+                return ErrorCode.FRAME_ANALYSIS_ERROR
+            
+            # Convert NormalizedLandmarkList to landmarks list.
+            pose_landmarks = getattr(pose_landmarks, "landmark", None)
             if pose_landmarks is None:
                 ErrorHandler.handle(
                     error=ErrorCode.FRAME_ANALYSIS_ERROR,
@@ -295,9 +306,33 @@ class PoseAnalyzer:
                 return ErrorCode.FRAME_ANALYSIS_ERROR
             
             # Creating the output array from the landmarks returned from MediaPipe.
-            landmarks_array:PoseLandmarksArray = np.array([
-                [lm.x, lm.y, lm.z, lm.visibility] for lm in pose_landmarks.landmark
-            ], dtype=np.float32)
+            results_array:list = []
+            index:int = 0
+            for lm in pose_landmarks:
+                landmark_array:list = []
+                # Checking for x and y coordinates - invalid coordinate is an error.
+                try: 
+                    landmark_array.append(lm.x)
+                    landmark_array.append(lm.y)
+                except:
+                    ErrorHandler.handle(
+                        error=ErrorCode.FRAME_ANALYSIS_ERROR,
+                        origin=inspect.currentframe(),
+                        extra_info={ "Reason": f"Failed to extract coordinates for landmark {index}" }
+                    )
+                    return ErrorCode.FRAME_ANALYSIS_ERROR
+                
+                # Checking for z coordinate and visibility measure - invalid is tolerated.
+                try: landmark_array.append(lm.z)
+                except: landmark_array.append(0.0)
+                try: landmark_array.append(lm.visibility)
+                except: landmark_array.append(0.0)
+
+                results_array.append(landmark_array)
+                index += 1
+
+            # Converting the results array (which is a list) to a np.array.
+            landmarks_array:PoseLandmarksArray = np.array(results_array, dtype=np.float32)
             # If the size is invalid.
             if len(landmarks_array) != PoseLandmark.NUM_OF_LANDMARKS:
                 ErrorHandler.handle(

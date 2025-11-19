@@ -23,35 +23,44 @@ class ConfigParameters:
         SESSION       = "session"
         TASKS         = "tasks"
         LOG           = "log"
+        POSE          = "pose"
         JOINTS        = "joints"
         
     class Minor(enum):
         # Communication.
-        PORT = "port"
-        HOST = "host"
+        PORT            = "port"
+        HOST            = "host"
         TIMEOUT_SECONDS = "timeout_seconds"
 
         # Frame.
-        HEIGHT = "height"
-        WIDTH = "width"
+        HEIGHT  = "height"
+        WIDTH   = "width"
 
         # Session.
-        SUPPORTED_EXERCIES = "supported_exercises"
-        MAXIMUM_CLIENTS = "maximum_clients"
+        SUPPORTED_EXERCIES  = "supported_exercises"
+        MAXIMUM_CLIENTS     = "maximum_clients"
 
         # Tasks.
-        CLEANUP_INTERVAL_MINUTES = "cleanup_interval_minutes"
-        MAX_REGISTRATION_MINUTES = "max_registration_minutes"
-        MAX_INACTIVE_MINUTS = "max_inactive_minutes"
-        MAX_PAUSE_MINUTES = "max_pause_minutes"
-        MAX_ENDED_RETENTION = "max_ended_retention"
+        CLEANUP_INTERVAL_MINUTES    = "cleanup_interval_minutes"
+        MAX_REGISTRATION_MINUTES    = "max_registration_minutes"
+        MAX_INACTIVE_MINUTS         = "max_inactive_minutes"
+        MAX_PAUSE_MINUTES           = "max_pause_minutes"
+        MAX_ENDED_RETENTION         = "max_ended_retention"
   
         # Log.
-        LOGGER_PATH = "logger_path"
-        LOGGER_NAME = "logger_name"
-        ARCHIVE_DIR_NAME = "archive_dir_name"
-        LOG_LEVEL = "log_level"
+        LOGGER_PATH         = "logger_path"
+        LOGGER_NAME         = "logger_name"
+        ARCHIVE_DIR_NAME    = "archive_dir_name"
+        LOG_LEVEL           = "log_level"
+
+        # Pose.
+        STABILITY_THRESHOLD     = "stability_threshold"
+        BBOX_TOO_FAR            = "bbox_too_far"
+        BBOX_TOO_CLOSE          = "bbox_too_close"
+        MEAN_VIS_THRESHOLD      = "mean_vis_threshold"
+        PARTIAL_COUNT_THRESHOLD = "partial_count_threshold"
+        MINIMUM_BBOX_AREA       = "minimum_bbox_area"
 
         # Joints.
-        VISIBILITY_THRESHOLD = "visibility_threshold"
-        MIN_VALID_JOINT_RATIO = "min_valid_joint_ratio"
+        VISIBILITY_THRESHOLD    = "visibility_threshold"
+        MIN_VALID_JOINT_RATIO   = "min_valid_joint_ratio"

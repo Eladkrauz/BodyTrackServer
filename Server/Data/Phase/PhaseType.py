@@ -7,6 +7,7 @@
 ###############
 ### IMPORTS ###
 ###############
+from __future__ import annotations
 from enum import Enum as enum
 from enum import auto
 from Server.Data.Session.ExerciseType import ExerciseType
@@ -63,7 +64,7 @@ class PhaseType:
     ### GET PHASE ENUM ###
     ######################
     @staticmethod
-    def get_phase_enum(exercise_type:ExerciseType) -> 'PhaseType' | ErrorCode:
+    def get_phase_enum(exercise_type:ExerciseType) -> PhaseType | ErrorCode:
         """
         ### Brief:
         The `get_phase_enum` returns the corresponding `enum` class of phases for a given `ExerciseType`.

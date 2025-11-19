@@ -284,15 +284,12 @@ class FlaskServer:
         registration_result = self.session_manager.register_new_session(exercise_type, client_info_result)
         # Checking the result.
         if isinstance(registration_result, ICD.ErrorType): # An error with registration.
-            if registration_result is ICD.ErrorType.EXERCISE_TYPE_NOT_SUPPORTED:
-                return jsonify(self._error_to_dict(registration_result)), HttpCodes.BAD_REQUEST
-            else:
-                return jsonify(self._error_to_dict(registration_result)), HttpCodes.SERVER_ERROR
+            return jsonify(self._error_to_dict(registration_result)), HttpCodes.SERVER_ERROR
         else: # The result is a valid SessionId.
-                return jsonify(self._response_to_dict(
-                    response=ICD.ResponseType.CLIENT_REGISTERED_SUCCESSFULLY,
-                    information={'session_id': registration_result.id})
-                ), HttpCodes.OK
+            return jsonify(self._response_to_dict(
+                response=ICD.ResponseType.CLIENT_REGISTERED_SUCCESSFULLY,
+                information={'session_id': registration_result.id})
+            ), HttpCodes.OK
 
     ##########################
     ### UNREGISTER SESSION ###
@@ -361,14 +358,17 @@ class FlaskServer:
         session_id = data.get("session_id", None)
         if session_id is None:
             Logger.warning("Missing 'session_id' in request")
-            return jsonify(self._error_to_dict(ICD.ErrorType.MISSING_SESSION_ID_IN_REQUEST)), HttpCodes.BAD_REQUEST
+            return jsonify(self._error_to_dict(ICD.ErrorType.MISSING_SESSION_ID_IN_REQUEST)), HttpCodes.SERVER_ERROR
         
         # Trying to start the session.
         start_session_result = self.session_manager.start_session(session_id)
-        if isinstance(start_session_result, ICD.ErrorType): # If an error occured.
-            if isinstance(start_session_result, ICD.ErrorType.MAX_CLIENT_REACHED):
+        if isinstance(start_session_result, ICD.ErrorType):
+            if start_session_result is ICD.ErrorType.INVALID_SESSION_ID:
+                return jsonify(self._error_to_dict(start_session_result)), HttpCodes.BAD_REQUEST
+            elif start_session_result is ICD.ErrorType.MAX_CLIENT_REACHED:
                 return jsonify(self._error_to_dict(start_session_result)), HttpCodes.SERVER_ERROR
             else:
+                # default for semantic client mistakes
                 return jsonify(self._error_to_dict(start_session_result)), HttpCodes.BAD_REQUEST
         else: # If the session started successfully.
             return jsonify(self._response_to_dict(start_session_result)), HttpCodes.OK
@@ -445,10 +445,7 @@ class FlaskServer:
         # Trying to resume the session.
         resume_session_result = self.session_manager.resume_session(session_id)
         if isinstance(resume_session_result, ICD.ErrorType): # If an error occured.
-            if isinstance(resume_session_result, ICD.ErrorType.MAX_CLIENT_REACHED):
-                return jsonify(self._error_to_dict(resume_session_result)), HttpCodes.SERVER_ERROR
-            else:
-                return jsonify(self._error_to_dict(resume_session_result)), HttpCodes.BAD_REQUEST
+            return jsonify(self._error_to_dict(resume_session_result)), HttpCodes.SERVER_ERROR
         else: # If the session resumed successfully.
             return jsonify(self._response_to_dict(resume_session_result)), HttpCodes.OK
         

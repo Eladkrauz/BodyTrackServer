@@ -77,6 +77,9 @@ class ErrorCode(enum):
 
     # HistoryManager.
     HISTORY_MANAGER_INIT_ERROR              = (500, "Failed to initialize HistoryManager", None, False)
+
+    # PoseQualityManager.
+    FAILED_TO_INITIALIZE_QUALITY_MANAGER    = (600, "Failed to initialize the PoseQualityManager", None, True)
     
     def __new__(cls, code:int, description:str, extra_info:dict = None, critical:bool = False):
         obj = object.__new__(cls)

@@ -1,26 +1,23 @@
-from Server.Utilities.Logger import Logger as Log
-from Server.Utilities.Error.ErrorHandler import ErrorHandler
-from Server.Utilities.Error.ErrorCode import ErrorCode
-from Server.Utilities.Config.ConfigLoader import ConfigLoader
-from Server.Utilities.Config.ConfigParameters import ConfigParameters
+from Server.Utilities.Logger import Logger
+from Server.Communication.FlaskServer import FlaskServer
+from Common.ClientServerIcd import ClientServerIcd as ICD
+import json
 
-import inspect
+def test_ping():
+    server = FlaskServer()
+    client = server.app.test_client()
+
+    response = client.get("/ping")
+
+    assert response.status_code == 200
+    response:dict = response.json
+    print("Opcode:       ", response.get("opcode"))
+    print("Message Type: ", "Response" if response.get("message_type") == 2 else "Error")
+    print("Title:        ", response.get("title"))
+    print("Description:  ", response.get("description"))
 
 def main() -> None:
-    ConfigLoader.initialize()
-    Log.initialize()
-    key = ConfigParameters.Minor.ARCHIVE_DIR_NAME
-    try:
-        raise Exception("Bye")
-    except Exception as e:
-        ErrorHandler.handle(
-            error=ErrorCode.CANT_ADD_URL_RULE_TO_FLASK_SERVER,
-            origin=inspect.currentframe(),
-            extra_info={
-                "Exception type": f"{type(e).__name__}",
-                "Reason": f"{str(e)}"
-            }
-        )
+    Logger.initialize()
+    test_ping()
 
-    print(ConfigLoader.get([ConfigParameters.Major.COMMUNICATION, ConfigParameters.Minor.HOST], True))
 main()

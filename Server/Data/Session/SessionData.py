@@ -14,6 +14,7 @@ from datetime import datetime
 from Server.Utilities.SessionIdGenerator import SessionId
 from Server.Data.Session.ExerciseType import ExerciseType
 from Server.Data.Session.SessionStatus import SessionStatus
+from Server.Data.History.HistoryManager import HistoryManager
 
 ##########################
 ### SESSION DATA CLASS ###
@@ -31,7 +32,7 @@ class SessionData:
     - `time` (dict[str, datetime]): Timestamps about the sessions.
     - `frames_received` (int): Total number of frames received during the session.
     - `extended_evaluation` (bool): Indicates whether evaluate the frame with extended joints or only core.
-    - `analysis_data` (dict[str, Any]): Holds pose analysis results and feedback (optional).
+    - `history_manager` (HistoryManager): Holds pose analysis results and feedback.
     """
     ###########################
     ### SESSION DATA FIELDS ###
@@ -48,7 +49,29 @@ class SessionData:
     })
     frames_received: int = 0
     extended_evaluation: bool = False
-    analysis_data: Dict[str, Any] = field(default_factory=dict)
+    history_manager: Optional[HistoryManager] = field(init=False, default=None)
+
+    # Create the HistoryManager instance based on the provided exercise type.
+    def __post_init__(self):
+        """
+        ### Brief:
+        The `__post_init__` method initializes the `HistoryManager` instance after all other fields are set.
+        """
+        try:
+            self.history_manager = HistoryManager(self.exercise_type)
+        except Exception as e:
+            from Server.Utilities.Error.ErrorHandler import ErrorHandler
+            from Server.Utilities.Error.ErrorCode import ErrorCode
+            import inspect
+            ErrorHandler.handle(
+                error=ErrorCode.HISTORY_MANAGER_INIT_ERROR,
+                origin=inspect.currentframe(),
+                extra_info={
+                    "Exception": type(e).__name__,
+                    "Reason": str(e)
+                }
+            )
+            raise e
 
     #########################
     ### UPDATE TIME STAMP ###

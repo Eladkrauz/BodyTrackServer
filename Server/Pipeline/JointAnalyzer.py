@@ -17,7 +17,7 @@ from Server.Utilities.Error.ErrorCode import ErrorCode
 from Server.Utilities.Config.ConfigLoader import ConfigLoader
 from Server.Utilities.Config.ConfigParameters import ConfigParameters
 from Server.Pipeline.PoseAnalyzer import PoseLandmarksArray
-from Server.Pipeline.SessionManager import ExerciseType
+from Server.Data.Session import ExerciseType
 from Server.Data.Joints import JointAngle
 
 ############################
@@ -49,7 +49,7 @@ class JointAnalyzer:
             [ConfigParameters.Major.JOINTS, ConfigParameters.Minor.MIN_VALID_JOINT_RATIO],
             critical_value=True
         )
-        Logger.info("JointAnalyzer initialized successfully.")
+        Logger.info("JointAnalyzer: Initialized successfully.")
 
     ########################
     ### VALIDATE NDARRAY ###

@@ -17,7 +17,7 @@ from Server.Utilities.Config.ConfigLoader import ConfigLoader
 from Server.Utilities.Config.ConfigParameters import ConfigParameters
 from Server.Utilities.Error.ErrorHandler import ErrorHandler
 from Server.Utilities.Error.ErrorCode import ErrorCode
-from Server.Utilities.Logger import Logger as Logger
+from Server.Utilities.Logger import Logger
 from Server.Pipeline.PoseAnalyzer import PoseAnalyzer
 from Server.Pipeline.JointAnalyzer import JointAnalyzer
 from Common.ClientServerIcd import ClientServerIcd as ICD
@@ -41,6 +41,7 @@ class SessionManager:
         """
         # Components.
         self.pose_analyzer  = PoseAnalyzer()
+        # self.pose_quality_manager = PoseQualityManager()
         self.joint_analyzer = JointAnalyzer()
 
         # Locks.
@@ -57,54 +58,78 @@ class SessionManager:
         self.ended_sessions :dict[SessionId, SessionData] = {}
 
         # Supported exercises.
-        self.supported_exercises:list = ConfigLoader.get(key=[
-            ConfigParameters.Major.SESSION,
-            ConfigParameters.Minor.SUPPORTED_EXERCIES
-        ],
-        critical_value=True)
+        self.supported_exercises:list = ConfigLoader.get(
+            key=[
+                ConfigParameters.Major.SESSION,
+                ConfigParameters.Minor.SUPPORTED_EXERCIES
+            ],
+            critical_value=True
+        )
+        Logger.info(f"SessionManager: Supported exercises: {self.supported_exercises}")
 
         # Maximum clients at the same time.
-        self.maximum_clients:int = ConfigLoader.get(key=[
-            ConfigParameters.Major.SESSION,
-            ConfigParameters.Minor.MAXIMUM_CLIENTS
-        ],
-        critical_value=True)
+        self.maximum_clients:int = ConfigLoader.get(
+            key=[
+                ConfigParameters.Major.SESSION,
+                ConfigParameters.Minor.MAXIMUM_CLIENTS
+            ],
+            critical_value=True
+        )
+        Logger.info(f"SessionManager: Maximum clients: {self.maximum_clients}")
 
         # Start cleanup background thread.
-        self.cleanup_interval_minutes = ConfigLoader.get(key=[
-            ConfigParameters.Major.TASKS,
-            ConfigParameters.Minor.CLEANUP_INTERVAL_MINUTES
-        ],
-        critical_value=True)
-        self.max_registration_minutes = ConfigLoader.get(key=[
-            ConfigParameters.Major.TASKS,
-            ConfigParameters.Minor.MAX_REGISTRATION_MINUTES
-        ],
-        critical_value=True)
-        self.max_inactive_minutes = ConfigLoader.get(key=[
-            ConfigParameters.Major.TASKS,
-            ConfigParameters.Minor.MAX_INACTIVE_MINUTS
-        ],
-        critical_value=True)
-        self.max_pause_minutes = ConfigLoader.get(key=[
-            ConfigParameters.Major.TASKS,
-            ConfigParameters.Minor.MAX_PAUSE_MINUTES
-        ],
-        critical_value=True)
-        self.max_ended_retention = ConfigLoader.get(key=[
-            ConfigParameters.Major.TASKS,
-            ConfigParameters.Minor.MAX_ENDED_RETENTION
-        ],
-        critical_value=True)
+        self.cleanup_interval_minutes = ConfigLoader.get(
+            key=[
+                ConfigParameters.Major.TASKS,
+                ConfigParameters.Minor.CLEANUP_INTERVAL_MINUTES
+            ],
+            critical_value=True
+        )
+        Logger.info(f"SessionManager: Cleanup interval minutes: {self.cleanup_interval_minutes}")
+
+        self.max_registration_minutes = ConfigLoader.get(
+            key=[
+                ConfigParameters.Major.TASKS,
+                ConfigParameters.Minor.MAX_REGISTRATION_MINUTES
+            ],
+            critical_value=True
+        )
+        Logger.info(f"SessionManager: Maximum registration minutes: {self.max_registration_minutes}")
+
+        self.max_inactive_minutes = ConfigLoader.get(
+            key=[
+                ConfigParameters.Major.TASKS,
+                ConfigParameters.Minor.MAX_INACTIVE_MINUTS
+            ],
+            critical_value=True
+        )
+        Logger.info(f"SessionManager: Maximum inactive minutes: {self.max_inactive_minutes}")
+
+        self.max_pause_minutes = ConfigLoader.get(
+            key=[
+                ConfigParameters.Major.TASKS,
+                ConfigParameters.Minor.MAX_PAUSE_MINUTES
+            ],
+            critical_value=True
+        )
+        Logger.info(f"SessionManager: Maximum pause minutes: {self.max_pause_minutes}")
+
+        self.max_ended_retention = ConfigLoader.get(
+            key=[
+                ConfigParameters.Major.TASKS,
+                ConfigParameters.Minor.MAX_ENDED_RETENTION
+            ],
+            critical_value=True
+        )
+        Logger.info(f"SessionManager: Maximum ended retention: {self.max_ended_retention}")
 
         self._cleanup_thread = threading.Thread(
             target=self._cleanup_task,
             daemon=True
         )
-        self._cleanup_thread.start()
+        # self._cleanup_thread.start()
         Logger.info("Session cleanup background thread started.")
-
-        Logger.info("SessionManager initialized successfully")
+        Logger.info("SessionManager: Initialized successfully")
 
     ############################
     ### REGISTER NEW SESSION ###
@@ -157,7 +182,10 @@ class SessionManager:
             return ICD.ErrorType.CANT_REGISTER_CLIENT_TO_SESSION
         
         # Otherwise.
-        new_session:SessionData = SessionData(session_id=session_id, client_info=client_info, exercise_type=exercise_type)
+        try:
+            new_session:SessionData = SessionData(session_id=session_id, client_info=client_info, exercise_type=exercise_type)
+        except Exception: # In case the SessionData object failed to initialize.
+            return ICD.ErrorType.INTERNAL_SERVER_ERROR
 
         # Register the new client. Locking registered sessions dictionary to control concurrency.
         with self.registered_lock:
@@ -478,7 +506,7 @@ class SessionManager:
         
         ### Analyzing Pose --- using PoseAnalyzer.
         pose_analyzer_result = self.pose_analyzer.analyze_frame(frame_data)
-        if isinstance(pose_analyzer_result, ErrorCode): # Otherwise, the result is an np.ndarray instance.
+        if pose_analyzer_result is None or isinstance(pose_analyzer_result, ErrorCode): # Otherwise, the result is an np.ndarray instance.
             return ErrorHandler.convert_to_icd(pose_analyzer_result)
         
         ### Calculatin Joints --- using JointAnalyzer.

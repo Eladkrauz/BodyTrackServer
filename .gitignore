@@ -1,5 +1,5 @@
-Utilities/Logs/*
-Utilities/Logs/Archive/*
+Server/Files/Logs/
 __pycache__/
 *.pyc
 .vscode/*
+tests/

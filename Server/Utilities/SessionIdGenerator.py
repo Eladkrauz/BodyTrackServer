@@ -27,6 +27,7 @@ class SessionIdGenerator:
     - Provides a simple and safe interface for ID creation.
     - In case of unexpected errors, logs the issue and falls back gracefully.
     """
+    Logger.info("SessionIdGenerator: Initialized successfully")
 
     ###########################
     ### GENERATE SESSION ID ###

@@ -29,6 +29,14 @@
     "archive_dir_name": "Archive",
     "log_level": "DEBUG"
   },
+  "pose": {
+    "stability_threshold": 0.1,
+    "bbox_too_far": 0.1,
+    "bbox_too_close": 0.8,
+    "mean_vis_threshold": 0.3,
+    "partial_count_threshold": 10,
+    "minimum_bbox_area": 1e-6
+  },
   "joints": {
     "visibility_threshold": 0.5,
     "min_valid_joint_ratio": 0.7
