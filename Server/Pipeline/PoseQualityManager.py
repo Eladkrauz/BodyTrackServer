@@ -8,39 +8,17 @@
 ### IMPORTS ###
 ###############
 import numpy as np, inspect
-from enum import Enum
-from typing import List, Tuple, Optional, Dict, Any
+from typing import Optional
 
 from Server.Utilities.Error.ErrorHandler import ErrorHandler
 from Server.Utilities.Error.ErrorHandler import ErrorCode
 from Server.Utilities.Logger import Logger
 from Server.Data.Pose.PoseLandmarks import PoseLandmarksArray
+from Server.Data.Pose.PoseQuality import PoseQuality
 
-
-#########################
-### POSE QUALITY ENUM ###
-#########################
-class PoseQuality(Enum):
-    """
-    ### Description:
-    Represents the possible quality states of a pose frame. 
-    Each value describes a specific condition detected in the landmarks.
-
-    ### Notes:
-    Used by `PoseQualityManager` to report a single, clear quality result.
-    """
-    OK = 0
-    NO_PERSON = 1
-    LOW_VISIBILITY = 2
-    PARTIAL_BODY = 3
-    TOO_FAR = 4
-    TOO_CLOSE = 5
-    UNSTABLE = 6
-
-
-##############################
-### POSE QUALITY MANAGER #####
-##############################
+####################################
+### POSE QUALITY MANAGER CLASS #####
+####################################
 class PoseQualityManager:
     """
     ### Description:
@@ -61,7 +39,6 @@ class PoseQualityManager:
     It does **not** decide how to handle them (alert, skip, reuse, etc.).
     That responsibility is left to higher-level components.
     """
-
     #########################
     ### CLASS CONSTRUCTOR ###
     #########################
@@ -80,7 +57,7 @@ class PoseQualityManager:
         try:
             from Server.Utilities.Config.ConfigLoader import ConfigLoader
             from Server.Utilities.Config.ConfigParameters import ConfigParameters
-            # Load quality thresholds from configuration
+            # Load quality thresholds from configuration.
             self.stability_threshold = ConfigLoader.get(
                 key=[
                     ConfigParameters.Major.POSE,
@@ -105,7 +82,7 @@ class PoseQualityManager:
             self.mean_vis_threshold = ConfigLoader.get(
                 key=[
                     ConfigParameters.Major.POSE,
-                    ConfigParameters.Minor.MEAN_VISIBILITY_THRESHOLD
+                    ConfigParameters.Minor.MEAN_VIS_THRESHOLD
                 ],
                 critical_value=True
             )
@@ -139,32 +116,30 @@ class PoseQualityManager:
                 }
             )
 
-
-
-    ####################################
-    ### COMPUTE FRAME TO FRAME DELTA ###
-    ####################################
+    ###################################
+    ### COMPUTE MEAN LANDMARK DELTA ###
+    ###################################
     def _compute_mean_landmark_delta(self, current_xy: np.ndarray) -> Optional[float]:
         """
         ### Brief:
-        Computes the average movement of all landmarks between the previous frame
-        and the current frame. Movement is measured as the Euclidean distance
-        between corresponding (x,y) points.
+        The `_compute_mean_landmark_delta` method computes the average movement of all
+        landmarks between the previous frame and the current frame. Movement is measured
+        as the Euclidean distance between corresponding (x,y) points.
 
         ### Returns:
         - `float`: Mean movement across all landmarks.
         - `None`: If no previous frame exists or shapes do not match.
         """
         try:
-            # If we have no previous frame → cannot compute movement
+            # If we have no previous frame → cannot compute movement.
             if self.last_landmarks is None:
                 return None
         
-            # Convert to NumPy arrays (ensures proper dtype)
+            # Convert to NumPy arrays (ensures proper dtype).
             previous = np.asarray(self.last_landmarks, dtype=np.float32)
             current = np.asarray(current_xy, dtype=np.float32)
 
-            # Shape mismatch → cannot compute movement
+            # Shape mismatch → cannot compute movement.
             if previous.shape != current.shape:
                Logger.debug(
                 f"PoseQualityManager: Landmark shape mismatch. "
@@ -172,18 +147,18 @@ class PoseQualityManager:
                 )
                return None
 
-            # Compute the difference between frames: (dx, dy) for every landmark
+            # Compute the difference between frames: (dx, dy) for every landmark.
             # This subtracts two (N,2) arrays element-wise.
             deltas = current - previous    # shape (N,2)
 
-            # Compute Euclidean distances for each landmark
+            # Compute Euclidean distances for each landmark.
             # sqrt(dx² + dy²) using vectorized NumPy operations.
             distances = np.sqrt(np.sum(deltas ** 2, axis=1))  # Euclidean distances per landmark
 
             # Return the average distance across all landmarks.
             return float(np.mean(distances))
         except Exception as e:
-            # Critical but not fatal → log and disable stability this frame
+            # Critical but not fatal → log and disable stability this frame.
             ErrorHandler.handle(
                 error=ErrorCode.FRAME_STABILITY_ERROR,
                 origin=inspect.currentframe(),
@@ -193,12 +168,10 @@ class PoseQualityManager:
                 },
             )
             return None
-        
-        
 
-    ########################################
-    ### PREDICATES FOR EACH QUALITY CASE ###
-    ########################################
+    #################
+    ### BBOX AREA ###
+    #################
     def _bbox_area(self, x_array: np.ndarray, y_array: np.ndarray) -> float:
         """
         ### Brief:
@@ -216,6 +189,9 @@ class PoseQualityManager:
         except Exception:
             return 0.0
 
+    #############################
+    ### IS NO PERSON BY SHAPE ###
+    #############################
     def _is_no_person_by_shape(self, landmark_array: PoseLandmarksArray) -> bool:
         """
         ### Brief:
@@ -230,6 +206,9 @@ class PoseQualityManager:
         """
         return (landmark_array is None) or (landmark_array.size == 0) or (landmark_array.ndim != 2) or (landmark_array.shape[1] < 3)
 
+    ############################
+    ### IS NO PERSON BY BBOX ###
+    ############################
     def _is_no_person_by_bbox(self, area: float) -> bool:
         """
         ### Brief:
@@ -243,7 +222,9 @@ class PoseQualityManager:
         """
         return area <= self.minimum_bbox_area
 
-
+    ##################
+    ### IS TOO FAR ###
+    ##################
     def _is_too_far(self, area: float) -> bool:
         """
         ### Brief:
@@ -257,7 +238,9 @@ class PoseQualityManager:
         """
         return area < self.bbox_too_far
 
-
+    ####################
+    ### IS TOO CLOSE ###
+    ####################
     def _is_too_close(self, area: float) -> bool:
         """
         ### Brief:
@@ -271,7 +254,9 @@ class PoseQualityManager:
         """
         return area > self.bbox_too_close
 
-
+    #########################
+    ### IS LOW VISIBILITY ###
+    #########################
     def _is_low_visibility(self, visibility_array: np.ndarray) -> bool:
         """
         ### Brief:
@@ -290,7 +275,9 @@ class PoseQualityManager:
             return True
         return float(np.mean(visibility_array)) < self.mean_vis_threshold
 
-
+    #######################
+    ### IS PARTIAL BODY ###
+    #######################
     def _is_partial_body(self, visibility_array: np.ndarray) -> bool:
         """
         ### Brief:
@@ -304,6 +291,9 @@ class PoseQualityManager:
         """
         return int(np.sum(visibility_array < self.mean_vis_threshold)) > self.partial_count_threshold
 
+    ###################
+    ### IS UNSTABLE ###
+    ###################
     def _is_unstable(self, current_xy: np.ndarray) -> bool:
         """
         ### Brief:
@@ -321,16 +311,14 @@ class PoseQualityManager:
         mean_delta = self._compute_mean_landmark_delta(current_xy)
         return (mean_delta is not None) and (mean_delta > self.stability_threshold)
 
-
-
-    ############################
+    ##########################
     ### EVALUATE LANDMARKS ###
-    ############################
+    ##########################
     def evaluate_landmarks(self, landmarks: PoseLandmarksArray) -> PoseQuality | ErrorCode:
         """
         ### Brief:
-        Evaluates the quality of a pose frame based on landmark positions and
-        visibility values. Detects conditions such as no person, low visibility,
+        The `evaluate_landmarks` method evaluates the quality of a pose frame based on landmark
+        positions and visibility values. Detects conditions such as no person, low visibility,
         partial body, incorrect distance from camera, or unstable motion.
 
         ### Arguments:
@@ -353,27 +341,27 @@ class PoseQualityManager:
         - Updates `last_landmarks` only when meaningful for temporal analysis.
         """
         try:
-            # Shape validation (missing, broken, or incomplete data)
+            # Shape validation (missing, broken, or incomplete data).
             if self._is_no_person_by_shape(landmarks):
                 self.last_landmarks = None
                 return PoseQuality.NO_PERSON
 
-            # Cast and sanitize
+            # Cast and sanitize.
             x_array = np.nan_to_num(landmarks[:, 0], nan=0.0)
             y_array = np.nan_to_num(landmarks[:, 1], nan=0.0)
             visibility_array = np.nan_to_num(landmarks[:, 3] if landmarks.shape[1] >= 4 else landmarks[:, 2], nan=0.0)
 
-            # Precompute bbox & current_xy once
+            # Precompute bbox & current_xy once.
             area = self._bbox_area(x_array, y_array)
             current_xy = np.stack([x_array, y_array], axis=1)
 
-            # Fatal / checks first
+            # Fatal / checks first.
             # No person checks 
             if self._is_no_person_by_bbox(area):
                 self.last_landmarks = None
                 return PoseQuality.NO_PERSON
 
-            # Distance checks 
+            # Distance checks .
             if self._is_too_far(area):
                 # keep last landmarks for temporal continuity (optional)
                 self.last_landmarks = current_xy.copy()
@@ -383,7 +371,7 @@ class PoseQualityManager:
                 self.last_landmarks = current_xy.copy()
                 return PoseQuality.TOO_CLOSE
 
-            # Visibility-based checks 
+            # Visibility-based checks.
             if self._is_low_visibility(visibility_array):
                 self.last_landmarks = current_xy.copy()
                 return PoseQuality.LOW_VISIBILITY
@@ -392,13 +380,13 @@ class PoseQualityManager:
                 self.last_landmarks = current_xy.copy()
                 return PoseQuality.PARTIAL_BODY
 
-            # Temporal stability check 
+            # Temporal stability check.
             if self._is_unstable(current_xy):
                 # update last and report instability
                 self.last_landmarks = current_xy.copy()
                 return PoseQuality.UNSTABLE
 
-            # OK
+            # Everything is okay.
             self.last_landmarks = current_xy.copy()
             return PoseQuality.OK
 
@@ -437,4 +425,3 @@ class PoseQualityManager:
                 }
             )
             return ErrorCode.QUALITY_CHECKING_ERROR
-
