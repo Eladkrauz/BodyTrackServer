@@ -98,7 +98,8 @@ class JointAngle:
     ###################################
     ### EXERCISE TYPE TO JOINT TYPE ###
     ###################################
-    def exercise_type_to_joint_type(exercise_type:ExerciseType) -> 'JointAngle':
+    @classmethod
+    def exercise_type_to_joint_type(cls, exercise_type:ExerciseType) -> Squat | BicepsCurl | LateralRaise | None:
         """
         ### Brief:
         The `exercise_type_to_joint_type` method converts an `ExerciseType` object to a `JointAngle` object.

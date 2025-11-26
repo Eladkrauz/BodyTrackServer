@@ -14,7 +14,7 @@ from datetime import datetime
 from Server.Utilities.SessionIdGenerator import SessionId
 from Server.Data.Session.ExerciseType import ExerciseType
 from Server.Data.Session.SessionStatus import SessionStatus
-from Server.Data.History.HistoryManager import HistoryManager
+from Server.Pipeline.HistoryManager import HistoryManager
 
 ##########################
 ### SESSION DATA CLASS ###

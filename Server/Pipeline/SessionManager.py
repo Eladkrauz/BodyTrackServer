@@ -7,25 +7,33 @@
 ###############
 ### IMPORTS ###
 ###############
+# Python libraries.
 import inspect, threading, time
 import numpy as np
 from threading import RLock
 from datetime import datetime
 
-from Server.Utilities.SessionIdGenerator import SessionIdGenerator, SessionId
-from Server.Utilities.Config.ConfigLoader import ConfigLoader
-from Server.Utilities.Config.ConfigParameters import ConfigParameters
-from Server.Utilities.Error.ErrorHandler import ErrorHandler
-from Server.Utilities.Error.ErrorCode import ErrorCode
-from Server.Utilities.Logger import Logger
-from Server.Pipeline.PoseAnalyzer import PoseAnalyzer
-from Server.Pipeline.JointAnalyzer import JointAnalyzer
+# Utilities.
+from Server.Utilities.SessionIdGenerator      import SessionIdGenerator, SessionId
+from Server.Utilities.Error.ErrorHandler      import ErrorHandler
+from Server.Utilities.Error.ErrorCode         import ErrorCode
+from Server.Utilities.Logger                  import Logger
+
+# Pipeline.
+from Server.Pipeline.PoseAnalyzer       import PoseAnalyzer
+from Server.Pipeline.PoseQualityManager import PoseQualityManager
+from Server.Pipeline.JointAnalyzer      import JointAnalyzer
+
+# Commom.
 from Common.ClientServerIcd import ClientServerIcd as ICD
-from Server.Data.Session.SessionStatus import SessionStatus
-from Server.Data.Session.SearchType import SearchType
-from Server.Data.Session.ExerciseType import ExerciseType
-from Server.Data.Session.SessionData import SessionData
-from Server.Data.Session.FrameData import FrameData
+
+# Data.
+from Server.Data.Session.SessionStatus  import SessionStatus
+from Server.Data.Session.SearchType     import SearchType
+from Server.Data.Session.ExerciseType   import ExerciseType
+from Server.Data.Session.SessionData    import SessionData
+from Server.Data.Session.FrameData      import FrameData
+from Server.Pipeline.HistoryManager     import HistoryManager
 
 #############################
 ### SESSION MANAGER CLASS ###
@@ -40,9 +48,15 @@ class SessionManager:
         The `__init__` method initialized the `SessionManager` instance.
         """
         # Components.
-        self.pose_analyzer  = PoseAnalyzer()
-        # self.pose_quality_manager = PoseQualityManager()
-        self.joint_analyzer = JointAnalyzer()
+        self.pose_analyzer        = PoseAnalyzer()
+        self.pose_quality_manager = PoseQualityManager()
+        self.joint_analyzer       = JointAnalyzer()
+        # self.phase_detector       = PhaseDetector()
+        # self.error_detector       = ErrorDetector()
+        # self.feedback_manager     = FeedbackManager()
+
+        # Configurations.
+        self._retrieve_configurations()
 
         # Locks.
         self.registered_lock     :RLock = threading.RLock()
@@ -57,78 +71,12 @@ class SessionManager:
         self.paused_sessions:dict[SessionId, SessionData] = {}
         self.ended_sessions :dict[SessionId, SessionData] = {}
 
-        # Supported exercises.
-        self.supported_exercises:list = ConfigLoader.get(
-            key=[
-                ConfigParameters.Major.SESSION,
-                ConfigParameters.Minor.SUPPORTED_EXERCIES
-            ],
-            critical_value=True
-        )
-        Logger.info(f"SessionManager: Supported exercises: {self.supported_exercises}")
-
-        # Maximum clients at the same time.
-        self.maximum_clients:int = ConfigLoader.get(
-            key=[
-                ConfigParameters.Major.SESSION,
-                ConfigParameters.Minor.MAXIMUM_CLIENTS
-            ],
-            critical_value=True
-        )
-        Logger.info(f"SessionManager: Maximum clients: {self.maximum_clients}")
-
-        # Start cleanup background thread.
-        self.cleanup_interval_minutes = ConfigLoader.get(
-            key=[
-                ConfigParameters.Major.TASKS,
-                ConfigParameters.Minor.CLEANUP_INTERVAL_MINUTES
-            ],
-            critical_value=True
-        )
-        Logger.info(f"SessionManager: Cleanup interval minutes: {self.cleanup_interval_minutes}")
-
-        self.max_registration_minutes = ConfigLoader.get(
-            key=[
-                ConfigParameters.Major.TASKS,
-                ConfigParameters.Minor.MAX_REGISTRATION_MINUTES
-            ],
-            critical_value=True
-        )
-        Logger.info(f"SessionManager: Maximum registration minutes: {self.max_registration_minutes}")
-
-        self.max_inactive_minutes = ConfigLoader.get(
-            key=[
-                ConfigParameters.Major.TASKS,
-                ConfigParameters.Minor.MAX_INACTIVE_MINUTS
-            ],
-            critical_value=True
-        )
-        Logger.info(f"SessionManager: Maximum inactive minutes: {self.max_inactive_minutes}")
-
-        self.max_pause_minutes = ConfigLoader.get(
-            key=[
-                ConfigParameters.Major.TASKS,
-                ConfigParameters.Minor.MAX_PAUSE_MINUTES
-            ],
-            critical_value=True
-        )
-        Logger.info(f"SessionManager: Maximum pause minutes: {self.max_pause_minutes}")
-
-        self.max_ended_retention = ConfigLoader.get(
-            key=[
-                ConfigParameters.Major.TASKS,
-                ConfigParameters.Minor.MAX_ENDED_RETENTION
-            ],
-            critical_value=True
-        )
-        Logger.info(f"SessionManager: Maximum ended retention: {self.max_ended_retention}")
-
         self._cleanup_thread = threading.Thread(
             target=self._cleanup_task,
             daemon=True
         )
         # self._cleanup_thread.start()
-        Logger.info("Session cleanup background thread started.")
+        # Logger.info("Session cleanup background thread started.")
         Logger.info("SessionManager: Initialized successfully")
 
     ############################
@@ -137,15 +85,18 @@ class SessionManager:
     def register_new_session(self, exercise_type:str, client_info:dict) -> SessionId | ICD.ErrorType:
         """
         ### Brief:
-        Registers a new session for a client, provided the exercise type is supported and the client is not already registered.
+        The `register_new_session` method registers a new session for a client, provided the
+        exercise type is supported and the client is not already registered.
 
         ### Arguments:
         - `exercise_type` (str): The type of exercise requested by the client.
-        - `client_info` (dict): A dictionary containing client metadata, including IP address and optionally a unique ID or user-agent.
+        - `client_info` (dict): A dictionary containing client metadata, including IP address
+                                and optionally a unique ID or user-agent.
 
         ### Returns:
         - `SessionId`: A unique session identifier if the registration is successful.
-        - `ICD.ErrorType`: An appropriate error type enum if the registration fails (e.g., unsupported exercise, duplicate registration).
+        - `ICD.ErrorType`: An appropriate error type enum if the registration fails
+                           (e.g., unsupported exercise, duplicate registration).
 
         ### Notes:
         - If the exercise type is not listed in the system configuration, an error will be handled and returned.
@@ -475,8 +426,7 @@ class SessionManager:
     def analyze_frame(self, session_id:str, frame_id:int, frame_content:np.ndarray) -> ICD.ResponseType | ICD.ErrorType:
         # Checking if the session id is valid and packing it.
         session_id:SessionId = self.id_generator.pack_string_to_session_id(session_id) 
-        if session_id is None:
-            return ICD.ErrorType.INVALID_SESSION_ID
+        if session_id is None: return ICD.ErrorType.INVALID_SESSION_ID
         
         # Checking if the session is active.
         session_status:SessionStatus = self._search(key=session_id, search_type=SearchType.ID)
@@ -487,11 +437,7 @@ class SessionManager:
             )
             return ErrorHandler.convert_to_icd(ErrorCode.CLIENT_IS_NOT_ACTIVE)
 
-        frame_data:FrameData = FrameData(
-            session_id=session_id,
-            frame_id=frame_id,
-            content=frame_content
-        )
+        frame_data:FrameData = FrameData(session_id=session_id, frame_id=frame_id, content=frame_content)
         try:
             # Performing an initial frame validation before analyzing the pose.
             frame_data.validate()
@@ -509,7 +455,24 @@ class SessionManager:
         if pose_analyzer_result is None or isinstance(pose_analyzer_result, ErrorCode): # Otherwise, the result is an np.ndarray instance.
             return ErrorHandler.convert_to_icd(pose_analyzer_result)
         
-        ### Calculatin Joints --- using JointAnalyzer.
+        ### Validating Frame Quality --- using PoseQualityManager.
+        pose_quality_result = self.pose_quality_manager.evaluate_landmarks(pose_analyzer_result)
+        # If returned an error.
+        if isinstance(pose_quality_result, ICD.ErrorType):
+            return ErrorHandler.convert_to_icd(pose_quality_result)
+        
+        from Server.Data.Pose.PoseQualityResult import PoseQualityResult
+        from Server.Data.Pose.PoseQuality import PoseQuality
+        # If returned a warning about the results quality.
+        if isinstance(pose_quality_result, PoseQualityResult) and pose_quality_result.quality is not PoseQuality.OK:
+            quality_fail_to_error_code:ErrorCode = PoseQuality.convert_to_error_code(pose_quality_result.quality)
+            ErrorHandler.handle(
+                error=quality_fail_to_error_code,
+                origin=inspect.currentframe()
+            )
+            return ErrorHandler.convert_to_icd(quality_fail_to_error_code)
+        
+        ### Calculating Joints --- using JointAnalyzer.
         # Getting exercise type and the extended evaluation parameter.
         exercise_type:ExerciseType = self.active_sessions.get(session_id).exercise_type
         extended_evaluation:bool   = self.active_sessions.get(session_id).extended_evaluation
@@ -870,3 +833,70 @@ class SessionManager:
                 return ExerciseType.get(exercise_type)
             except:
                 return None
+
+    ###############################
+    ### RETRIEVE CONFIGURATIONS ###
+    ############################### 
+    def _retrieve_configurations(self) -> None:
+        """
+        ### Brief:
+        The `_retrieve_configurations` method gets the updated configurations from the
+        configuration file.
+        """
+        from Server.Utilities.Config.ConfigLoader import ConfigLoader
+        from Server.Utilities.Config.ConfigParameters import ConfigParameters
+
+        # Supported exercises.
+        self.supported_exercises:list = ConfigLoader.get([
+            ConfigParameters.Major.SESSION,
+            ConfigParameters.Minor.SUPPORTED_EXERCIES
+        ])
+        Logger.info(f"SessionManager: Supported exercises: {self.supported_exercises}")
+
+        # Maximum clients at the same time.
+        self.maximum_clients:int = ConfigLoader.get([
+            ConfigParameters.Major.SESSION,
+            ConfigParameters.Minor.MAXIMUM_CLIENTS
+        ])
+        Logger.info(f"SessionManager: Maximum clients: {self.maximum_clients}")
+
+        # Frames history rolling window size,.
+        frames_rolling_window_size:int = ConfigLoader.get([
+            ConfigParameters.Major.HISTORY,
+            ConfigParameters.Minor.FRAMES_ROLLING_WINDOW_SIZE
+        ])
+        self.history_configuration = {
+            "frames_rolling_window_size": frames_rolling_window_size
+        }
+        Logger.info(f"SessionManager: Frames history rolling window size: {self.frames_rolling_window_size}")
+
+        # Start cleanup background thread.
+        self.cleanup_interval_minutes = ConfigLoader.get([
+            ConfigParameters.Major.TASKS,
+            ConfigParameters.Minor.CLEANUP_INTERVAL_MINUTES
+        ])
+        Logger.info(f"SessionManager: Cleanup interval minutes: {self.cleanup_interval_minutes}")
+
+        self.max_registration_minutes = ConfigLoader.get([
+            ConfigParameters.Major.TASKS,
+            ConfigParameters.Minor.MAX_REGISTRATION_MINUTES
+        ])
+        Logger.info(f"SessionManager: Maximum registration minutes: {self.max_registration_minutes}")
+
+        self.max_inactive_minutes = ConfigLoader.get([
+            ConfigParameters.Major.TASKS,
+            ConfigParameters.Minor.MAX_INACTIVE_MINUTS
+        ])
+        Logger.info(f"SessionManager: Maximum inactive minutes: {self.max_inactive_minutes}")
+
+        self.max_pause_minutes = ConfigLoader.get([
+            ConfigParameters.Major.TASKS,
+            ConfigParameters.Minor.MAX_PAUSE_MINUTES
+        ])
+        Logger.info(f"SessionManager: Maximum pause minutes: {self.max_pause_minutes}")
+
+        self.max_ended_retention = ConfigLoader.get([
+            ConfigParameters.Major.TASKS,
+            ConfigParameters.Minor.MAX_ENDED_RETENTION
+        ])
+        Logger.info(f"SessionManager: Maximum ended retention: {self.max_ended_retention}")

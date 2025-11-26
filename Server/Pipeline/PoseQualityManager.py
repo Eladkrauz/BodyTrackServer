@@ -57,51 +57,7 @@ class PoseQualityManager:
         last_landmarks stores the previous frame's (x,y) points for stability checks.
         """
         try:
-            from Server.Utilities.Config.ConfigLoader import ConfigLoader
-            from Server.Utilities.Config.ConfigParameters import ConfigParameters
-            # Load quality thresholds from configuration.
-            self.stability_threshold = ConfigLoader.get(
-                key=[
-                    ConfigParameters.Major.POSE,
-                    ConfigParameters.Minor.STABILITY_THRESHOLD
-                ],
-                critical_value=True
-            )
-            self.bbox_too_far = ConfigLoader.get(
-                key=[
-                    ConfigParameters.Major.POSE,
-                    ConfigParameters.Minor.BBOX_TOO_FAR
-                ],
-                critical_value=True
-            )
-            self.bbox_too_close = ConfigLoader.get(
-                key=[
-                    ConfigParameters.Major.POSE,
-                    ConfigParameters.Minor.BBOX_TOO_CLOSE
-                ],
-                critical_value=True
-            )
-            self.mean_vis_threshold = ConfigLoader.get(
-                key=[
-                    ConfigParameters.Major.POSE,
-                    ConfigParameters.Minor.MEAN_VIS_THRESHOLD
-                ],
-                critical_value=True
-            )
-            self.partial_count_threshold = ConfigLoader.get(
-                key=[
-                    ConfigParameters.Major.POSE,
-                    ConfigParameters.Minor.PARTIAL_COUNT_THRESHOLD
-                ],
-                critical_value=True
-            )
-            self.minimum_bbox_area = ConfigLoader.get(
-                key=[
-                    ConfigParameters.Major.POSE,
-                    ConfigParameters.Minor.MINIMUM_BBOX_AREA
-                ],
-                critical_value=True
-            )
+            self._retrieve_configurations()
 
             # Track last landmarks as an array of (x,y) for stability checks.
             self.last_landmarks = None
@@ -465,3 +421,41 @@ class PoseQualityManager:
                 }
             )
             return ErrorCode.QUALITY_CHECKING_ERROR
+    
+    ###############################
+    ### RETRIEVE CONFIGURATIONS ###
+    ###############################
+    def _retrieve_configurations(self) -> None:
+        """
+        ### Brief:
+        The `_retrieve_configurations` method gets the updated configurations from the
+        configuration file.
+        """
+        from Server.Utilities.Config.ConfigLoader import ConfigLoader
+        from Server.Utilities.Config.ConfigParameters import ConfigParameters
+
+        # Load quality thresholds from configuration.
+        self.stability_threshold = ConfigLoader.get([
+            ConfigParameters.Major.POSE,
+            ConfigParameters.Minor.STABILITY_THRESHOLD
+        ])
+        self.bbox_too_far = ConfigLoader.get([
+            ConfigParameters.Major.POSE,
+            ConfigParameters.Minor.BBOX_TOO_FAR
+        ])
+        self.bbox_too_close = ConfigLoader.get([
+            ConfigParameters.Major.POSE,
+            ConfigParameters.Minor.BBOX_TOO_CLOSE
+        ])
+        self.mean_vis_threshold = ConfigLoader.get([
+            ConfigParameters.Major.POSE,
+            ConfigParameters.Minor.MEAN_VIS_THRESHOLD
+        ])
+        self.partial_count_threshold = ConfigLoader.get([
+            ConfigParameters.Major.POSE,
+            ConfigParameters.Minor.PARTIAL_COUNT_THRESHOLD
+        ])
+        self.minimum_bbox_area = ConfigLoader.get([
+            ConfigParameters.Major.POSE,
+            ConfigParameters.Minor.MINIMUM_BBOX_AREA
+        ])

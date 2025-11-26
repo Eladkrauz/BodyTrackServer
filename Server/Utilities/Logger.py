@@ -40,44 +40,38 @@ class Logger:
         - It archives existing log file if exists and starts a new log session.
         """
         # Extract parameters from the configuration file.
-        from Server.Utilities.Config.ConfigLoader import ConfigLoader
-        from Server.Utilities.Config.ConfigParameters import ConfigParameters
-        logger_parameters = ConfigLoader.get(key=[ConfigParameters.Major.LOG], critical_value=True)
-        logger_path = logger_parameters[ConfigParameters.Minor.LOGGER_PATH.value]
-        logger_name = logger_parameters[ConfigParameters.Minor.LOGGER_NAME.value]
-        archive_dir = logger_parameters[ConfigParameters.Minor.ARCHIVE_DIR_NAME.value]
-        log_level = logger_parameters[ConfigParameters.Minor.LOG_LEVEL.value]
+        self._retrieve_configurations()
 
         # Ensure log directory exists.
-        os.makedirs(os.path.dirname(logger_path), exist_ok=True)
+        os.makedirs(os.path.dirname(self.logger_path), exist_ok=True)
 
         # Archive existing log file if it exists.
-        if os.path.exists(logger_path):
-            with open(logger_path, mode='a') as f:
+        if os.path.exists(self.logger_path):
+            with open(self.logger_path, mode='a') as f:
                 f.write("\n#############################################################")
                 f.write("\n##### This log file was archived on " + datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " #####")
                 f.write("\n#############################################################")
 
-            archive_dir = os.path.join(os.path.dirname(logger_path), archive_dir)
-            os.makedirs(archive_dir, exist_ok=True)
+            self.archive_dir = os.path.join(os.path.dirname(self.logger_path), self.archive_dir)
+            os.makedirs(self.archive_dir, exist_ok=True)
 
             # Create the archived log file.
-            base_name = os.path.splitext(os.path.basename(logger_path))[0]
-            extension = os.path.splitext(logger_path)[1]  # .log
-            archived_file = os.path.join(archive_dir, f"{base_name}_{datetime.now().strftime("%d-%m-%Y_%H-%M")}{extension}")
-            os.rename(logger_path, archived_file)
+            base_name = os.path.splitext(os.path.basename(self.logger_path))[0]
+            extension = os.path.splitext(self.logger_path)[1]  # .log
+            archived_file = os.path.join(self.archive_dir, f"{base_name}_{datetime.now().strftime("%d-%m-%Y_%H-%M")}{extension}")
+            os.rename(self.logger_path, archived_file)
 
-        self.logger = logging.getLogger(logger_name)
-        self.logger.setLevel(log_level)
+        self.logger = logging.getLogger(self.logger_name)
+        self.logger.setLevel(self.log_level)
 
-        with open(logger_path, mode='w') as f:
+        with open(self.logger_path, mode='w') as f:
             f.write("#############################\n")
             f.write("##### BODY TRACK LOGGER #####\n")
             f.write("#############################\n")
 
         # Avoid adding handlers multiple times.
         if not self.logger.handlers:
-            file_handler = logging.FileHandler(logger_path, mode='a')
+            file_handler = logging.FileHandler(self.logger_path, mode='a')
             file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
 
             console_handler = logging.StreamHandler()
@@ -226,3 +220,32 @@ class Logger:
         cls.get_instance()
         cls._ready = True
         print("[INFO]: Logger is initialized.")
+
+    ###############################
+    ### RETRIEVE CONFIGURATIONS ###
+    ############################### 
+    def _retrieve_configurations(self) -> None:
+        """
+        ### Brief:
+        The `_retrieve_configurations` method gets the updated configurations from the
+        configuration file.
+        """
+        from Server.Utilities.Config.ConfigLoader import ConfigLoader
+        from Server.Utilities.Config.ConfigParameters import ConfigParameters
+
+        self.logger_path = ConfigLoader.get([
+            ConfigParameters.Major.LOG,
+            ConfigParameters.Minor.LOGGER_PATH
+        ])
+        self.logger_name = ConfigLoader.get([
+            ConfigParameters.Major.LOG,
+            ConfigParameters.Minor.LOGGER_NAME
+        ])
+        self.archive_dir = ConfigLoader.get([
+            ConfigParameters.Major.LOG,
+            ConfigParameters.Minor.ARCHIVE_DIR_NAME
+        ])
+        self.log_level = ConfigLoader.get([
+            ConfigParameters.Major.LOG,
+            ConfigParameters.Minor.LOG_LEVEL
+        ])
