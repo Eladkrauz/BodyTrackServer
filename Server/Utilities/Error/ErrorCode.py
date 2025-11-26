@@ -22,8 +22,9 @@ class ErrorCode(enum):
     CONFIGURATION_FILE_DOES_NOT_EXIST       = (2, "Configuration file does not exist.", {"The file should be located in": "Utilities/Config/ServerConfiguration.JSON", "This is a critical error": "can't configure server."}, True)
     JSON_FILE_DECODE_ERROR                  = (3, "Error parsing the configuration JSON file.", {"Reason": "The data being deserialized is not a valid JSON document", "This is a critical error": "can't configure server."}, True)
     JSON_FILE_UNICODE_ERROR                 = (4, "Error parsing the configuration JSON file.", {"Reason": "The data being deserialized does not contain UTF-8, UTF-16 or UTF-32 encoded data", "This is a critical error": "can't configure server."}, True)
-    CONFIGURATION_PARAMETER_DOES_NOT_EXIST  = (5, "The key sent does not exist in the configuration file.", {"Please check": "the configuration file.", "Critical": "Can't configure server. Terminating system."}, True)
-    CONFIGURATION_KEY_IS_INVALID            = (6, "The key sent is not a valid list of ConfigParameters", None, True)
+    CONFIG_PARAM_DOES_NOT_EXIST             = (5, "The key sent does not exist in the configuration file.", None, False)
+    CRITICAL_CONFIG_PARAM_DOES_NOT_EXIST    = (6, "The key sent does not exist in the configuration file. Critical to server.", None, True)
+    CONFIGURATION_KEY_IS_INVALID            = (7, "The key sent is not a valid list of ConfigParameters", None, True)
 
     # Flask and database management.
     CANT_ADD_URL_RULE_TO_FLASK_SERVER       = (100, "URL rule could not be added.", None, True)
@@ -71,22 +72,37 @@ class ErrorCode(enum):
     ANGLE_VALIDATION_FAILED                 = (401, "Angle validation has failed.", None, False)
     ANGLE_CALCULATION_FAILED                = (402, "Angle calculation has failed.", None, False)
     JOINT_CALCULATION_ERROR                 = (403, "Joint calculation has failed.", None, False)
-    LANDMARK_VISIBILITY_IS_INVALID          = (404, "The landmark's visibility is invalid", None, False)
-    DIMENSION_OF_ANGLE_IS_INVALID           = (405, "The angle's dimension is invalid", None, False)
-    TOO_MANY_INVALID_ANGLES                 = (406, "Too many invalid angles in the provided frame", None, False)
+    DIMENSION_OF_ANGLE_IS_INVALID           = (404, "The angle's dimension is invalid", None, False)
+    TOO_MANY_INVALID_ANGLES                 = (405, "Too many invalid angles in the provided frame", None, False)
 
     # HistoryManager.
     HISTORY_MANAGER_INIT_ERROR              = (500, "Failed to initialize HistoryManager", None, False)
+    EXERCISE_START_TIME_ALREADY_SET         = (501, "Tried to set exercise start time which already set.", None, False)
+    EXERCISE_END_TIME_ALREADY_SET           = (502, "Tried to set exercise end time which already set.", None, False)
+    HISTORY_MANAGER_INTERNAL_ERROR          = (503, "Internal HistoryManager error", None, False)
+    TRIED_TO_ADD_ERROR_TO_NONE_REP          = (504, "Tried to add a new error to current rep's errors list, while it is None", None, False)
+    TRIED_TO_END_A_NONE_REP                 = (505, "Tried to end the current rep, while it is None", None, False)
+    TRIED_TO_START_REP_WHILE_HAVE_ONE       = (506, "Tried to start a new rep, while there is an active one", None, False)
+    ERROR_WITH_HANDLING_FRAMES_LIST         = (507, "Failed to handle the frames list in HistoryManager.", None, False)
+    CANT_FIND_FRAME_IN_FRAMES_WINDOW        = (508, "The provided frame id does not exist in the frames list.", None, False)
+    LAST_VALID_FRAME_IS_NONE                = (509, "The last valid frame is None (does not exist).", None, False)
+    ERROR_WITH_HANDLING_BAD_FRAMES_LIST     = (510, "Failed to handle the bad frames list in HistoryManager.", None, False)
 
     # PoseQualityManager.
     FAILED_TO_INITIALIZE_QUALITY_MANAGER    = (600, "Failed to initialize the PoseQualityManager", None, True)
-
+    QUALITY_CHECKING_ERROR                  = (601, "Error during the run of PoseQualityManager", None, False)
+    NO_PERSON_DETECTED_IN_FRAME             = (602, "No person detected in received frame", None, False)
+    LOW_VISIBILITY_IN_FRAME                 = (603, "The received visibility is too low", None, False)
+    PARTIAL_BODY_IN_FRAME                   = (604, "Only partial body is in frame", None, False)
+    TOO_FAR_IN_FRAME                        = (605, "The person in frame is too far", None, False)
+    TOO_CLOSE_IN_FRAME                      = (606, "The person in frame is too close", None, False)
+    UNSTABLE_IN_FRAME                       = (607, "The frame is unstable", None, False)
+    
     # ErrorDetector.
     ERROR_DETECTOR_INVALID_ANGLE = (700, "Invalid angle value provided to ErrorDetector.", None, False)
     ERROR_DETECTOR_MISSING_THRESHOLD = (701, "Missing threshold entry in JSON for angle.", None, False)
     ERROR_DETECTOR_UNSUPPORTED_EXERCISE = (702, "The provided exercise type is not supported by ErrorDetector.", None, False)
     ERROR_DETECTOR_MAPPING_NOT_FOUND = (703, "Mapping from angle to error code not found.", None, False)
-
     
     def __new__(cls, code:int, description:str, extra_info:dict = None, critical:bool = False):
         obj = object.__new__(cls)

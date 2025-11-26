@@ -21,6 +21,7 @@ class ConfigParameters:
         COMMUNICATION = "communication"
         FRAME         = "frame"
         SESSION       = "session"
+        HISTORY       = "history"
         TASKS         = "tasks"
         LOG           = "log"
         POSE          = "pose"
@@ -39,6 +40,13 @@ class ConfigParameters:
         # Session.
         SUPPORTED_EXERCIES  = "supported_exercises"
         MAXIMUM_CLIENTS     = "maximum_clients"
+
+        # History.
+        FRAMES_ROLLING_WINDOW_SIZE           = "frames_rolling_window_size"
+        BAD_FRAME_LOG_SIZE                   = "bad_frame_log_size"
+        RECOVERY_OK_THRESHOLD                = "recovery_ok_threshold"
+        BAD_STABILITY_LIMIT                  = "bad_stability_limit"
+        MAX_CONSECUTIVE_INVALID_BEFORE_ABORT = "max_consecutive_invalid_before_abort"
 
         # Tasks.
         CLEANUP_INTERVAL_MINUTES    = "cleanup_interval_minutes"

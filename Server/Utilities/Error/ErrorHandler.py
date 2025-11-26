@@ -56,7 +56,8 @@ class ErrorHandler:
         ### Explanation:
         After importing the `ErrorHandler` and `ErrorCode`, call `handle` this way:
         ```
-        from Utilities.ErrorHandler import ErrorHandler, ErrorCode
+        from Server.Utilities.Error.ErrorHandler import ErrorHandler
+        from Server.Utilities.Error.ErrorCode import ErrorCode
         ErrorHandler.handle(
             error=ErrorCode.ERROR_TYPE,
             origin=inpsect.currentframe(),
@@ -64,7 +65,8 @@ class ErrorHandler:
                 "More info": "...",
                 "Even more info": "..."
             }, # Can be ignored.
-            do_not_log=False # Ignore this argument. Only for internal use.
+            do_not_log=False, # Ignore this argument. Only for internal use.
+            do_not_abort=False, # Ignore this argument too.
         )
         ```
         This is how a valid `ErrorCode` looks like:
@@ -86,7 +88,7 @@ class ErrorHandler:
         )
         ```
         ### Notes:
-        - `do_not_log` and `extra_info` can be ignored and not sent as parameters.
+        - `do_not_log`, `do_not_abort` and `extra_info` can be ignored and not sent as parameters.
         - Please make sure `extra_info` does not contain keys the same as the keys inside `ErrorCode.ERROR_TYPE` you sent.
         """
         if not isinstance(error, ErrorCode):
@@ -123,7 +125,10 @@ class ErrorHandler:
         """
         ### Brief:
         The `imidiate_abort` method prints an error and terminates the system.
-        ### Arguments
+
+        ### Arguments:
+        - `error` (ErrorCode): The error code to be printed. (not logged!)
+        - `origin` (FrameType): The origin of where the error happened.
         """
         cls.handle(error=error, origin=origin, do_not_log=True)
 

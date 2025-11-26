@@ -1,44 +1,47 @@
 {
   "communication": {
-    "port": 5000,
-    "host": "0.0.0.0",
+    "port":            5000,
+    "host":            "0.0.0.0",
     "timeout_seconds": 30
   },
   "frame": {
-    "width": 640,
+    "width":  640,
     "height": 480
   },
   "session": {
-    "supported_exercises": [
-      "squat",
-      "bicep_curl",
-      "shoulder_raise"
-    ],
-    "maximum_clients": 10
+    "supported_exercises": ["squat", "bicep_curl", "shoulder_raise"],
+    "maximum_clients":     10
+  },
+  "history": {
+    "frames_rolling_window_size":           50,
+    "bad_frame_log_size":                   200,
+    "recovery_ok_threshold":                4,
+    "bad_stability_limit":                  30,
+    "max_consecutive_invalid_before_abort": 60
   },
   "tasks": {
     "cleanup_interval_minutes": 10,
     "max_registration_minutes": 10,
-    "max_inactive_minutes": 3,
-    "max_pause_minutes": 10,
-    "max_ended_retention": 30    
+    "max_inactive_minutes":     3,
+    "max_pause_minutes":        10,
+    "max_ended_retention":      30    
   },
   "log": {
-    "logger_path": "Server/Files/Logs/ServerLogger.log",
-    "logger_name": "BodyTrackLogger",
+    "logger_path":      "Server/Files/Logs/ServerLogger.log",
+    "logger_name":      "BodyTrackLogger",
     "archive_dir_name": "Archive",
-    "log_level": "DEBUG"
+    "log_level":        "DEBUG"
   },
   "pose": {
-    "stability_threshold": 0.1,
-    "bbox_too_far": 0.1,
-    "bbox_too_close": 0.8,
-    "mean_vis_threshold": 0.3,
+    "stability_threshold":     0.1,
+    "bbox_too_far":            0.1,
+    "bbox_too_close":          0.8,
+    "mean_vis_threshold":      0.3,
     "partial_count_threshold": 10,
-    "minimum_bbox_area": 1e-6
+    "minimum_bbox_area":       1e-6
   },
   "joints": {
-    "visibility_threshold": 0.5,
+    "visibility_threshold":  0.5,
     "min_valid_joint_ratio": 0.7
   }
 }

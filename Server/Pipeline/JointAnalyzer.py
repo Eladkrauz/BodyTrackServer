@@ -7,18 +7,20 @@
 ###############
 ### IMPORTS ###
 ###############
+# Python libraries.
 import math, inspect
 import numpy as np
 from typing import Dict, Any
 
+# Utilities.
 from Server.Utilities.Logger import Logger
 from Server.Utilities.Error.ErrorHandler import ErrorHandler
 from Server.Utilities.Error.ErrorCode import ErrorCode
-from Server.Utilities.Config.ConfigLoader import ConfigLoader
-from Server.Utilities.Config.ConfigParameters import ConfigParameters
-from Server.Pipeline.PoseAnalyzer import PoseLandmarksArray
+
+# Data.
+from Server.Data.Pose.PoseLandmarks import PoseLandmarksArray
 from Server.Data.Session import ExerciseType
-from Server.Data.Joints import JointAngle
+from Server.Data.Joints.JointAngle import JointAngle, Joint
 
 ############################
 ### JOINT ANALYZER CLASS ###
@@ -41,14 +43,10 @@ class JointAnalyzer:
         ### Brief:
         The `__init__` method initializes the `JointAnalyzer` instance.
         """
-        self.visibility_threshold = ConfigLoader.get(
-            key=[ConfigParameters.Major.JOINTS, ConfigParameters.Minor.VISIBILITY_THRESHOLD],
-            critical_value=True
-        )
-        self.min_valid_joint_ratio = ConfigLoader.get(
-            [ConfigParameters.Major.JOINTS, ConfigParameters.Minor.MIN_VALID_JOINT_RATIO],
-            critical_value=True
-        )
+        # Get configurations.
+        self._retrieve_configurations()
+
+        # Initialized.
         Logger.info("JointAnalyzer: Initialized successfully.")
 
     ########################
@@ -95,7 +93,7 @@ class JointAnalyzer:
         - `point_2` (np.ndarray): The second point.
 
         ### Returns:
-        - An `np,ndarray` calculated vector based on the two given points.
+        - An `np.ndarray` calculated vector based on the two given points.
         - `None` if failed to calculate the vector.
         """
         # Checking if the first point is valid.
@@ -211,24 +209,6 @@ class JointAnalyzer:
             )
             return None
 
-    ##################    
-    ### IS VISIBLE ###
-    ##################
-    def _is_visible(self, landmark_visibility:float) -> bool:
-        """
-        ### Brief:
-        The `_is_visible` method checks whether the landmark's visibility rate is within the predefined threshold.
-
-        ### Arguments:
-        `landmark_visibility` (float): The landmark's visibility rate calculated by `MediaPipe Pose`.
-
-        ### Returns:
-        `True` if the visibility is within the predefined threshold, `False` if not.
-        """
-        if landmark_visibility is None or not isinstance(landmark_visibility, float):
-            ErrorHandler.handle(error=ErrorCode.LANDMARK_VISIBILITY_IS_INVALID, origin=inspect.currentframe())
-        return landmark_visibility >= self.visibility_threshold
-
     #######################
     ### CLACULATE ANGLE ###
     #######################
@@ -250,14 +230,6 @@ class JointAnalyzer:
         - Vector creation failed cause one/more of the points validation failed.
         - Angle calculation failed cause one/more of the vectors validation failed.
         """
-        # Checking if the landmarks visibilities are within the predefined threshold.
-        if not self._is_visible(landmark_1.visibility):
-            return None      
-        if not self._is_visible(landmark_2.visibility):
-            return None      
-        if not self._is_visible(landmark_3.visibility):
-            return None      
-        
         # Calculating the first vector.
         vector_1 = self._vector(landmark_2, landmark_1)
         if vector_1 is None:
@@ -309,16 +281,9 @@ class JointAnalyzer:
         - `ErrorCode`: If validation fails or calculation is impossible.
 
         ### Notes:
-        - Check if landmark's visibility is within the predefined threshold.
         - Works in 2D (x, y) ignoring depth (z).
         - Useful for biomechanical checks like pelvic tilt (hip line) or shoulder tilt.
         """
-        # Checking if the landmarks visibilities are within the predefined threshold.
-        if not self._is_visible(left_point.visibility):
-            return None      
-        if not self._is_visible(right_point.visibility):
-            return None  
-        
         # Validate inputs.
         is_valid, reason_if_not = self._validate_ndarray(left_point)
         if not is_valid:
@@ -396,28 +361,31 @@ class JointAnalyzer:
 
         # Handle each exercise.
         try:
-            exercise_type:JointAngle = JointAngle.exercise_type_to_joint_type(exercise_type)
+            exercise_type:JointAngle.Squat | JointAngle.BicepsCurl | JointAngle.LateralRaise \
+                = JointAngle.exercise_type_to_joint_type(exercise_type)
             if exercise_type is None:
                 return ErrorCode.EXERCISE_TYPE_DOES_NOT_EXIST
             
-            exercise_joints:list[JointAngle.Joint] = exercise_type.CORE + exercise_type.EXTENDED
+            # Based on extended_evaluation parameter, decide which joints to calculate.
+            if extended_evaluation: exercise_joints:list[Joint] = exercise_type.CORE + exercise_type.EXTENDED
+            else:                   exercise_joints:list[Joint] = exercise_type.CORE
             results: Dict[str, float] = {}
 
             count_valid_core_joints = 0
+            # Iterate over required joints to be calculated.
             for joint in exercise_joints:
-                # If extended evaluation is not required and the joint is classified as extended.
-                if joint in exercise_type.EXTENDED and not extended_evaluation:
-                    continue
-
                 if len(joint.landmarks) == JointAngle.TWO_POINT_JOINT:
                     left_point, right_point = joint.landmarks
                     calculated_angle = self._line_against_horizontal_angle(
-                        left_point=left_point, right_point=right_point
+                        left_point=landmarks[left_point],
+                        right_point=landmarks[right_point]
                     )
                 elif len(joint.landmarks) == JointAngle.THREE_POINT_JOINT:
                     landmark_1, landmark_2, landmark_3 = joint.landmarks
                     calculated_angle = self._calculate_angle(
-                        landmark_1=landmark_1, landmark_2=landmark_2, landmark_3=landmark_3
+                        landmark_1=landmarks[landmark_1],
+                        landmark_2=landmarks[landmark_2],
+                        landmark_3=landmarks[landmark_3]
                     )
                 else:
                     ErrorHandler.handle(
@@ -457,3 +425,24 @@ class JointAnalyzer:
                 extra_info={ "Exception": str(e) }
             )
             return ErrorCode.JOINT_CALCULATION_ERROR
+        
+    ###############################
+    ### RETRIEVE CONFIGURATIONS ###
+    ############################### 
+    def _retrieve_configurations(self) -> None:
+        """
+        ### Brief:
+        The `_retrieve_configurations` method gets the updated configurations from the
+        configuration file.
+        """
+        from Server.Utilities.Config.ConfigLoader import ConfigLoader
+        from Server.Utilities.Config.ConfigParameters import ConfigParameters
+
+        self.visibility_threshold = ConfigLoader.get([
+            ConfigParameters.Major.JOINTS,
+            ConfigParameters.Minor.VISIBILITY_THRESHOLD
+        ])
+        self.min_valid_joint_ratio = ConfigLoader.get([
+            ConfigParameters.Major.JOINTS,
+            ConfigParameters.Minor.MIN_VALID_JOINT_RATIO
+        ])

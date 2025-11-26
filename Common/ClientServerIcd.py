@@ -53,11 +53,18 @@ class ClientServerIcd:
         CLIENT_IS_ONLY_REGISTERED           = (212, "The client is only registered, did not start yet.")
         INVALID_EXTENDED_EVALUATION_PARAM   = (213, "The parameter of extended evaluation is not valid.")
 
-        # PoseAnalyzer, JointAnalyzer and frame processing.
+        # PoseAnalyzer, PoseQualityManager, JointAnalyzer and frame processing.
         FRAME_INITIAL_VALIDATION_FAILED     = (300, "The initial validation process of the frame failed.")
         FRAME_ANALYZING_FAILED              = (301, "Failed to analyze frame.")
         JOINT_ANALYZING_FAILED              = (302, "Failed to calculate frame joint angles.")
         TOO_MANY_INVALID_ANGLES             = (303, "Too many invalid angles in the provided frame")
+        QUALITY_CHECKING_ERROR              = (304, "Error during the run of quality checking.")
+        NO_PERSON_DETECTED_IN_FRAME         = (305, "No person detected in received frame")
+        LOW_VISIBILITY_IN_FRAME             = (306, "The received visibility is too low")
+        PARTIAL_BODY_IN_FRAME               = (307, "Only partial body is in frame")
+        TOO_FAR_IN_FRAME                    = (308, "The person in frame is too far")
+        TOO_CLOSE_IN_FRAME                  = (309, "The person in frame is too close")
+        UNSTABLE_IN_FRAME                   = (310, "The frame is unstable")
 
         def __new__(cls, code, description):
             obj = object.__new__(cls)

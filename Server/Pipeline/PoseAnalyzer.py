@@ -17,8 +17,6 @@ from typing import Optional
 from Server.Utilities.Error.ErrorHandler import ErrorHandler
 from Server.Utilities.Error.ErrorCode import ErrorCode
 from Server.Utilities.Logger import Logger
-from Server.Utilities.Config.ConfigLoader import ConfigLoader
-from Server.Utilities.Config.ConfigParameters import ConfigParameters
 from Server.Data.Session.FrameData import FrameData
 from Server.Data.Pose.PoseLandmarks import PoseLandmark, PoseLandmarksArray
 
@@ -47,17 +45,8 @@ class PoseAnalyzer:
         The `__init__` method initializes the `PoseAnalyzer` class.
         """
         try:
-            # Load frame dimensions from config (critical values: must exist, otherwise error is raised).
-            # These values define the target width and height to which all incoming frames will be resized
-            # before being passed to MediaPipe for analysis. Ensures consistent input shape for the model.
-            self.frame_width = ConfigLoader.get(
-                [ConfigParameters.Major.FRAME, ConfigParameters.Minor.WIDTH],
-                critical_value=True
-            )
-            self.frame_height = ConfigLoader.get(
-                [ConfigParameters.Major.FRAME, ConfigParameters.Minor.HEIGHT],
-                critical_value=True
-            )
+            # Load configurations.
+            self._retrieve_configurations()
 
             # Access the MediaPipe Pose solution class.
             # mp.solutions.pose is a wrapper that provides pretrained pose estimation.
@@ -411,3 +400,27 @@ class PoseAnalyzer:
                 }
             )
             return ErrorCode.FRAME_ANALYSIS_ERROR
+
+    ###############################
+    ### RETRIEVE CONFIGURATIONS ###
+    ############################### 
+    def _retrieve_configurations(self) -> None:
+        """
+        ### Brief:
+        The `_retrieve_configurations` method gets the updated configurations from the
+        configuration file.
+        """
+        from Server.Utilities.Config.ConfigLoader import ConfigLoader
+        from Server.Utilities.Config.ConfigParameters import ConfigParameters
+
+        # Load frame dimensions from config (critical values: must exist, otherwise error is raised).
+        # These values define the target width and height to which all incoming frames will be resized
+        # before being passed to MediaPipe for analysis. Ensures consistent input shape for the model.
+        self.frame_width = ConfigLoader.get([
+            ConfigParameters.Major.FRAME,
+            ConfigParameters.Minor.WIDTH
+        ])
+        self.frame_height = ConfigLoader.get([
+            ConfigParameters.Major.FRAME,
+            ConfigParameters.Minor.HEIGHT
+        ])
