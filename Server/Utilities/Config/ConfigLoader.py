@@ -90,7 +90,12 @@ class ConfigLoader:
     ### GET ###
     ###########
     @classmethod
-    def get(cls, key:list[ConfigParameters], critical_value:bool = True, different_file:str = None) -> str | None:
+    def get(cls,
+            key:list[ConfigParameters] | None,
+            critical_value:bool = True,
+            different_file:str = None,
+            read_all:bool = False
+        ) -> str | None:
         """
         ### Brief:
         The `get` method returns a configuration value by key.
@@ -100,6 +105,7 @@ class ConfigLoader:
         - `key`: The key to fetch from the config file, as a list of enum elements of `ConfigParameters` enum class.
         - `critical_value`: A `bool` indicating if the value is critical for the server configuration. Defaults to `True`.
         - `different_file`: A `str` of a different configuration file path. Defaults to `None`.
+        - `read_all`: A `bool` indicating whether to read all content of file, or keys from it.
 
         ### Returns:
         - The value of the specified key, as configured in the configuration file.
@@ -114,12 +120,15 @@ class ConfigLoader:
         """
         try:
             config_loader = cls.get_instance()
-            if not (isinstance(key, list) and not all(isinstance(k, ConfigParameters) for k in key)):
+            if not read_all and (not (isinstance(key, list) or not all(isinstance(k, ConfigParameters) for k in key))):
                 ErrorHandler.handle(error=ErrorCode.CONFIGURATION_KEY_IS_INVALID, origin=inspect.currentframe())
 
             # Deciding which file should be searched for key-value pair.
             if different_file is None: result = config_loader._config_data
             else:                      result = cls._get_json_data(different_file)
+
+            # If read_all is True, we don't need to look for a specific key.
+            if read_all: return result
 
             # Going deep in the dictionary to retrieve the required value of the given key.
             for k in key:

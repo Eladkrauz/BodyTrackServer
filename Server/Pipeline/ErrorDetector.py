@@ -57,10 +57,10 @@ class ErrorDetector:
         Loads all exercise thresholds from configuration.
         Uses ErrorHandler on failure and initializes with empty thresholds.
         """
-        #TODO: get from different source 
         self.thresholds = ConfigLoader.get(
-            key=[ConfigParameters.Major.EXERCISE_THRESHOLDS],
-            critical_value=True
+            key=None,
+            different_file="Server/Files/Config/ExerciseThresholds.JSON",
+            read_all=True
         )
 
     #####################
