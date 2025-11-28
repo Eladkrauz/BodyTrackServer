@@ -11,7 +11,7 @@ import numpy as np, inspect
 from typing import Optional
 
 from Server.Utilities.Error.ErrorHandler import ErrorHandler
-from Server.Utilities.Error.ErrorHandler import ErrorCode
+from Server.Utilities.Error.ErrorCode import ErrorCode
 from Server.Utilities.Logger import Logger
 from Server.Data.Pose.PoseLandmarks import PoseLandmarksArray
 from Server.Data.Pose.PoseQuality import PoseQuality
