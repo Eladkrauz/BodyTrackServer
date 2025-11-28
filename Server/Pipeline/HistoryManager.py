@@ -15,7 +15,7 @@ from copy import deepcopy
 
 from Server.Data.Pose.PoseQuality import PoseQuality
 from Server.Data.History.HistoryDictKey import HistoryDictKey
-from Server.Data.History.HistoryData import HistoryData
+from Server.Data.History.HistoryData import HistoryData, HistoryDict
 
 if TYPE_CHECKING:
     from Server.Data.Phase.PhaseType import PhaseType
@@ -41,7 +41,6 @@ class HistoryManager:
         The `__init__` method initializes the `HistoryManager` instance.
         """
         self._retrieve_configurations()
-        self._reset_bad_frame_counters()
 
     ###############################################################################################
     ############################## RECORD NEW VALID OR INVALID FRAME ##############################
@@ -61,6 +60,7 @@ class HistoryManager:
             3. `JointAnalyzer` successfully computed joints
 
         ### Argumetns:
+        - `history_data` (HistoryData): The `HistoryData` instance to work with.
         - `frame_id` (int): The frame number
         - `joints` (Dict[JointAngle, Any]): The angles dictionary from `JointAnalyzer`
         """
@@ -74,23 +74,18 @@ class HistoryManager:
             }
 
             # Inserting and handling rolling window of the frames list.
-            history_data[HistoryDictKey.FRAMES].append(new_frame)
-            self._pop_frame_if_needed()
+            history_data.history[HistoryDictKey.FRAMES].append(new_frame)
+            self._pop_frame_if_needed(history_data)
 
             # If the current frame is valid but not yet stable (lower than threshold),
             # keep info about the previous bad frames.
-            if not self._is_valid_frame_in_threshold(): return
+            if not self._is_valid_frame_in_threshold(history_data): return
 
             # Updating last valid frame.
-            history_data[HistoryDictKey.LAST_VALID_FRAME] = new_frame
+            history_data.history[HistoryDictKey.LAST_VALID_FRAME] = new_frame
 
             # Resetting counters.
-            self._reset_bad_frame_counters()
-
-            # If stable enough - restore confidence.
-            self.ok_streak += 1; self.bad_streak = 0
-            if self.ok_streak >= self.recovery_ok_threshold:
-                history_data[HistoryDictKey.IS_CAMERA_STABLE] = True
+            self._reset_bad_frame_counters(history_data)
 
         except Exception as e:
             from Server.Utilities.Error.ErrorHandler import ErrorHandler
@@ -104,46 +99,31 @@ class HistoryManager:
     #######################
     ### ADD FRAME ERROR ###
     #######################
-    def add_frame_error(self, history_data:HistoryData, error_to_add:str, frame_id:int = -1) -> None:
+    def add_frame_error(self, history_data:HistoryData, error_to_add:str, frame_id:int) -> None:
         """
         ### Brief:
-        The `add_frame_error` method adds an error to a frame.
+        The `add_frame_error` method adds an error to a valid frame.
 
         ### Arguments:
+        - `history_data` (HistoryData): The `HistoryData` instance to work with.
         - `error_to_add` (str): The error to be added.
         - `frame_id` (int): The frame id.
-            - Defaults to -1.
-            - In that case - adding to the last valid frame (which is `history_data[HistoryDictKey.FRAMES][-1]`).
-            - Otherwise - searching for the relevant frame in the list and adding it.
         """
         # If frame_id was specified (generally not supposed to happen).
-        if frame_id != -1:
-            current_amount_of_frames = len(history_data[HistoryDictKey.FRAMES])
-            for i in range(current_amount_of_frames - 1, -1, -1):
-                iterated_frame_id = history_data[HistoryDictKey.FRAMES][i][HistoryDictKey.Frame.FRAME_ID]
-                if iterated_frame_id == frame_id:
-                    history_data[HistoryDictKey.FRAMES][i][HistoryDictKey.Frame.ERRORS].append(error_to_add)
-                    return
-            
-            # If arrived here - did not find the frame in the list (probably it is too old).
-            from Server.Utilities.Error.ErrorHandler import ErrorHandler
-            from Server.Utilities.Error.ErrorCode import ErrorCode
-            ErrorHandler.handle(
-                error=ErrorCode.CANT_FIND_FRAME_IN_FRAMES_WINDOW,
-                origin=inspect.currentframe()
+        current_amount_of_frames = len(history_data.history[HistoryDictKey.FRAMES])
+        for i in range(current_amount_of_frames - 1, -1, -1):
+            iterated_frame_id = history_data.history[HistoryDictKey.FRAMES][i][HistoryDictKey.Frame.FRAME_ID]
+            if iterated_frame_id == frame_id:
+                history_data.history[HistoryDictKey.FRAMES][i][HistoryDictKey.Frame.ERRORS].append(error_to_add)
+                return
+        
+        # If arrived here - did not find the frame in the list (probably it is too old).
+        from Server.Utilities.Error.ErrorHandler import ErrorHandler
+        from Server.Utilities.Error.ErrorCode import ErrorCode
+        ErrorHandler.handle(
+            error=ErrorCode.CANT_FIND_FRAME_IN_FRAMES_WINDOW,
+            origin=inspect.currentframe()
             )
-        # If not - adding the error to the last frame.
-        else:
-            last_valid_frame:dict = history_data[HistoryDictKey.LAST_VALID_FRAME]
-            if last_valid_frame is None:
-                from Server.Utilities.Error.ErrorHandler import ErrorHandler
-                from Server.Utilities.Error.ErrorCode import ErrorCode
-                ErrorHandler.handle(
-                    error=ErrorCode.LAST_VALID_FRAME_IS_NONE,
-                    origin=inspect.currentframe()
-                )
-            else:
-                last_valid_frame[HistoryDictKey.Frame.ERRORS].append(error_to_add)
 
     ############################
     ### RECORD INVALID FRAME ###
@@ -158,6 +138,7 @@ class HistoryManager:
             2. `PoseQualityManager` returned something else but `PoseQuality.OK`
 
         ### Argumetns:
+        - `history_data` (HistoryData): The `HistoryData` instance to work with.
         - `frame_id` (int): The frame number
         - `invalid_reason` (PoseQuality): The reason why the frame is invalid
         """
@@ -167,27 +148,26 @@ class HistoryManager:
                 HistoryDictKey.BadFrame.TIMESTAMP: datetime.now(),
                 HistoryDictKey.BadFrame.REASON:    invalid_reason.value
             }
-            history_data[HistoryDictKey.BAD_FRAMES_LOG].append(entry)
-            self._pop_bad_frame_if_needed()
+            history_data.history[HistoryDictKey.BAD_FRAMES_LOG].append(entry)
+            self._pop_bad_frame_if_needed(history_data)
 
             # Increment total counters for this reason.
-            history_data[HistoryDictKey.BAD_FRAME_COUNTERS][invalid_reason.name] += 1
+            history_data.history[HistoryDictKey.BAD_FRAME_COUNTERS][invalid_reason.name] += 1
             # Increase total invalid frames count.
-            history_data[HistoryDictKey.FRAMES_SINCE_LAST_VALID] += 1
+            history_data.history[HistoryDictKey.FRAMES_SINCE_LAST_VALID] += 1
             # Increment bad frame streak.
-            for pose_quality in history_data[HistoryDictKey.BAD_FRAME_STREAKS]:
+            for pose_quality in history_data.history[HistoryDictKey.BAD_FRAME_STREAKS]:
                 if pose_quality == invalid_reason.name:
-                    history_data[HistoryDictKey.BAD_FRAME_STREAKS][pose_quality] += 1
+                    history_data.history[HistoryDictKey.BAD_FRAME_STREAKS][pose_quality] += 1
                 else:
-                    history_data[HistoryDictKey.BAD_FRAME_STREAKS][pose_quality] = 0
+                    history_data.history[HistoryDictKey.BAD_FRAME_STREAKS][pose_quality] = 0
 
             # Break the OK streak.
-            history_data[HistoryDictKey.CONSECUTIVE_OK_FRAMES] = 0
+            history_data.history[HistoryDictKey.CONSECUTIVE_OK_FRAMES] = 0
 
             # If too many bad frames - system is unstable.
-            self.bad_streak += 1; self.ok_streak = 0
-            if self.bad_streak >= self.bad_stability_limit:
-                history_data[HistoryDictKey.IS_CAMERA_STABLE] = False
+            if history_data.history[HistoryDictKey.BAD_FRAME_STREAKS][invalid_reason] >= self.bad_stability_limit:
+                    history_data.history[HistoryDictKey.IS_CAMERA_STABLE] = False
 
         except Exception as e:
             from Server.Utilities.Error.ErrorHandler import ErrorHandler
@@ -212,23 +192,25 @@ class HistoryManager:
         This is triggered only when `PhaseDetector` identifies an actual movement state transition.
 
         ### Arguments:
+        - `history_data` (HistoryData): The `HistoryData` instance to work with.
         - `old_phase` (PhaseType): The previous phase.
         - `new_phase` (PhaseType): The new phase.
         - `frame_id` (int): The frame where the transition happened.
         - `joints` (dict[str, float]): Snapshot of key joint angles at transition moment.
         """
+        if new_phase == old_phase or new_phase is None or old_phase is None: return
         now = datetime.now()
 
         # If we have a previous transition (it is not the first now) - compute duration.
-        transitions:list = history_data[HistoryDictKey.PHASE_TRANSITIONS]
+        transitions:list = history_data.history[HistoryDictKey.PHASE_TRANSITIONS]
         if transitions:
             last = transitions[-1]
             start_time:datetime = last[HistoryDictKey.PhaseTransition.TIMESTAMP]
             duration = (now - start_time).total_seconds()
 
             # Store finished phase duration entry.
-            history_data[HistoryDictKey.PHASE_DURATIONS].append({
-                HistoryDictKey.PhaseDuration.PHASE:       last[HistoryDictKey.PhaseTransition.PHASE_TO],
+            history_data.history[HistoryDictKey.PHASE_DURATIONS].append({
+                HistoryDictKey.PhaseDuration.PHASE:       old_phase,
                 HistoryDictKey.PhaseDuration.START_TIME:  start_time,
                 HistoryDictKey.PhaseDuration.END_TIME:    now,
                 HistoryDictKey.PhaseDuration.DURATION:    duration,
@@ -248,8 +230,8 @@ class HistoryManager:
         transitions.append(new_transition)
 
         # Update current phase type and start time.
-        history_data[HistoryDictKey.PHASE_STATE] = new_phase
-        history_data[HistoryDictKey.PHASE_START_TIME] = now
+        history_data.history[HistoryDictKey.PHASE_STATE] = new_phase
+        history_data.history[HistoryDictKey.PHASE_START_TIME] = now
 
     #########################################################################
     ############################## REPETITIONS ##############################
@@ -262,8 +244,11 @@ class HistoryManager:
         """
         ### Brief:
         The `start_a_new_rep` method starts a new repetition and stores it.
+
+        ### Arguments:
+        - `history_data` (HistoryData): The `HistoryData` instance to work with.
         """
-        if history_data[HistoryDictKey.CURRENT_REP] is not None:
+        if history_data.history[HistoryDictKey.CURRENT_REP] is not None:
             from Server.Utilities.Error.ErrorHandler import ErrorHandler
             from Server.Utilities.Error.ErrorCode import ErrorCode
             ErrorHandler.handle(error=ErrorCode.TRIED_TO_START_REP_WHILE_HAVE_ONE, origin=inspect.currentframe())
@@ -274,7 +259,7 @@ class HistoryManager:
                 HistoryDictKey.CurrentRep.ERRORS:     []
             }
 
-            history_data[HistoryDictKey.CURRENT_REP] = new_rep
+            history_data.history[HistoryDictKey.CURRENT_REP] = new_rep
 
     ################################
     ### ADD ERROR TO CURRENT REP ###
@@ -285,15 +270,16 @@ class HistoryManager:
         The `add_error_to_current_rep` method adds a new detected error to the current repetition.
 
         ### Arguments:
+        - `history_data` (HistoryData): The `HistoryData` instance to work with.
         - `error_to_add` (str): The detected error to be added.
         """
-        if history_data[HistoryDictKey.CURRENT_REP] is None:
+        if history_data.history[HistoryDictKey.CURRENT_REP] is None:
             from Server.Utilities.Error.ErrorHandler import ErrorHandler
             from Server.Utilities.Error.ErrorCode import ErrorCode
             ErrorHandler.handle(error=ErrorCode.TRIED_TO_ADD_ERROR_TO_NONE_REP, origin=inspect.currentframe())
         else:
-            history_data[HistoryDictKey.CURRENT_REP][HistoryDictKey.CurrentRep.HAS_ERROR] = True
-            history_data[HistoryDictKey.CURRENT_REP][HistoryDictKey.CurrentRep.ERRORS].append(error_to_add)
+            history_data.history[HistoryDictKey.CURRENT_REP][HistoryDictKey.CurrentRep.HAS_ERROR] = True
+            history_data.history[HistoryDictKey.CURRENT_REP][HistoryDictKey.CurrentRep.ERRORS].append(error_to_add)
 
     #######################
     ### END CURRENT REP ###
@@ -302,14 +288,17 @@ class HistoryManager:
         """
         ### Brief:
         The `end_current_rep` method finishes the current repetition.
+
+        ### Arguments:
+        - `history_data` (HistoryData): The `HistoryData` instance to work with.
         """
-        if history_data[HistoryDictKey.CURRENT_REP] is None:
+        if history_data.history[HistoryDictKey.CURRENT_REP] is None:
             from Server.Utilities.Error.ErrorHandler import ErrorHandler
             from Server.Utilities.Error.ErrorCode import ErrorCode
             ErrorHandler.handle(error=ErrorCode.TRIED_TO_END_A_NONE_REP, origin=inspect.currentframe())
         else:
             # Finishing current rep and inserting it to the completed reps list.
-            current_rep:dict = history_data[HistoryDictKey.CURRENT_REP]
+            current_rep:dict = history_data.history[HistoryDictKey.CURRENT_REP]
             start_time:datetime = current_rep[HistoryDictKey.CurrentRep.START_TIME]
             end_time:datetime = datetime.now()
             completed_rep = {
@@ -317,11 +306,11 @@ class HistoryManager:
                 HistoryDictKey.Repetition.END_TIME:   end_time,
                 HistoryDictKey.Repetition.DURATION:   (end_time - start_time).total_seconds(),
                 HistoryDictKey.Repetition.IS_CORRECT: not current_rep[HistoryDictKey.CurrentRep.HAS_ERROR],
-                HistoryDictKey.Repetition.ERRORS:     current_rep[HistoryDictKey.CurrentRep.ERRORS]
+                HistoryDictKey.Repetition.ERRORS:     deepcopy(current_rep[HistoryDictKey.CurrentRep.ERRORS])
             }
-            history_data[HistoryDictKey.REPETITIONS].append(completed_rep)
-            history_data[HistoryDictKey.REP_COUNT] += 1
-            history_data[HistoryDictKey.CURRENT_REP] = None
+            history_data.history[HistoryDictKey.REPETITIONS].append(completed_rep)
+            history_data.history[HistoryDictKey.REP_COUNT] += 1
+            history_data.history[HistoryDictKey.CURRENT_REP] = None
 
     ########################################################################
     ############################## TIMESTAMPS ##############################
@@ -334,16 +323,19 @@ class HistoryManager:
         """
         ### Brief:
         The `mark_exercise_start` method sets the exercise start timestamp (only once).
+
+        ### Arguments:
+        - `history_data` (HistoryData): The `HistoryData` instance to work with.
         """
-        if history_data[HistoryDictKey.EXERCISE_START_TIME] is None:
-            history_data[HistoryDictKey.EXERCISE_START_TIME] = datetime.now()
+        if history_data.history[HistoryDictKey.EXERCISE_START_TIME] is None:
+            history_data.history[HistoryDictKey.EXERCISE_START_TIME] = datetime.now()
         else:
             from Server.Utilities.Error.ErrorHandler import ErrorHandler
             from Server.Utilities.Error.ErrorCode import ErrorCode
             ErrorHandler.handle(
                 error=ErrorCode.EXERCISE_START_TIME_ALREADY_SET,
                 origin=inspect.currentframe(),
-                extra_info={ "Already Set": history_data[HistoryDictKey.EXERCISE_START_TIME] }
+                extra_info={ "Already Set": history_data.history[HistoryDictKey.EXERCISE_START_TIME] }
             )
 
     #########################
@@ -353,27 +345,30 @@ class HistoryManager:
         """
         ### Brief:
         The `mark_exercise_start` method sets the exercise end timestamp (only once).
+
+        ### Arguments:
+        - `history_data` (HistoryData): The `HistoryData` instance to work with.
         """
         try:
             # Prevent multiple calls.
-            if history_data[HistoryDictKey.EXERCISE_END_TIME] is not None:
+            if history_data.history[HistoryDictKey.EXERCISE_END_TIME] is not None:
                 from Server.Utilities.Error.ErrorHandler import ErrorHandler
                 from Server.Utilities.Error.ErrorCode import ErrorCode
                 ErrorHandler.handle(
                     error=ErrorCode.EXERCISE_END_TIME_ALREADY_SET,
                     origin=inspect.currentframe(),
-                    extra_info={ "Already Set": history_data[HistoryDictKey.EXERCISE_END_TIME] }
+                    extra_info={ "Already Set": history_data.history[HistoryDictKey.EXERCISE_END_TIME] }
                 )
                 return
 
             # Mark end time.
             end_timestamp = datetime.now()
-            history_data[HistoryDictKey.EXERCISE_END_TIME] = end_timestamp
+            history_data.history[HistoryDictKey.EXERCISE_END_TIME] = end_timestamp
 
             # Finalize last open phase.
-            transitions:list = history_data[HistoryDictKey.PHASE_TRANSITIONS]
-            durations:list   = history_data[HistoryDictKey.PHASE_DURATIONS]
-            repetitions:list = history_data[HistoryDictKey.REPETITIONS]
+            transitions:list = history_data.history[HistoryDictKey.PHASE_TRANSITIONS]
+            durations:list   = history_data.history[HistoryDictKey.PHASE_DURATIONS]
+            repetitions:list = history_data.history[HistoryDictKey.REPETITIONS]
             if transitions:
                 last_transition = transitions[-1]
                 start_time:datetime = last_transition[HistoryDictKey.PhaseTransition.TIMESTAMP]
@@ -389,7 +384,7 @@ class HistoryManager:
                 })
 
             # Finalize open repetition.
-            current_rep:dict = history_data[HistoryDictKey.CURRENT_REP]
+            current_rep:dict = history_data.history[HistoryDictKey.CURRENT_REP]
             if current_rep is not None:
                 start_time = current_rep[HistoryDictKey.CurrentRep.START_TIME]
 
@@ -397,14 +392,14 @@ class HistoryManager:
                     HistoryDictKey.Repetition.START_TIME: start_time,
                     HistoryDictKey.Repetition.END_TIME:   end_timestamp,
                     HistoryDictKey.Repetition.DURATION:   (end_timestamp - start_time).total_seconds(),
-                    HistoryDictKey.Repetition.IS_CORRECT: False,  # Incomplete rep = not correct.
-                    HistoryDictKey.Repetition.ERRORS:     current_rep.get(HistoryDictKey.CurrentRep.ERRORS, [])
+                    HistoryDictKey.Repetition.IS_CORRECT: False, # Incomplete rep = not correct.
+                    HistoryDictKey.Repetition.ERRORS:     deepcopy(current_rep[HistoryDictKey.CurrentRep.ERRORS])
                 }
                 repetitions.append(completed_rep)
-                history_data[HistoryDictKey.REP_COUNT] += 1
+                history_data.history[HistoryDictKey.REP_COUNT] += 1
 
                 # Clear current rep.
-                history_data[HistoryDictKey.CURRENT_REP] = None
+                history_data.history[HistoryDictKey.CURRENT_REP] = None
 
         except Exception as e:
             from Server.Utilities.Error.ErrorHandler import ErrorHandler
@@ -415,6 +410,23 @@ class HistoryManager:
                 origin=inspect.currentframe(),
                 extra_info={"Exception": type(e), "Reason": str(e)}
             )
+
+    ############################
+    ### SHOULD ABORT SESSION ###
+    ############################
+    def should_abort_session(self, history_data:HistoryData) -> bool:
+        """
+        ### Brief:
+        The `should_abort_session` method returns whether the session should be aborted.
+
+        ### Arguments:
+        - `history_data` (HistoryData): The `HistoryData` instance to work with.
+
+        ### Returns:
+        - `True` if should abort (current amount of frames since last valid one is too big).
+        - `False` otherwise.
+        """
+        return history_data.history[HistoryDictKey.FRAMES_SINCE_LAST_VALID] >= self.max_consecutive_invalid_before_abort
 
     #####################################################################
     ############################## HELPERS ##############################
@@ -430,12 +442,19 @@ class HistoryManager:
         counter and returns whether the current consecutive amount has reached the
         minimum threshold, as stored (from the configuration file) in `self.recovery_ok_threshold`.
 
+        ### Arguments:
+        - `history_data` (HistoryData): The `HistoryData` instance to work with.
+
         ### Returns:
         - `True` if the current consecutive amount has reached the minimum threshold.
         - `False` if not.
         """
-        history_data[HistoryDictKey.CONSECUTIVE_OK_FRAMES] += 1
-        return history_data[HistoryDictKey.CONSECUTIVE_OK_FRAMES] >= self.recovery_ok_threshold
+        history_data.history[HistoryDictKey.CONSECUTIVE_OK_FRAMES] += 1
+        if history_data.history[HistoryDictKey.CONSECUTIVE_OK_FRAMES] >= self.recovery_ok_threshold:
+            history_data.history[HistoryDictKey.IS_CAMERA_STABLE] = True
+            return True
+        else:
+            return False
     
     ################################
     ### RESET BAD FRAME COUNTERS ###
@@ -444,12 +463,15 @@ class HistoryManager:
         """
         ### Brief:
         The `_reset_bad_frame_counters` method resets all bad frame counters (to 0).
+
+        ### Arguments:
+        - `history_data` (HistoryData): The `HistoryData` instance to work with.
         """
         for quality_enum in PoseQuality:
-            history_data[HistoryDictKey.BAD_FRAME_COUNTERS][quality_enum.name] = 0
-            history_data[HistoryDictKey.BAD_FRAME_STREAKS][quality_enum.name] = 0
+            history_data.history[HistoryDictKey.BAD_FRAME_COUNTERS][quality_enum.name] = 0
+            history_data.history[HistoryDictKey.BAD_FRAME_STREAKS][quality_enum.name] = 0
 
-        history_data[HistoryDictKey.FRAMES_SINCE_LAST_VALID] = 0
+        history_data.history[HistoryDictKey.FRAMES_SINCE_LAST_VALID] = 0
 
     ###########################
     ### POP FRAME IF NEEDED ###
@@ -460,11 +482,14 @@ class HistoryManager:
         The `_pop_frame_if_needed` checks if the current amount of stored frames is bigger
         than the allowed amount as configured in the configuration file.
         Pops frame/s (from the begining, which are the oldest).
+
+        ### Arguments:
+        - `history_data` (HistoryData): The `HistoryData` instance to work with.
         """
         if self.frames_rolling_window_size is None: return # Failed to read from configuration file.
         try:
-            while len(history_data[HistoryDictKey.FRAMES]) > self.frames_rolling_window_size:
-                history_data[HistoryDictKey.FRAMES].pop(0)
+            while len(history_data.history[HistoryDictKey.FRAMES]) > self.frames_rolling_window_size:
+                history_data.history[HistoryDictKey.FRAMES].pop(0)
         except IndexError as e:
             from Server.Utilities.Error.ErrorHandler import ErrorHandler
             from Server.Utilities.Error.ErrorCode import ErrorCode
@@ -483,11 +508,14 @@ class HistoryManager:
         The `_pop_bad_frame_if_needed` checks if the current amount of stored bad frames is bigger
         than the allowed amount as configured in the configuration file.
         Pops frame/s (from the begining, which are the oldest).
+
+        ### Arguments:
+        - `history_data` (HistoryData): The `HistoryData` instance to work with.
         """
         if self.bad_frame_log_size is None: return # Failed to read from configuration file.
         try:
-            while len(history_data[HistoryDictKey.BAD_FRAMES_LOG]) > self.bad_frame_log_size:
-                history_data[HistoryDictKey.BAD_FRAMES_LOG].pop(0)
+            while len(history_data.history[HistoryDictKey.BAD_FRAMES_LOG]) > self.bad_frame_log_size:
+                history_data.history[HistoryDictKey.BAD_FRAMES_LOG].pop(0)
         except IndexError as e:
             from Server.Utilities.Error.ErrorHandler import ErrorHandler
             from Server.Utilities.Error.ErrorCode import ErrorCode
@@ -505,6 +533,9 @@ class HistoryManager:
         ### Brief:
         The `_retrieve_configurations` method gets the updated configurations from the
         configuration file.
+
+        ### Arguments:
+        - `history_data` (HistoryData): The `HistoryData` instance to work with.
         """
         from Server.Utilities.Config.ConfigLoader import ConfigLoader
         from Server.Utilities.Config.ConfigParameters import ConfigParameters

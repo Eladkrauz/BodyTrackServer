@@ -191,7 +191,7 @@ class HistoryData:
         ### Brief:
         The `__init__` method initializes the `HistoryData` instance.
         """
-        self.history: Dict[str, Any] = {
+        self.history:Dict[str, Any] = {
             HistoryDictKey.FRAMES:                  [],
             HistoryDictKey.LAST_VALID_FRAME:        None,
             HistoryDictKey.CONSECUTIVE_OK_FRAMES:   0,
@@ -215,6 +215,26 @@ class HistoryData:
 
             HistoryDictKey.IS_CAMERA_STABLE:        True
         }
+
+    ####################################
+    ### IS LAST FRAME ACTUALLY VALID ###
+    ####################################
+    def is_last_frame_actually_valid(self) -> bool:
+        """
+        ### Brief:
+        The `is_last_frame_actually_valid` method returns whether the last valid frame is the actual
+        last frame recieved.
+
+        Used for the error detector to determine if it needs to detect errors or not.
+
+        ### Returns:
+        - `True` if the last valid frame is the actual last frame recieved.
+        - `False` if not.
+        """
+        if len(self.history[HistoryDictKey.FRAMES]) == 0: return False
+        last_valid_frame_id:int = self.history[HistoryDictKey.LAST_VALID_FRAME][HistoryDictKey.Frame.FRAME_ID]
+        last_frames_element_id:int = self.history[HistoryDictKey.FRAMES][-1][HistoryDictKey.Frame.FRAME_ID]
+        return last_valid_frame_id == last_frames_element_id
 
     ############################
     ### GET LAST VALID FRAME ###
@@ -240,7 +260,8 @@ class HistoryData:
         ### Returns:
         - A `list` containing the last errors list of the last valid frame.
         """
-        return self.history[HistoryDictKey.LAST_VALID_FRAME][HistoryDictKey.Frame.ERRORS]
+        if self.history[HistoryDictKey.LAST_VALID_FRAME] is None: return None
+        else: return self.history[HistoryDictKey.LAST_VALID_FRAME][HistoryDictKey.Frame.ERRORS]
 
     #######################
     ### GET PHASE STATE ###
@@ -333,7 +354,7 @@ class HistoryData:
         ### Returns:
         A `list` containing the completed repetitions.
         """
-        return self.history[HistoryDictKey.REPETITIONS]
+        return deepcopy(self.history[HistoryDictKey.REPETITIONS])
 
     ######################
     ### GET ALL FRAMES ###
@@ -347,7 +368,7 @@ class HistoryData:
         ### Returns:
         A `list` of all valid frames.
         """
-        return self.history[HistoryDictKey.FRAMES]
+        return deepcopy(self.history[HistoryDictKey.FRAMES])
     
     ###################################
     ### GET FRAMES SINCE LAST VALID ###
@@ -412,17 +433,3 @@ class HistoryData:
             HistoryDictKey.Summary.TOTAL_REP_COUNT: self.history[HistoryDictKey.REP_COUNT],
             HistoryDictKey.Summary.REPS_HISTORY:    self.history[HistoryDictKey.REPETITIONS]
         }
-    
-    ############################
-    ### SHOULD ABORT SESSION ###
-    ############################
-    def should_abort_session(self) -> bool:
-        """
-        ### Brief:
-        The `should_abort_session` method returns whether the session should be aborted.
-
-        ### Returns:
-        - `True` if should abort (current amount of frames since last valid one is too big).
-        - `False` otherwise.
-        """
-        return self.history[HistoryDictKey.FRAMES_SINCE_LAST_VALID] >= self.max_consecutive_invalid_before_abort

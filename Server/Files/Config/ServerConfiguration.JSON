@@ -20,11 +20,12 @@
     "max_consecutive_invalid_before_abort": 60
   },
   "tasks": {
-    "cleanup_interval_minutes": 10,
-    "max_registration_minutes": 10,
-    "max_inactive_minutes":     3,
-    "max_pause_minutes":        10,
-    "max_ended_retention":      30    
+    "cleanup_interval_minutes":       10,
+    "max_registration_minutes":       10,
+    "max_inactive_minutes":           3,
+    "max_pause_minutes":              10,
+    "max_ended_retention":            30,
+    "retrieve_configuration_minutes": 10   
   },
   "log": {
     "logger_path":      "Server/Files/Logs/ServerLogger.log",

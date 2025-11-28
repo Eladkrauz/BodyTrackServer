@@ -51,9 +51,21 @@ class SessionManager:
         self.pose_analyzer        = PoseAnalyzer()
         self.pose_quality_manager = PoseQualityManager()
         self.joint_analyzer       = JointAnalyzer()
+        self.history_manager      = HistoryManager()
         # self.phase_detector       = PhaseDetector()
         # self.error_detector       = ErrorDetector()
         # self.feedback_manager     = FeedbackManager()
+
+        # For easy access to all pipeline modules.
+        self.pipeline_modules = {
+            self.pose_analyzer,
+            self.pose_quality_manager,
+            self.joint_analyzer,
+            self.history_manager,
+            # self.phase_detector,
+            # self.error_detector,
+            # self.feedback_manager
+        }
 
         # Configurations.
         self._retrieve_configurations()
@@ -71,12 +83,17 @@ class SessionManager:
         self.paused_sessions:dict[SessionId, SessionData] = {}
         self.ended_sessions :dict[SessionId, SessionData] = {}
 
+        # Tasks.
         self._cleanup_thread = threading.Thread(
             target=self._cleanup_task,
             daemon=True
         )
+        self._config_retrieve_thread = threading.Thread(
+            target=self._retrieve_config_task,
+            daemon=True
+        )
         # self._cleanup_thread.start()
-        # Logger.info("Session cleanup background thread started.")
+        # self._config_retrieve_thread.start()
         Logger.info("SessionManager: Initialized successfully")
 
     ############################
@@ -536,6 +553,7 @@ class SessionManager:
         - Ended (expired retention window)
         """
         while True:
+            Logger.info("SessionManager: Starting cleanup task.")
             now = datetime.now()
 
             # Registered but idle.
@@ -592,8 +610,26 @@ class SessionManager:
                     self.ended_sessions.pop(sid, None)
                     Logger.info(f"[Cleanup] Deleted ended session {sid} after retention window.")
 
+            Logger.info("SessionManager: Finishing cleanup task.")
+
             # Sleep until next cycle.
             time.sleep(self.cleanup_interval_minutes * 60)
+
+    ############################
+    ### RETRIEVE CONFIG TASK ###
+    ############################
+    def _retrieve_config_task(self) -> None:
+        """
+        The `_retrieve_config_task` method periodically scans and updates
+        server configurations from the `JSON` file.
+        """
+        while True:
+            Logger.info("SessionManager: Starting retrieve configuration task.")
+            self._retrieve_configurations()
+            Logger.info("SessionManager: Starting retrieve configuration task.")
+
+            # Sleep until next cycle.
+            time.sleep(self.retrieve_configuration_minutes * 60)
 
     ##########################################################
     #################### HELPER FUNCTIONS ####################
@@ -870,7 +906,7 @@ class SessionManager:
         }
         Logger.info(f"SessionManager: Frames history rolling window size: {self.frames_rolling_window_size}")
 
-        # Start cleanup background thread.
+        # Cleanup background thread.
         self.cleanup_interval_minutes = ConfigLoader.get([
             ConfigParameters.Major.TASKS,
             ConfigParameters.Minor.CLEANUP_INTERVAL_MINUTES
@@ -900,3 +936,14 @@ class SessionManager:
             ConfigParameters.Minor.MAX_ENDED_RETENTION
         ])
         Logger.info(f"SessionManager: Maximum ended retention: {self.max_ended_retention}")
+
+        # Retrieve configuration thread.
+        self.retrieve_configuration_minutes = ConfigLoader.get([
+            ConfigParameters.Major.TASKS,
+            ConfigParameters.Minor.RETRIEVE_CONFIGURATION_MINUTES
+        ])
+        Logger.info(f"SessionManager: Retrieve configuration minutes: {self.retrieve_configuration_minutes}")
+
+        # Calling each pipeline module's _retrieve_configurations method.
+        for pipeline_module in self.pipeline_modules:
+            pipeline_module._retrieve_configurations()

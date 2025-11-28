@@ -14,7 +14,7 @@ from datetime import datetime
 from Server.Utilities.SessionIdGenerator import SessionId
 from Server.Data.Session.ExerciseType import ExerciseType
 from Server.Data.Session.SessionStatus import SessionStatus
-from Server.Pipeline.HistoryManager import HistoryManager
+from Server.Data.History import HistoryData
 
 ##########################
 ### SESSION DATA CLASS ###
@@ -32,7 +32,7 @@ class SessionData:
     - `time` (dict[str, datetime]): Timestamps about the sessions.
     - `frames_received` (int): Total number of frames received during the session.
     - `extended_evaluation` (bool): Indicates whether evaluate the frame with extended joints or only core.
-    - `history_manager` (HistoryManager): Holds pose analysis results and feedback.
+    - `history_data` (HistoryData): Holds pose analysis results and feedback.
     """
     ###########################
     ### SESSION DATA FIELDS ###
@@ -47,9 +47,8 @@ class SessionData:
         "ended": None,
         "last_activity": datetime.now()
     })
-    frames_received: int = 0
     extended_evaluation: bool = False
-    history_manager: Optional[HistoryManager] = field(init=False, default=None)
+    history_data: HistoryData
 
     # Create the HistoryManager instance based on the provided exercise type.
     def __post_init__(self):
@@ -58,7 +57,7 @@ class SessionData:
         The `__post_init__` method initializes the `HistoryManager` instance after all other fields are set.
         """
         try:
-            self.history_manager = HistoryManager(self.exercise_type)
+            self.history_data = HistoryData()
         except Exception as e:
             from Server.Utilities.Error.ErrorHandler import ErrorHandler
             from Server.Utilities.Error.ErrorCode import ErrorCode

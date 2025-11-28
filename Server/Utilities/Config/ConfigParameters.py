@@ -49,11 +49,12 @@ class ConfigParameters:
         MAX_CONSECUTIVE_INVALID_BEFORE_ABORT = "max_consecutive_invalid_before_abort"
 
         # Tasks.
-        CLEANUP_INTERVAL_MINUTES    = "cleanup_interval_minutes"
-        MAX_REGISTRATION_MINUTES    = "max_registration_minutes"
-        MAX_INACTIVE_MINUTS         = "max_inactive_minutes"
-        MAX_PAUSE_MINUTES           = "max_pause_minutes"
-        MAX_ENDED_RETENTION         = "max_ended_retention"
+        CLEANUP_INTERVAL_MINUTES       = "cleanup_interval_minutes"
+        MAX_REGISTRATION_MINUTES       = "max_registration_minutes"
+        MAX_INACTIVE_MINUTS            = "max_inactive_minutes"
+        MAX_PAUSE_MINUTES              = "max_pause_minutes"
+        MAX_ENDED_RETENTION            = "max_ended_retention"
+        RETRIEVE_CONFIGURATION_MINUTES = "retrieve_configuration_minutes"
   
         # Log.
         LOGGER_PATH         = "logger_path"
