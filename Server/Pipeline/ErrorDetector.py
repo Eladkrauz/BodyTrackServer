@@ -7,7 +7,8 @@
 ###############
 ### IMPORTS ###
 ###############
-from typing import Dict
+from __future__ import annotations
+from typing import Dict, TYPE_CHECKING
 from math import isnan
 import inspect
 
@@ -21,6 +22,9 @@ from Server.Data.Session.SessionData import SessionData
 from Server.Data.Error.ErrorMappings import ErrorMappings
 from Server.Data.Error.DetectedErrorCode import DetectedErrorCode
 
+if TYPE_CHECKING:
+    from Server.Data.History.HistoryData import HistoryData
+    from Server.Data.History.HistoryDictKey import HistoryDictKey
 ############################
 ### ERROR DETECTOR CLASS ###
 ############################
@@ -75,7 +79,7 @@ class ErrorDetector:
         - `session` (SessionData):
             The current session container, which must provide:
             - `exercise_type` (ExerciseType)
-            - `history_manager` (HistoryManager) with:
+            - `history_data` (HistoryData) with:
                 - `get_current_phase() -> PhaseType | None`
                 - `get_current_angles() -> dict[str, float] | None`
 
@@ -86,10 +90,15 @@ class ErrorDetector:
             - Exercise/phase unsupported.
             - Missing phase/angles/history.
         """
+        #load history data from session object
+        # Ensure last frame is valid.
+        history:HistoryData = session.history_data
+        if not history.is_last_frame_actually_valid(): return # Do nothing.
+        
         exercise_type : ExerciseType = session.exercise_type
         exercise_name = exercise_type.value
-        phase:PhaseType = session.history_manager.get_phase_state()
-        angles:Dict[str, float] = session.history_manager.get_current_angles()
+        phase:PhaseType = history.get_phase_state()
+        angles:Dict[str, float] = history.history[HistoryDictKey.LAST_VALID_FRAME][HistoryDictKey.Frame.JOINTS]
 
         # Unknown exercise (misconfigured or unsupported).
         if exercise_name not in self.thresholds:
@@ -131,7 +140,7 @@ class ErrorDetector:
 
             # Below MINIMUM.
             if value < rules["min"]:
-                mapped = self.map_angle_to_error_low(exercise_type, angle_name)
+                mapped = self._map_angle_to_error_low(exercise_name, angle_name)
                 if mapped is None:
                     # Mapping missing for valid angle.
                     ErrorHandler.handle(
@@ -143,7 +152,7 @@ class ErrorDetector:
 
             # Above MAXIMUM.
             if value > rules["max"]:
-                mapped = self.map_angle_to_error_high(exercise_type, angle_name)
+                mapped = self._map_angle_to_error_high(exercise_name, angle_name)
                 if mapped is None:
                     ErrorHandler.handle(
                         error=ErrorCode.ERROR_DETECTOR_MAPPING_NOT_FOUND,
@@ -158,10 +167,10 @@ class ErrorDetector:
     ##############################
     ### MAP ANGLE TO ERROR LOW ###
     ##############################
-    def map_angle_to_error_low(self, exercise: str, angle_name: str):
+    def _map_angle_to_error_low(self, exercise: str, angle_name: str):
         """
         ### Brief:
-        The `map_angle_to_error_low` method maps an angle (below minimum range) to a biomechanical DetectedErrorCode.
+        The `_map_angle_to_error_low` method maps an angle (below minimum range) to a biomechanical DetectedErrorCode.
 
         ### Arguments:
         - `exercise` (str): The exercise being performed.
@@ -179,10 +188,10 @@ class ErrorDetector:
     ###############################
     ### MAP ANGLE TO ERROR HIGH ###
     ###############################
-    def map_angle_to_error_high(self, exercise: str, angle_name: str):
+    def _map_angle_to_error_high(self, exercise: str, angle_name: str):
         """
         ### Brief:
-        The `map_angle_to_error_high` method maps an angle (above maximum range) to a biomechanical DetectedErrorCode.
+        The `_map_angle_to_error_high` method maps an angle (above maximum range) to a biomechanical DetectedErrorCode.
 
         ### Arguments:
         - `exercise` (str): The exercise being performed.
