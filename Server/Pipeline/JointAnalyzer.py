@@ -19,7 +19,7 @@ from Server.Utilities.Error.ErrorCode import ErrorCode
 
 # Data.
 from Server.Data.Pose.PoseLandmarks import PoseLandmarksArray
-from Server.Data.Session import ExerciseType
+from Server.Data.Session.SessionData import SessionData
 from Server.Data.Joints.JointAngle import JointAngle, Joint
 
 ############################
@@ -331,25 +331,21 @@ class JointAnalyzer:
     ########################
     ### CALCULATE JOINTS ###
     ########################
-    def calculate_joints(
-            self, exercise_type:ExerciseType,
-            landmarks:PoseLandmarksArray,
-            extended_evaluation:bool) -> Dict[str, Any] | ErrorCode:
+    def calculate_joints(seld, session_data:SessionData, landmarks:PoseLandmarksArray) -> Dict[str, Any] | ErrorCode:
         """
         ### Brief:
         The `calculate_joints` method calculates the relevant joint angles for the given exercise.
 
         ### Arguments:
-        - `exercise_type` (str): The exercise being performed (e.g., "squat", "pushup").
+        - `session_data` (SessionData): The session data of the checked session.
         - `landmarks` (PoseLandmark): Array of pose landmarks from PoseAnalyzer.
-        - `extended_evaluation` (bool):
-            * If `True` - calculate all biomechanical angles.
-            * If `False` - calculate only those needed for evaluating correctness (core movement).
 
         ### Returns:
         - `dict[str, Any]`: Dictionary with calculated joint angles and metadata.
         - `ErrorCode`: If calculation fails due to missing/invalid landmarks.
         """
+        exercise_type       = session_data.get_exercise_type()
+        extended_evaluation = session_data.get_extended_evaluation()
         # Validate landmarks.
         if landmarks is None or not isinstance(landmarks, np.ndarray):
             ErrorHandler.handle(

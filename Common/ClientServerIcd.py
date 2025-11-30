@@ -52,6 +52,7 @@ class ClientServerIcd:
         CLIENT_IS_ALREADY_ENDED             = (211, "The client is already in an ended session.")
         CLIENT_IS_ONLY_REGISTERED           = (212, "The client is only registered, did not start yet.")
         INVALID_EXTENDED_EVALUATION_PARAM   = (213, "The parameter of extended evaluation is not valid.")
+        TRYING_TO_ANALYZE_FRAME_WHEN_DONE   = (214, "Recieved a frame for analysis when the session is already done.")
 
         # PoseAnalyzer, PoseQualityManager, JointAnalyzer and frame processing.
         FRAME_INITIAL_VALIDATION_FAILED     = (300, "The initial validation process of the frame failed.")
@@ -86,6 +87,8 @@ class ClientServerIcd:
         CLIENT_SESSION_IS_UNREGISTERED      = (106, "The client's session is unregistered.")
         CLIENT_SESSION_IS_NOT_IN_SYSTEM     = (107, "The client's session is not in the system.")
         FRAME_ANALYZED_SUCCESSFULLY         = (108, "The frame analyzed successfully.")
+        USER_VISIBILITY_IS_VALID            = (109, "Initial frame checking is valid.")
+        USER_VISIBILITY_IS_UNDER_CHECKING   = (110, "Initial frame checking is in process.")
 
         def __new__(cls, code, description):
             obj = object.__new__(cls)

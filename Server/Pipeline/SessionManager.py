@@ -12,6 +12,7 @@ import inspect, threading, time
 import numpy as np
 from threading import RLock
 from datetime import datetime
+from typing import Dict, Any
 
 # Utilities.
 from Server.Utilities.SessionIdGenerator      import SessionIdGenerator, SessionId
@@ -23,6 +24,7 @@ from Server.Utilities.Logger                  import Logger
 from Server.Pipeline.PoseAnalyzer       import PoseAnalyzer
 from Server.Pipeline.PoseQualityManager import PoseQualityManager
 from Server.Pipeline.JointAnalyzer      import JointAnalyzer
+from Server.Pipeline.PhaseDetector      import PhaseDetector
 
 # Commom.
 from Common.ClientServerIcd import ClientServerIcd as ICD
@@ -33,7 +35,11 @@ from Server.Data.Session.SearchType     import SearchType
 from Server.Data.Session.ExerciseType   import ExerciseType
 from Server.Data.Session.SessionData    import SessionData
 from Server.Data.Session.FrameData      import FrameData
+from Server.Data.Session.AnalyzingState import AnalyzingState
 from Server.Pipeline.HistoryManager     import HistoryManager
+from Server.Data.Pose.PoseQualityResult import PoseQualityResult
+from Server.Data.Pose.PoseQuality       import PoseQuality
+from Server.Data.History.HistoryData    import HistoryData
 
 #############################
 ### SESSION MANAGER CLASS ###
@@ -52,7 +58,7 @@ class SessionManager:
         self.pose_quality_manager = PoseQualityManager()
         self.joint_analyzer       = JointAnalyzer()
         self.history_manager      = HistoryManager()
-        # self.phase_detector       = PhaseDetector()
+        self.phase_detector       = PhaseDetector()
         # self.error_detector       = ErrorDetector()
         # self.feedback_manager     = FeedbackManager()
 
@@ -95,6 +101,10 @@ class SessionManager:
         # self._cleanup_thread.start()
         # self._config_retrieve_thread.start()
         Logger.info("SessionManager: Initialized successfully")
+
+    #################################################################################################
+    ############################## SESSION REGISTRATION AND MANAGEMENT ##############################
+    #################################################################################################
 
     ############################
     ### REGISTER NEW SESSION ###
@@ -144,6 +154,7 @@ class SessionManager:
             ErrorHandler.handle(error=error_to_log, origin=inspect.currentframe())
             return error_to_return
         
+        # If the session is not registered - registering it.
         session_id:SessionId = self.id_generator.generate_session_id()
         # In case an error occured with generating the ID.
         if session_id is None:
@@ -254,11 +265,14 @@ class SessionManager:
                         self.active_sessions[session_id] = session_data
 
             # Updating fields of the session.
-            if self.active_sessions[session_id].update_time_stamp(SessionStatus.ACTIVE) is not None:
+            session_data = self.active_sessions[session_id]
+            if session_data.update_time_stamp(SessionStatus.ACTIVE) is not None:
                 ErrorHandler.handle(error=ErrorCode.SESSION_STATUS_IS_NOT_RECOGNIZED, origin=inspect.currentframe())
                 return ICD.ErrorType.INTERNAL_SERVER_ERROR
             else:
-                self.active_sessions[session_id].extended_evaluation = extended_evaluation
+                session_data.set_extended_evaluation(extended_evaluation)
+                # Marking exercise started in the history.
+                self.history_manager.mark_exercise_start(session_data.history_data)
                 return ICD.ResponseType.CLIENT_SESSION_IS_ACTIVE
 
         # If the client is not registered or already started - it can't start the session.
@@ -306,7 +320,7 @@ class SessionManager:
                     ErrorHandler.handle(error=ErrorCode.SESSION_STATUS_IS_NOT_RECOGNIZED, origin=inspect.currentframe())
                     return ICD.ErrorType.INTERNAL_SERVER_ERROR
                 else:
-                    return ICD.ResponseType.CLIENT_SESSION_IS_RESUMED
+                    return ICD.ResponseType.CLIENT_SESSION_IS_PAUSED
         
         else: # If the session is not paused.
             error_to_return, error_to_log = self._session_status_to_error(session_status)
@@ -413,11 +427,6 @@ class SessionManager:
                     # Adding it to the ended sessions dictionary.
                     self.ended_sessions[session_id] = session_data
 
-                if self.ended_sessions[session_id].update_time_stamp(SessionStatus.ENDED) is not None:
-                    ErrorHandler.handle(error=ErrorCode.SESSION_STATUS_IS_NOT_RECOGNIZED, origin=inspect.currentframe())
-                    return ICD.ErrorType.INTERNAL_SERVER_ERROR
-                else:
-                    return ICD.ResponseType.CLIENT_SESSION_IS_RESUMED
         elif session_status is SessionStatus.PAUSED: # If the session is active.
             with self.paused_sessions_lock:
                 with self.ended_sessions_lock:
@@ -425,22 +434,70 @@ class SessionManager:
                     session_data:SessionData = self.paused_sessions.pop(session_id)
                     # Adding it to the ended sessions dictionary.
                     self.ended_sessions[session_id] = session_data
-
-                if self.ended_sessions[session_id].update_time_stamp(SessionStatus.ENDED) is not None:
-                    ErrorHandler.handle(error=ErrorCode.SESSION_STATUS_IS_NOT_RECOGNIZED, origin=inspect.currentframe())
-                    return ICD.ErrorType.INTERNAL_SERVER_ERROR
-                else:
-                    return ICD.ResponseType.CLIENT_SESSION_IS_ENDED
         
-        else: # If the session is not active or paused.Ø
+        else: # If the session is not active or paused.
             error_to_return, error_to_log = self._session_status_to_error(session_status)
             ErrorHandler.handle(error=error_to_log, origin=inspect.currentframe())
             return error_to_return
+        
+        # Finalizing session.
+        session_data = self.ended_sessions[session_id]
+        if session_data.update_time_stamp(SessionStatus.ENDED) is not None:
+            ErrorHandler.handle(error=ErrorCode.SESSION_STATUS_IS_NOT_RECOGNIZED, origin=inspect.currentframe())
+            return ICD.ErrorType.INTERNAL_SERVER_ERROR
+        else:
+            # Marking exercise ended in the history.
+            self.history_manager.mark_exercise_end(session_data.history_data)
+            session_data.set_analyzing_state(AnalyzingState.DONE)
+            # TODO: Add summary creation here using the final HistoryData values.
+            return ICD.ResponseType.CLIENT_SESSION_IS_ENDED
+
+    ############################################################################
+    ############################## FRAME ANALYSIS ##############################
+    ############################################################################
         
     #####################
     ### ANALYZE FRAME ###
     #####################
     def analyze_frame(self, session_id:str, frame_id:int, frame_content:np.ndarray) -> ICD.ResponseType | ICD.ErrorType:
+        """
+        ### Brief:
+        The `analyze_frame` method recieves frames from the client and sends them to analysis.
+        The analysis performed is based on the `AnalyzingState` of the session:
+
+        #### `AnalyzingState.INIT`:
+        This step means the session is not yet stable in we are recieving frames that are not
+        recorded in `HistoryData` of the session. This part is for making sure the user is visible, the
+        lighting is okay and the visibility is good. We move from this step to the next after recieveing
+        predefined amount of `PoseQuality.OK` frames after analysis in the `PoseQualityManager`.
+        ##### Pipeline of this step:
+        - `PoseAnalyzer`
+        - `PoseQualityManager`
+
+        #### `AnalyzingState.READY`:
+        This step means the session is stable, and we are now recieving frames for determining if the
+        user's position alings with the predefined `ExerciseType`'s initial position. We move from this
+        step to the next after recieving predefined amount of `CORRECT_POSITION` from the `PhaseDetector`.
+        ##### Pipeline of this step:
+        - `PoseAnalyzer`
+        - `PoseQualityManager`
+        - `JointAnalyzer`
+        - `PhaseDetector`
+
+        #### `AnalyzingState.ACTIVE`:
+        This step means the session is active after ensuring the user is in the correct inital position
+        of the `ExerciseType`, and the frame is valid in terms of visibility.
+        #### The pipeline of this step is the full pipeline - from analysis to feedback after phase and error detections.
+
+        ### Arguments:
+        - `session_id` (str): The session id `str` recieved from the `FlaskServer`, from the request's `JSON`.
+        - `frame_id` (int): The frame id number.
+        - `frame_content` (np.ndarray): The frame array content, after decoding.
+
+        ### Returns:
+        - `ICD.ResponseType` if the analysis performed successfully.
+        - `ICD.ErrorType` if an error occured during analysis.
+        """
         # Checking if the session id is valid and packing it.
         session_id:SessionId = self.id_generator.pack_string_to_session_id(session_id) 
         if session_id is None: return ICD.ErrorType.INVALID_SESSION_ID
@@ -461,12 +518,95 @@ class SessionManager:
         except (ValueError, TypeError):
             return ICD.ErrorType.FRAME_INITIAL_VALIDATION_FAILED
         
-        if self.active_sessions.get(session_id).update_time_stamp() is not None: # Updating last activity.
+        session_data:SessionData = self.active_sessions.get(session_id)
+        if session_data.update_time_stamp() is not None: # Updating last activity.
             ErrorHandler.handle(error=ErrorCode.SESSION_STATUS_IS_NOT_RECOGNIZED, origin=inspect.currentframe())
             return ICD.ErrorType.INTERNAL_SERVER_ERROR
         
-        self.active_sessions.get(session_id).frames_received += 1
+        ### STARTING ###
+        # Routing the frame to analysis based on the session analysis state.
+        state:AnalyzingState = session_data.analyzing_state
+        if state is AnalyzingState.INIT:
+            return self.analyze_frame_init_state(session_data, frame_data)
+        elif state is AnalyzingState.READY:
+            return self.analyze_frame_ready_state(session_data, frame_data)
+        elif state is AnalyzingState.ACTIVE:
+            return self.analyze_frame_active_state(session_data, frame_data)
+        else: # AnalyzingState.DONE
+            ErrorHandler.handle(error=ErrorCode.TRYING_TO_ANALYZE_FRAME_WHEN_DONE, origin=inspect.currentframe())
+            return ErrorHandler.convert_to_icd(ErrorCode.TRYING_TO_ANALYZE_FRAME_WHEN_DONE)
+
+    ################################
+    ### ANALYZE FRAME INIT STATE ###
+    ################################
+    def analyze_frame_init_state(self, session_data:SessionData, frame_data:FrameData) -> ICD.ResponseType | ICD.ErrorType:
+        ### Analyzing Pose --- using PoseAnalyzer.
+        pose_analyzer_result = self.pose_analyzer.analyze_frame(frame_data)
+        # Errors.
+        if pose_analyzer_result is None: return ICD.ErrorType.FRAME_ANALYZING_FAILED
+        if isinstance(pose_analyzer_result, ErrorCode): return ErrorHandler.convert_to_icd(pose_analyzer_result)
         
+        ### Validating Frame Quality --- using PoseQualityManager.
+        pose_quality_result:PoseQualityResult = self.pose_quality_manager.evaluate_landmarks(pose_analyzer_result)
+        # Errors.
+        if pose_quality_result is None: return ICD.ErrorType.QUALITY_CHECKING_ERROR
+        if not isinstance(pose_analyzer_result, PoseQualityResult): return ICD.ErrorType.QUALITY_CHECKING_ERROR
+        if isinstance(pose_quality_result, ErrorCode): return ErrorHandler.convert_to_icd(pose_quality_result)
+
+        # Checking the quality.
+        quality:PoseQuality = pose_analyzer_result.quality
+        history:HistoryData = session_data.history_data
+        if quality is not PoseQuality.OK:
+            self.history_manager.reset_consecutive_ok_streak(history)
+            error:ErrorCode = PoseQuality.convert_to_error_code(quality)
+            ErrorHandler.handle(error=error, origin=inspect.currentframe())
+            return ErrorHandler.convert_to_icd(error)
+        else:
+            self.history_manager.increment_consecutive_ok_streak(history)
+
+            # Checking if can move to the next analyzing state.
+            if history.get_consecutive_ok_streak() >= self.num_of_min_init_ok_frames:
+                session_data.set_analyzing_state(AnalyzingState.READY)
+                return ICD.ResponseType.USER_VISIBILITY_IS_UNDER_CHECKING
+            
+    #################################
+    ### ANALYZE FRAME READY STATE ###
+    #################################
+    def analyze_frame_ready_state(self, session_data:SessionData, frame_data:FrameData) -> ICD.ResponseType | ICD.ErrorType:
+        ### Analyzing Pose --- using PoseAnalyzer.
+        pose_analyzer_result = self.pose_analyzer.analyze_frame(frame_data)
+        # Errors.
+        if pose_analyzer_result is None: return ICD.ErrorType.FRAME_ANALYZING_FAILED
+        if isinstance(pose_analyzer_result, ErrorCode): return ErrorHandler.convert_to_icd(pose_analyzer_result)
+        
+        ### Validating Frame Quality --- using PoseQualityManager.
+        pose_quality_result:PoseQualityResult = self.pose_quality_manager.evaluate_landmarks(pose_analyzer_result)
+        # Errors.
+        if pose_quality_result is None: return ICD.ErrorType.QUALITY_CHECKING_ERROR
+        if not isinstance(pose_analyzer_result, PoseQualityResult): return ICD.ErrorType.QUALITY_CHECKING_ERROR
+        if isinstance(pose_quality_result, ErrorCode): return ErrorHandler.convert_to_icd(pose_quality_result)
+
+        # Checking the quality.
+        quality:PoseQuality = pose_analyzer_result.quality
+        history:HistoryData = session_data.history_data
+        if quality is not PoseQuality.OK:
+            self.history_manager.reset_consecutive_ok_streak(session_data.history_data)
+            session_data.set_analyzing_state(AnalyzingState.INIT)
+            error:ErrorCode = PoseQuality.convert_to_error_code(quality)
+            ErrorHandler.handle(error=error, origin=inspect.currentframe())
+            return ErrorHandler.convert_to_icd(error)
+        
+
+            # Checking if can move to the next analyzing state.
+            history:HistoryData = session_data.history_data
+            if history.get_consecutive_ok_streak() >= self.num_of_min_init_ok_frames:
+                session_data.set_analyzing_state(AnalyzingState.READY)
+                return ICD.ResponseType.USER_VISIBILITY_IS_UNDER_CHECKING
+
+    ##################################
+    ### ANALYZE FRAME ACTIVE STATE ###
+    ##################################
+    def analyze_frame_active_state(self, session_data:SessionData, frame_data:FrameData) -> ICD.ResponseType | ICD.ErrorType:
         ### Analyzing Pose --- using PoseAnalyzer.
         pose_analyzer_result = self.pose_analyzer.analyze_frame(frame_data)
         if pose_analyzer_result is None or isinstance(pose_analyzer_result, ErrorCode): # Otherwise, the result is an np.ndarray instance.
@@ -475,33 +615,62 @@ class SessionManager:
         ### Validating Frame Quality --- using PoseQualityManager.
         pose_quality_result = self.pose_quality_manager.evaluate_landmarks(pose_analyzer_result)
         # If returned an error.
-        if isinstance(pose_quality_result, ICD.ErrorType):
+        if isinstance(pose_quality_result, ErrorCode):
             return ErrorHandler.convert_to_icd(pose_quality_result)
         
-        from Server.Data.Pose.PoseQualityResult import PoseQualityResult
-        from Server.Data.Pose.PoseQuality import PoseQuality
-        # If returned a warning about the results quality.
+        ##############
+        ### CASE 1 ### - The returned results are not OK. This means the frame is invalid.
+        ##############
         if isinstance(pose_quality_result, PoseQualityResult) and pose_quality_result.quality is not PoseQuality.OK:
-            quality_fail_to_error_code:ErrorCode = PoseQuality.convert_to_error_code(pose_quality_result.quality)
+            # Logging.
+            quality_fail_to_error_code = PoseQuality.convert_to_error_code(pose_quality_result.quality)
             ErrorHandler.handle(
                 error=quality_fail_to_error_code,
                 origin=inspect.currentframe()
             )
-            return ErrorHandler.convert_to_icd(quality_fail_to_error_code)
-        
-        ### Calculating Joints --- using JointAnalyzer.
-        # Getting exercise type and the extended evaluation parameter.
-        exercise_type:ExerciseType = self.active_sessions.get(session_id).exercise_type
-        extended_evaluation:bool   = self.active_sessions.get(session_id).extended_evaluation
+            # Recording invalid frame.
+            self.history_manager.record_invalid_frame(
+                history_data=session_data.history_data,
+                frame_id=frame_id,
+                invalid_reason=pose_quality_result.quality
+            )
+            # Going directly to FeedbackFormatter.
+            # feedback = self.feedback_formatter.construct_invalid_frame_feedback(...)
+            # return feedback
 
-        # Calculating joint angles.
-        joint_analyzer_result = self.joint_analyzer.calculate_joints(
-            exercise_type=exercise_type,
-            landmarks=pose_analyzer_result,
-            extended_evaluation=extended_evaluation
+        ##############
+        ### CASE 2 ### - The returned results are OK. This means the frame is valid.
+        ##############
+        ### Calculating Joints --- using JointAnalyzer.
+        joint_analyzer_result:Dict[str, Any] | ErrorCode = self.joint_analyzer.calculate_joints(
+            session_data=session_data,
+            landmarks=pose_analyzer_result
         )
         if isinstance(joint_analyzer_result, ErrorCode): # Otherwise, the result is a dictionary of joints.
             return ErrorHandler.convert_to_icd(joint_analyzer_result)
+        
+        # Recording valid frame.
+        self.history_manager.record_valid_frame(
+            history_data=session_data.history_data,
+            frame_id=frame_id,
+            joints=joint_analyzer_result
+        )
+
+        # Determining the current phase.
+        phase_detector_result = self.phase_detector.determine_phase(
+            session_data=session_data
+        )
+        # If returned an error.
+        if isinstance(phase_detector_result, ErrorCode):
+            return ErrorHandler.convert_to_icd(pose_quality_result)
+        
+        # Recording the phase.
+        self.history_manager.record_phase_transition(
+            history_data=session_data.history_data,
+            new_phase=phase_detector_result,
+            frame_id=frame_id,
+
+        )
     
     ##########################
     ### GET SESSION STATUS ###
@@ -943,6 +1112,13 @@ class SessionManager:
             ConfigParameters.Minor.RETRIEVE_CONFIGURATION_MINUTES
         ])
         Logger.info(f"SessionManager: Retrieve configuration minutes: {self.retrieve_configuration_minutes}")
+
+        # Number of active session initialization OK frames.
+        self.num_of_min_init_ok_frames = ConfigLoader.get([
+            ConfigParameters.Major.TASKS,
+            ConfigParameters.Minor.NUM_OF_MIN_INIT_OK_FRAMES
+        ])
+        Logger.info(f"SessionManager: Num of min init ok frames: {self.num_of_min_init_ok_frames}")
 
         # Calling each pipeline module's _retrieve_configurations method.
         for pipeline_module in self.pipeline_modules:
