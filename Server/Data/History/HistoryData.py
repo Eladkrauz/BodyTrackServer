@@ -38,6 +38,7 @@ class HistoryData:
         `HistoryDictKey.FRAMES`:                  A `list` of Frame dictionaries
         `HistoryDictKey.LAST_VALID_FRAME`:        A `dict` which holds the last valid frame
         `HistoryDictKey.CONSECUTIVE_OK_FRAMES`:   An `int` which holds the number of consecutive OK frames
+        `HistoryDictKey.ERROR_COUNTERS`:          A `dict` containing counters for detected errors.
 
         `HistoryDictKey.PHASE_STATE`:             The current exercise phase (`PhaseType` enum element)
         'HistoryDictKey.PHASE_START_TIME`:        The time when the phase started
@@ -87,6 +88,9 @@ class HistoryData:
 
     ### Consecutive Ok Frames (`int`):
     - Stores the amount of consecutive ok (valid) frames (where no bad frames arrived).
+
+    ### Error Counters (`Dict[str, int]`):
+    - Stores counters for errors detected (of valid frames).
 
     ### Phase State (`PhaseType`):
     - Tracks the current phase in the state machine (e.g., "down", "bottom", "up").
@@ -195,6 +199,7 @@ class HistoryData:
             HistoryDictKey.FRAMES:                  [],
             HistoryDictKey.LAST_VALID_FRAME:        None,
             HistoryDictKey.CONSECUTIVE_OK_FRAMES:   0,
+            HistoryDictKey.ERROR_COUNTERS:          {},
 
             HistoryDictKey.PHASE_STATE:             None,
             HistoryDictKey.PHASE_START_TIME:        None,
@@ -235,6 +240,21 @@ class HistoryData:
         last_valid_frame_id:int = self.history[HistoryDictKey.LAST_VALID_FRAME][HistoryDictKey.Frame.FRAME_ID]
         last_frames_element_id:int = self.history[HistoryDictKey.FRAMES][-1][HistoryDictKey.Frame.FRAME_ID]
         return last_valid_frame_id == last_frames_element_id
+    
+    ###################
+    ### IS STATE OK ###
+    ###################
+    def is_state_ok(self) -> bool:
+        """
+        ### Brief:
+        The `is_state_ok` method returns whether the current state is ok.
+        Meaning: the last frame recieved was `OK`.
+
+        ### Returns:
+        - `True` if the state is ok.
+        - `False` if the state is not ok.
+        """
+        return self.history[HistoryDictKey.CONSECUTIVE_OK_FRAMES] > 0
 
     ############################
     ### GET LAST VALID FRAME ###
@@ -263,10 +283,23 @@ class HistoryData:
         if self.history[HistoryDictKey.LAST_VALID_FRAME] is None: return None
         else: return self.history[HistoryDictKey.LAST_VALID_FRAME][HistoryDictKey.Frame.ERRORS]
 
+    ##########################
+    ### GET ERROR COUNTERS ###
+    ##########################
+    def get_error_counters(self) -> Dict[str, int]:
+        """
+        ### Brief:
+        The `get_error_counters` method returns the error counters `dict`.
+        
+        ### Returns:
+        - A `Dict[str, int]` containing the error counters.
+        """
+        return self.history[HistoryDictKey.ERROR_COUNTERS]
+
     #######################
     ### GET PHASE STATE ###
     #######################
-    def get_phase_state(self) -> PhaseType:
+    def get_phase_state(self) -> PhaseType | None:
         """
         ### Brief:
         The `get_phase_state` method returns the current phase state.
@@ -275,6 +308,25 @@ class HistoryData:
         - A `PhaseType` element of the current phase type.
         """
         return self.history[HistoryDictKey.PHASE_STATE]
+    
+    ##########################
+    ### GET PREVIOUS PHASE ###
+    ##########################
+    def get_previous_phase(self) -> PhaseType | None:
+        """
+        ### Brief:
+        The `get_previous_phase` method returns the previous phase state.
+        
+        ### Returns:
+        - A `PhaseType` element of the previous phase type.
+
+        ### NoteS:
+        - If `self.history[HistoryDictKey.PHASE_TRANSITIONS]` is `None`,
+        meaning no transition has been made so far, returning `None`.
+        """
+        transitions = self.history[HistoryDictKey.PHASE_TRANSITIONS]
+        if transitions is None or transitions == []: return None
+        else: return transitions[-1][HistoryDictKey.PhaseTransition.PHASE_TO]
     
     #################################
     ### GET LAST PHASE TRANSITION ###
@@ -408,6 +460,19 @@ class HistoryData:
         A `bool` indicating whether the camera is stable or not.
         """
         return self.history[HistoryDictKey.IS_CAMERA_STABLE]
+    
+    #################################
+    ### GET CONSECUTIVE OK STREAK ###
+    #################################
+    def get_consecutive_ok_streak(self) -> int:
+        """
+        ### Brief:
+        The `get_consecutive_ok_streak` method returns the number of consecutive `OK` frames.
+
+        ### Returns:
+        An `int` indicating the number of consecutive `OK` frames.
+        """
+        return self.history[HistoryDictKey.CONSECUTIVE_OK_FRAMES]
 
     ###################
     ### GET SUMMARY ###

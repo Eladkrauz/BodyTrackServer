@@ -29,6 +29,9 @@ class PoseQuality(enum):
     TOO_CLOSE       = 5
     UNSTABLE        = 6
 
+    #############################
+    ### CONVERT TO ERROR CODE ###
+    #############################
     def convert_to_error_code(self, pose_quality:'PoseQuality'):
         from Server.Utilities.Error.ErrorCode import ErrorCode
         if   pose_quality is PoseQuality.NO_PERSON:      return ErrorCode.NO_PERSON_DETECTED_IN_FRAME

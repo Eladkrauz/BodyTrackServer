@@ -12,9 +12,10 @@ from dataclasses import dataclass, field
 from datetime import datetime
 
 from Server.Utilities.SessionIdGenerator import SessionId
-from Server.Data.Session.ExerciseType import ExerciseType
-from Server.Data.Session.SessionStatus import SessionStatus
-from Server.Data.History import HistoryData
+from Server.Data.Session.ExerciseType    import ExerciseType
+from Server.Data.Session.SessionStatus   import SessionStatus
+from Server.Data.Session.AnalyzingState  import AnalyzingState
+from Server.Data.History                 import HistoryData
 
 ##########################
 ### SESSION DATA CLASS ###
@@ -30,7 +31,6 @@ class SessionData:
     - `client_info` (dict[str, Any]): Metadata about the client device/IP.
     - `exercise_type` (ExerciseType): The type of exercise (e.g., "squats", "pushups").
     - `time` (dict[str, datetime]): Timestamps about the sessions.
-    - `frames_received` (int): Total number of frames received during the session.
     - `extended_evaluation` (bool): Indicates whether evaluate the frame with extended joints or only core.
     - `history_data` (HistoryData): Holds pose analysis results and feedback.
     """
@@ -49,15 +49,18 @@ class SessionData:
     })
     extended_evaluation: bool = False
     history_data: HistoryData
+    analyzing_state: AnalyzingState.INIT
 
-    # Create the HistoryManager instance based on the provided exercise type.
+    #################
+    ### POST INIT ###
+    #################
     def __post_init__(self):
         """
         ### Brief:
-        The `__post_init__` method initializes the `HistoryManager` instance after all other fields are set.
+        The `__post_init__` method initializes the `HistoryData` instance after all other fields are set.
         """
         try:
-            self.history_data = HistoryData()
+            self.history_data    = HistoryData()
         except Exception as e:
             from Server.Utilities.Error.ErrorHandler import ErrorHandler
             from Server.Utilities.Error.ErrorCode import ErrorCode
@@ -100,3 +103,71 @@ class SessionData:
 
         self.time['last_activity'] = now
         return None
+    
+    #####################################################################
+    ############################## GETTERS ##############################
+    #####################################################################
+
+    ######################
+    ### GET SESSION ID ###
+    ######################
+    def get_session_id(self) -> SessionId:
+        return self.session_id
+
+    #######################
+    ### GET CLIENT INFO ###
+    #######################
+    def get_client_info(self) -> Dict[str, Any]:
+        return self.client_info
+
+    #########################
+    ### GET EXERCISE TYPE ###
+    #########################
+    def get_exercise_type(self) -> ExerciseType:
+        return self.exercise_type
+    
+    ###############################
+    ### GET EXTENDED EVALUATION ###
+    ###############################
+    def get_extended_evaluation(self) -> bool:
+        return self.extended_evaluation
+
+    ###########################
+    ### GET ANALYZING STATE ###
+    ###########################
+    def get_analyzing_state(self) -> AnalyzingState:
+        return self.analyzing_state
+
+    #####################################################################
+    ############################## SETTERS ##############################
+    #####################################################################
+
+    ######################
+    ### GET SESSION ID ###
+    ######################
+    def get_session_id(self, sessionid:SessionId) -> None:
+        self.session_id = sessionid
+
+    #######################
+    ### SET CLIENT INFO ###
+    #######################
+    def set_client_info(self, client_info:Dict[str, Any]) -> None:
+        self.client_info = client_info
+    
+    #########################
+    ### SET EXERCISE TYPE ###
+    #########################
+    def set_exercise_type(self, exercise_type:ExerciseType) -> None:
+        self.exercise_type = exercise_type
+
+    ###############################
+    ### SET EXTENDED EVALUATION ###
+    ###############################
+    def set_extended_evaluation(self, extended_evaluation:bool) -> None:
+        self.extended_evaluation = extended_evaluation
+
+    ###########################
+    ### SET ANALYZING STATE ###
+    ###########################
+    def set_analyzing_state(self, analyzing_state:AnalyzingState) -> None:
+        self.analyzing_state = analyzing_state

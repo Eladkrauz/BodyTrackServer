@@ -63,6 +63,9 @@ class HistoryManager:
         - `history_data` (HistoryData): The `HistoryData` instance to work with.
         - `frame_id` (int): The frame number
         - `joints` (Dict[JointAngle, Any]): The angles dictionary from `JointAnalyzer`
+
+        ### Use:
+        - Used by the `SessionManager` to record an `OK` frame after calculating its joints.
         """
         try:
             # New frame to store.
@@ -109,12 +112,15 @@ class HistoryManager:
         - `error_to_add` (str): The error to be added.
         - `frame_id` (int): The frame id.
         """
-        # If frame_id was specified (generally not supposed to happen).
         current_amount_of_frames = len(history_data.history[HistoryDictKey.FRAMES])
         for i in range(current_amount_of_frames - 1, -1, -1):
             iterated_frame_id = history_data.history[HistoryDictKey.FRAMES][i][HistoryDictKey.Frame.FRAME_ID]
             if iterated_frame_id == frame_id:
                 history_data.history[HistoryDictKey.FRAMES][i][HistoryDictKey.Frame.ERRORS].append(error_to_add)
+                # Updating counters.
+                error_counters:dict = history_data.history[HistoryDictKey.ERROR_COUNTERS]
+                if error_counters.get(error_to_add, None) is None: error_counters[error_to_add] = 1
+                else:                                              error_counters[error_to_add] += 1
                 return
         
         # If arrived here - did not find the frame in the list (probably it is too old).
@@ -124,6 +130,21 @@ class HistoryManager:
             error=ErrorCode.CANT_FIND_FRAME_IN_FRAMES_WINDOW,
             origin=inspect.currentframe()
             )
+    
+    ##################################
+    ### UPDATE FRAME ABSOLUTELY OK ###
+    ##################################
+    def update_frame_absolutely_ok(self, history_data:HistoryData) -> None:
+        """
+        ### Brief:
+        The `update_frame_absolutely_ok` method is called when a frame is valid
+        and does not have any detected error. The method resets the `ERROR_COUNTERS`.
+
+        ### Argumetns:
+        - `history_data` (HistoryData): The `HistoryData` instance to work with.
+        """
+        error_counters:dict = history_data.history[HistoryDictKey.ERROR_COUNTERS]
+        error_counters.clear()
 
     ############################
     ### RECORD INVALID FRAME ###
@@ -131,7 +152,7 @@ class HistoryManager:
     def record_invalid_frame(self, history_data:HistoryData, frame_id:int, invalid_reason:PoseQuality) -> None:
         """
         ### Brief:
-        The `record_invalid_frame` method adds a new invalid (not OK) frame record to history.
+        The `record_invalid_frame` method adds a new invalid (not `OK`) frame record to history.
 
         This method is called only after:
             1. `PoseAnalyzer` produced landmarks
@@ -141,6 +162,9 @@ class HistoryManager:
         - `history_data` (HistoryData): The `HistoryData` instance to work with.
         - `frame_id` (int): The frame number
         - `invalid_reason` (PoseQuality): The reason why the frame is invalid
+
+        ### Use:
+        - Used by the `SessionManager` to record a not `OK` frame after `PoseQualityManager` determined it.
         """
         try:
             entry = {
@@ -185,7 +209,7 @@ class HistoryManager:
     ###############################
     ### RECOED PHASE TRANSITION ###
     ###############################
-    def record_phase_transition(self, history_data:HistoryData, old_phase:PhaseType, new_phase:PhaseType, frame_id:int, joints:Dict[str, float]) -> None:
+    def record_phase_transition(self, history_data:HistoryData, new_phase:PhaseType, frame_id:int, joints:Dict[str, float]) -> None:
         """
         ### Brief:
         The `record_phase_transition` method records a biomechanical phase transition event.
@@ -193,12 +217,12 @@ class HistoryManager:
 
         ### Arguments:
         - `history_data` (HistoryData): The `HistoryData` instance to work with.
-        - `old_phase` (PhaseType): The previous phase.
         - `new_phase` (PhaseType): The new phase.
         - `frame_id` (int): The frame where the transition happened.
         - `joints` (dict[str, float]): Snapshot of key joint angles at transition moment.
         """
-        if new_phase == old_phase or new_phase is None or old_phase is None: return
+        old_phase = history_data.get_previous_phase()
+        if new_phase is None or old_phase is None or new_phase == old_phase: return
         now = datetime.now()
 
         # If we have a previous transition (it is not the first now) - compute duration.
@@ -427,6 +451,26 @@ class HistoryManager:
         - `False` otherwise.
         """
         return history_data.history[HistoryDictKey.FRAMES_SINCE_LAST_VALID] >= self.max_consecutive_invalid_before_abort
+    
+    #######################################
+    ### INCREMENT CONSECUTIVE OK STREAK ###
+    #######################################
+    def increment_consecutive_ok_streak(self, history_data:HistoryData) -> None:
+        """
+        ### Brief:
+        The `increment_ok_streak` method increments the number of consecutive `OK` frames.
+        """
+        history_data.history[HistoryDictKey.CONSECUTIVE_OK_FRAMES] += 1
+    
+    ###################################
+    ### RESET CONSECUTIVE OK STREAK ###
+    ###################################
+    def reset_consecutive_ok_streak(self, history_data:HistoryData) -> None:
+        """
+        ### Brief:
+        The `reset_consecutive_ok_streak` method resets the number of consecutive `OK` frames.
+        """
+        history_data.history[HistoryDictKey.CONSECUTIVE_OK_FRAMES] = 0
 
     #####################################################################
     ############################## HELPERS ##############################
@@ -533,9 +577,6 @@ class HistoryManager:
         ### Brief:
         The `_retrieve_configurations` method gets the updated configurations from the
         configuration file.
-
-        ### Arguments:
-        - `history_data` (HistoryData): The `HistoryData` instance to work with.
         """
         from Server.Utilities.Config.ConfigLoader import ConfigLoader
         from Server.Utilities.Config.ConfigParameters import ConfigParameters

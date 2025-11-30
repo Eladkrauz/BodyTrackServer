@@ -38,8 +38,9 @@ class ConfigParameters:
         WIDTH   = "width"
 
         # Session.
-        SUPPORTED_EXERCIES  = "supported_exercises"
-        MAXIMUM_CLIENTS     = "maximum_clients"
+        SUPPORTED_EXERCIES        = "supported_exercises"
+        MAXIMUM_CLIENTS           = "maximum_clients"
+        NUM_OF_MIN_INIT_OK_FRAMES = "num_of_min_init_ok_frames"
 
         # History.
         FRAMES_ROLLING_WINDOW_SIZE           = "frames_rolling_window_size"

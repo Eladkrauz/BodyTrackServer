@@ -60,6 +60,7 @@ class ErrorCode(enum):
     SESSION_STATUS_IS_NOT_RECOGNIZED        = (214, "The provided session status is not recognized.", None, True)
     FRAME_INITIAL_VALIDATION_FAILED         = (215, "The initial validation process of the frame failed.", None, False)
     INVALID_EXTENDED_EVALUATION_PARAM       = (216, "The parameter of extended evaluation is not valid.", None, False)
+    TRYING_TO_ANALYZE_FRAME_WHEN_DONE       = (217, "Recieved a frame for analysis when the session is already done.", None, False)
 
     # PoseAnalyzer.
     ERROR_INITIALIZING_POSE                 = (300, "Error initializing PoseAnalyzer", None, False)
