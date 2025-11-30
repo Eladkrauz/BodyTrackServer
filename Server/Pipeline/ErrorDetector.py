@@ -107,13 +107,13 @@ class ErrorDetector:
                 origin=inspect.currentframe(),
                 extra_info={"exercise": exercise_name}
             )
-            return None
+            return ErrorCode.ERROR_DETECTOR_UNSUPPORTED_EXERCISE
 
         phase_thresholds = self.thresholds[exercise_name].get(phase.name)
 
         # A valid exercise may lack thresholds for this specific phase.
         if not phase_thresholds:
-            return None
+            return ErrorCode.ERROR_DETECTOR_UNSUPPORTED_PHASE
 
         # Iterate angles in the exact order defined in JSON.
         for angle_name, rules in phase_thresholds.items():
