@@ -7,9 +7,11 @@
 ###############
 ### IMPORTS ###
 ###############
-from Server.Data.Session.ExerciseType import ExerciseType
+from typing import Dict, Any
+
 from Server.Data.Session.SessionData  import SessionData
 from Server.Data.Phase.PhaseType      import PhaseType
+
 from Server.Utilities.Error.ErrorCode import ErrorCode
 
 ############################
@@ -24,10 +26,10 @@ class PhaseDetector:
     def determine_phase(self, session_data:SessionData) -> PhaseType | ErrorCode:
         pass
 
-    def ensure_initial_phase_correct(self, session_data:SessionData) -> bool | ErrorCode:
+    def ensure_initial_phase_correct(self, session_data:SessionData, joints:Dict[str, Any]) -> bool | ErrorCode:
         pass
 
-###############################
+    ###############################
     ### RETRIEVE CONFIGURATIONS ###
     ############################### 
     def _retrieve_configurations(self) -> None:

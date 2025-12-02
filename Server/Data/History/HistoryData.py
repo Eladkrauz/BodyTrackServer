@@ -44,6 +44,7 @@ class HistoryData:
         'HistoryDictKey.PHASE_START_TIME`:        The time when the phase started
         `HistoryDictKey.PHASE_TRANSITIONS`:       A `dict` for historical context of phase changes
         `HistoryDictKey.PHASE_DURATIONS`:         A `dict` for historical context of phase durations
+        `HistoryDictKey.INITIAL_PHASE_COUNTER`:   An `int` which holds the number of consecutive frames with initial exercise phase
 
         `HistoryDictKey.BAD_FRAME_COUNTERS`:      A `dict` containing counters for bad frames
         `HistoryDictKey.BAD_FRAME_STREAKS`:       A `dict` containing consecutive counters for bad frames
@@ -128,6 +129,11 @@ class HistoryData:
         `HistoryDictKey.PhaseDuration.FRAME_END`: `int`
     }
 
+    ### Initial Phase Counter (`int`):
+    - An `int` which stores the number of consecutive frames where the user
+    was positioned in the exercise's initial phase. Used for pre-analyzing logic
+    by `PhaseDetector` and `SessionManager`.
+
     ### Bad Frame Counters (`dict[str, int]`):
     - A `dict` which stores counters of bad frames, classified to `PoseQuality` types.
     - When a valid frame recieved after some bad frames, the counters reset.
@@ -205,6 +211,7 @@ class HistoryData:
             HistoryDictKey.PHASE_START_TIME:        None,
             HistoryDictKey.PHASE_TRANSITIONS:       [],
             HistoryDictKey.PHASE_DURATIONS:         [],
+            HistoryDictKey.INITIAL_PHASE_COUNTER:   0,
 
             HistoryDictKey.BAD_FRAME_COUNTERS:      { quality_enum.name: 0 for quality_enum in PoseQuality },
             HistoryDictKey.BAD_FRAME_STREAKS:       { quality_enum.name: 0 for quality_enum in PoseQuality },
@@ -381,6 +388,19 @@ class HistoryData:
         - A `list[Dict[str, Any]]` containing info about the all phase durations history (`HistoryDictKey.PhaseDuration`).
         """
         return deepcopy(self.history[HistoryDictKey.PHASE_DURATIONS])
+    
+    #################################
+    ### GET INITIAL PHASE COUNTER ###
+    #################################
+    def get_initial_phase_counter(self) -> int:
+        """
+        ### Brief:
+        The `get_initial_phase_counter` method returns the counter of correct initial phase.
+        
+        ### Returns:
+        - An `int` which stores the counter of correct initial phase.
+        """
+        return self.history[HistoryDictKey.INITIAL_PHASE_COUNTER]
 
     #####################
     ### GET REP COUNT ###
