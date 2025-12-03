@@ -15,7 +15,8 @@ from copy import deepcopy
 
 from Server.Data.Pose.PoseQuality import PoseQuality
 from Server.Data.History.HistoryDictKey import HistoryDictKey
-from Server.Data.History.HistoryData import HistoryData, HistoryDict
+from Server.Data.History.HistoryData import HistoryData
+from Server.Data.Error.DetectedErrorCode import DetectedErrorCode
 
 if TYPE_CHECKING:
     from Server.Data.Phase.PhaseType import PhaseType
@@ -40,7 +41,7 @@ class HistoryManager:
         ### Brief:
         The `__init__` method initializes the `HistoryManager` instance.
         """
-        self._retrieve_configurations()
+        self.retrieve_configurations()
 
     ###############################################################################################
     ############################## RECORD NEW VALID OR INVALID FRAME ##############################
@@ -102,17 +103,18 @@ class HistoryManager:
     #######################
     ### ADD FRAME ERROR ###
     #######################
-    def add_frame_error(self, history_data:HistoryData, error_to_add:str, frame_id:int) -> None:
+    def add_frame_error(self, history_data:HistoryData, error_to_add:DetectedErrorCode, frame_id:int) -> None:
         """
         ### Brief:
         The `add_frame_error` method adds an error to a valid frame.
 
         ### Arguments:
         - `history_data` (HistoryData): The `HistoryData` instance to work with.
-        - `error_to_add` (str): The error to be added.
+        - `error_to_add` (DetectedErrorCode): The error to be added.
         - `frame_id` (int): The frame id.
         """
         current_amount_of_frames = len(history_data.history[HistoryDictKey.FRAMES])
+        error_to_add:str = error_to_add.name
         for i in range(current_amount_of_frames - 1, -1, -1):
             iterated_frame_id = history_data.history[HistoryDictKey.FRAMES][i][HistoryDictKey.Frame.FRAME_ID]
             if iterated_frame_id == frame_id:
@@ -471,6 +473,28 @@ class HistoryManager:
         The `reset_consecutive_ok_streak` method resets the number of consecutive `OK` frames.
         """
         history_data.history[HistoryDictKey.CONSECUTIVE_OK_FRAMES] = 0
+    
+    ################################################
+    ### INCREMENT CONSECUTIVE INIT PHASE COUNTER ###
+    ################################################
+    def increment_consecutive_init_phase_counter(self, history_data:HistoryData) -> None:
+        """
+        ### Brief:
+        The `increment_consecutive_init_phase_counter` method increments the number of consecutive
+        correct initial phase detections.
+        """
+        history_data.history[HistoryDictKey.INITIAL_PHASE_COUNTER] += 1
+    
+    ############################################
+    ### RESET CONSECUTIVE INIT PHASE COUNTER ###
+    ############################################
+    def reset_consecutive_init_phase_counter(self, history_data:HistoryData) -> None:
+        """
+        ### Brief:
+        The `reset_consecutive_init_phase_counter` method resets the number of consecutive
+        correct initial phase detections.
+        """
+        history_data.history[HistoryDictKey.INITIAL_PHASE_COUNTER] = 0
 
     #####################################################################
     ############################## HELPERS ##############################
@@ -572,10 +596,10 @@ class HistoryManager:
     ###############################
     ### RETRIEVE CONFIGURATIONS ###
     ############################### 
-    def _retrieve_configurations(self) -> None:
+    def retrieve_configurations(self) -> None:
         """
         ### Brief:
-        The `_retrieve_configurations` method gets the updated configurations from the
+        The `retrieve_configurations` method gets the updated configurations from the
         configuration file.
         """
         from Server.Utilities.Config.ConfigLoader import ConfigLoader

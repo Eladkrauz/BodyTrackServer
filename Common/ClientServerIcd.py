@@ -87,8 +87,10 @@ class ClientServerIcd:
         CLIENT_SESSION_IS_UNREGISTERED      = (106, "The client's session is unregistered.")
         CLIENT_SESSION_IS_NOT_IN_SYSTEM     = (107, "The client's session is not in the system.")
         FRAME_ANALYZED_SUCCESSFULLY         = (108, "The frame analyzed successfully.")
-        USER_VISIBILITY_IS_VALID            = (109, "Initial frame checking is valid.")
-        USER_VISIBILITY_IS_UNDER_CHECKING   = (110, "Initial frame checking is in process.")
+        USER_VISIBILITY_IS_VALID            = (109, "Initial frame visibility checking is valid.")
+        USER_VISIBILITY_IS_UNDER_CHECKING   = (110, "Initial frame visibility checking is in process.")
+        USER_POSITIONING_IS_VALID           = (111, "Initial frame positioning checking is valid.")
+        USER_POSITIONING_IS_UNDER_CHECKING  = (112, "Initial frame positioning checking is in process.")
 
         def __new__(cls, code, description):
             obj = object.__new__(cls)

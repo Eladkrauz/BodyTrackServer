@@ -18,6 +18,7 @@ class HistoryDictKey:
     PHASE_START_TIME        = "phase_start_time"
     PHASE_TRANSITIONS       = "phase_transitions"
     PHASE_DURATIONS         = "phase_durations"
+    INITIAL_PHASE_COUNTER   = "initial_phase_counter"
     # Bad frames.
     BAD_FRAME_COUNTERS      = "bad_frame_counters"
     BAD_FRAME_STREAKS       = "bad_frame_streaks"

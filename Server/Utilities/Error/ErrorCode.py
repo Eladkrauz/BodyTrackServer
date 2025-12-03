@@ -8,6 +8,13 @@
 ### IMPORTS ###
 ###############
 from enum import Enum as enum
+from typing import Dict, Any, Optional
+from dataclasses import dataclass
+
+#############
+### ALIAS ###
+#############
+ErrorResponseDict = Dict[str, Any]
 
 ########################
 ### ERROR CODE CLASS ###
@@ -25,6 +32,12 @@ class ErrorCode(enum):
     CONFIG_PARAM_DOES_NOT_EXIST             = (5, "The key sent does not exist in the configuration file.", None, False)
     CRITICAL_CONFIG_PARAM_DOES_NOT_EXIST    = (6, "The key sent does not exist in the configuration file. Critical to server.", None, True)
     CONFIGURATION_KEY_IS_INVALID            = (7, "The key sent is not a valid list of ConfigParameters", None, True)
+    INVALID_JSON_PAYLOAD_IN_REQUEST         = (8, "The JSON payload in the request is invalid.", None, False)
+    MISSING_EXERCISE_TYPE_IN_REQUEST        = (9, "The request does not contain an exercise type.", None, False)
+    MISSING_SESSION_ID_IN_REQUEST           = (10, "The request does not contain a session id.", None, False)
+    MISSING_FRAME_DATA_IN_REQUEST           = (11, "The request does not contain frame data, which should include session id, frame id and frame content.", None, False)
+    CLIENT_IP_IS_INVALID                    = (12, "The provided IP is invalid.", None, False)
+    CLIENT_AGENT_IS_INVALID                 = (13, "The provided client agent is invalid.", None, False)
 
     # Flask and database management.
     CANT_ADD_URL_RULE_TO_FLASK_SERVER       = (100, "URL rule could not be added.", None, True)
@@ -61,6 +74,7 @@ class ErrorCode(enum):
     FRAME_INITIAL_VALIDATION_FAILED         = (215, "The initial validation process of the frame failed.", None, False)
     INVALID_EXTENDED_EVALUATION_PARAM       = (216, "The parameter of extended evaluation is not valid.", None, False)
     TRYING_TO_ANALYZE_FRAME_WHEN_DONE       = (217, "Recieved a frame for analysis when the session is already done.", None, False)
+    ERROR_CREATING_SESSION_DATA             = (218, "Error while creating a session data instance", None, False)
 
     # PoseAnalyzer.
     ERROR_INITIALIZING_POSE                 = (300, "Error initializing PoseAnalyzer", None, False)
@@ -113,3 +127,23 @@ class ErrorCode(enum):
         obj.extra_info = extra_info
         obj.critical = critical
         return obj
+    
+@dataclass
+############################
+### ERROR RESPONSE CLASS ###
+############################
+class ErrorResponse:
+    # Class fields.
+    error_code:ErrorCode
+    extra_info:Optional[Dict[str, Any]] = None
+
+    ###############
+    ### TO DICT ###
+    ###############
+    def to_dict(self) -> ErrorResponseDict:
+        return_dict = {
+            "code":        self.error_code.value,
+            "description": self.error_code.description
+        }
+        if self.extra_info: return_dict["extra_info"] = return_dict
+        return return_dict
