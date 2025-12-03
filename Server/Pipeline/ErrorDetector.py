@@ -148,7 +148,7 @@ class ErrorDetector:
                         origin=inspect.currentframe(),
                         extra_info={"angle": angle_name}
                     )
-                return mapped
+                return ErrorCode.ERROR_DETECTOR_MAPPING_NOT_FOUND if mapped is None else mapped
 
             # Above MAXIMUM.
             if value > rules["max"]:
@@ -159,10 +159,10 @@ class ErrorDetector:
                         origin=inspect.currentframe(),
                         extra_info={"angle": angle_name}
                     )
-                return mapped
+                return ErrorCode.ERROR_DETECTOR_MAPPING_NOT_FOUND if mapped is None else mapped
 
         # No biomechanical issues detected.
-        return None
+        return DetectedErrorCode.NO_BIOMECHANICAL_ERROR
 
     ##############################
     ### MAP ANGLE TO ERROR LOW ###
