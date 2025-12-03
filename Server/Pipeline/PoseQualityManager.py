@@ -57,7 +57,7 @@ class PoseQualityManager:
         last_landmarks stores the previous frame's (x,y) points for stability checks.
         """
         try:
-            self._retrieve_configurations()
+            self.retrieve_configurations()
 
             # Track last landmarks as an array of (x,y) for stability checks.
             self.last_landmarks = None
@@ -425,10 +425,10 @@ class PoseQualityManager:
     ###############################
     ### RETRIEVE CONFIGURATIONS ###
     ###############################
-    def _retrieve_configurations(self) -> None:
+    def retrieve_configurations(self) -> None:
         """
         ### Brief:
-        The `_retrieve_configurations` method gets the updated configurations from the
+        The `retrieve_configurations` method gets the updated configurations from the
         configuration file.
         """
         from Server.Utilities.Config.ConfigLoader import ConfigLoader

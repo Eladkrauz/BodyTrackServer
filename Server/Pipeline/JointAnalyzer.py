@@ -44,7 +44,7 @@ class JointAnalyzer:
         The `__init__` method initializes the `JointAnalyzer` instance.
         """
         # Get configurations.
-        self._retrieve_configurations()
+        self.retrieve_configurations()
 
         # Initialized.
         Logger.info("JointAnalyzer: Initialized successfully.")
@@ -425,10 +425,10 @@ class JointAnalyzer:
     ###############################
     ### RETRIEVE CONFIGURATIONS ###
     ############################### 
-    def _retrieve_configurations(self) -> None:
+    def retrieve_configurations(self) -> None:
         """
         ### Brief:
-        The `_retrieve_configurations` method gets the updated configurations from the
+        The `retrieve_configurations` method gets the updated configurations from the
         configuration file.
         """
         from Server.Utilities.Config.ConfigLoader import ConfigLoader

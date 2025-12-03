@@ -40,7 +40,7 @@ class Logger:
         - It archives existing log file if exists and starts a new log session.
         """
         # Extract parameters from the configuration file.
-        self._retrieve_configurations()
+        self.retrieve_configurations()
 
         # Ensure log directory exists.
         os.makedirs(os.path.dirname(self.logger_path), exist_ok=True)
@@ -224,10 +224,10 @@ class Logger:
     ###############################
     ### RETRIEVE CONFIGURATIONS ###
     ############################### 
-    def _retrieve_configurations(self) -> None:
+    def retrieve_configurations(self) -> None:
         """
         ### Brief:
-        The `_retrieve_configurations` method gets the updated configurations from the
+        The `retrieve_configurations` method gets the updated configurations from the
         configuration file.
         """
         from Server.Utilities.Config.ConfigLoader import ConfigLoader

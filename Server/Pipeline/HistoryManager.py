@@ -41,7 +41,7 @@ class HistoryManager:
         ### Brief:
         The `__init__` method initializes the `HistoryManager` instance.
         """
-        self._retrieve_configurations()
+        self.retrieve_configurations()
 
     ###############################################################################################
     ############################## RECORD NEW VALID OR INVALID FRAME ##############################
@@ -596,10 +596,10 @@ class HistoryManager:
     ###############################
     ### RETRIEVE CONFIGURATIONS ###
     ############################### 
-    def _retrieve_configurations(self) -> None:
+    def retrieve_configurations(self) -> None:
         """
         ### Brief:
-        The `_retrieve_configurations` method gets the updated configurations from the
+        The `retrieve_configurations` method gets the updated configurations from the
         configuration file.
         """
         from Server.Utilities.Config.ConfigLoader import ConfigLoader

@@ -46,7 +46,7 @@ class PoseAnalyzer:
         """
         try:
             # Load configurations.
-            self._retrieve_configurations()
+            self.retrieve_configurations()
 
             # Access the MediaPipe Pose solution class.
             # mp.solutions.pose is a wrapper that provides pretrained pose estimation.
@@ -120,10 +120,10 @@ class PoseAnalyzer:
     ### VALIDATE FRAME ###
     ######################
     @staticmethod
-    def validate_frame(frame_content:np.ndarray) -> Optional[ErrorCode]:
+    def _validate_frame(frame_content:np.ndarray) -> Optional[ErrorCode]:
         """
         ### Brief:
-        The `validate_frame` static method validates that the input frame is a proper image suitable 
+        The `_validate_frame` static method validates that the input frame is a proper image suitable 
         for further processing in the PoseAnalyzer pipeline.
 
         ### Arguments:
@@ -173,10 +173,10 @@ class PoseAnalyzer:
     ### PREPROCESS FRAME ###
     ########################
     @classmethod
-    def preprocess_frame(cls, frame_content:np.ndarray) -> np.ndarray | ErrorCode:
+    def _preprocess_frame(cls, frame_content:np.ndarray) -> np.ndarray | ErrorCode:
         """
         ### Brief:
-        The `preprocess_frame` static method preprocesses an input frame before sending it to the MediaPipe Pose model.
+        The `_preprocess_frame` static method preprocesses an input frame before sending it to the MediaPipe Pose model.
         1. Validate the input frame.
         2. Resize to the target resolution.
         3. Convert color space from BGR (OpenCV default) to RGB.
@@ -236,7 +236,7 @@ class PoseAnalyzer:
     #####################
     ### ANALYZE FRAME ###
     #####################       
-    def analyze_frame(self, frame_data:FrameData) -> Optional[PoseLandmarksArray]| ErrorCode:
+    def analyze_frame(self, frame_data:FrameData) -> PoseLandmarksArray | ErrorCode:
         """
         ### Brief:
         Processes a single video frame by converting it to RGB and running MediaPipe Pose
@@ -246,7 +246,7 @@ class PoseAnalyzer:
         - `frame_data` (FrameData): Input frame data to be analyzed.
 
         ### Returns:
-        - `Optional[PoseLandmarks]`:
+        - `PoseLandmarks`:
         A NumPy array of shape `(33, 4)` if landmarks are detected, where each row corresponds
         to one human body landmark with the following columns:
         - `[i, 0]`: x-coordinate (float, normalized to [0,1], relative to image width).
@@ -257,14 +257,14 @@ class PoseAnalyzer:
         If detection fails, returns `ErrorCode`.
         """
         # Validate the frame.
-        validation_result = self.validate_frame(frame_data.content)
+        validation_result = self._validate_frame(frame_data.content)
         if isinstance(validation_result, ErrorCode):
             return ErrorCode.FRAME_VALIDATION_ERROR
         else:
             Logger.info(f"Frame {frame_data.frame_id} of session {frame_data.session_id} - validated successfully.")
         
         # Preprocess the frame.
-        preprocessing_result = self.preprocess_frame(frame_data.content)
+        preprocessing_result = self._preprocess_frame(frame_data.content)
         if isinstance(preprocessing_result, ErrorCode):
             return preprocessing_result
         else:
@@ -404,10 +404,10 @@ class PoseAnalyzer:
     ###############################
     ### RETRIEVE CONFIGURATIONS ###
     ############################### 
-    def _retrieve_configurations(self) -> None:
+    def retrieve_configurations(self) -> None:
         """
         ### Brief:
-        The `_retrieve_configurations` method gets the updated configurations from the
+        The `retrieve_configurations` method gets the updated configurations from the
         configuration file.
         """
         from Server.Utilities.Config.ConfigLoader import ConfigLoader

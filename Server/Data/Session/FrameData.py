@@ -69,3 +69,16 @@ class FrameData:
 
         from Server.Utilities.Logger import Logger
         Logger.debug(f"FrameData {self.frame_id} (Session {self.session_id.id}) validated successfully.")
+
+    #################
+    ### TO STRING ###
+    #################
+    def __str__(self) -> str:
+        """
+        ### Brief:
+        The `__str__` method returns a string representation of the `FrameData` instance.
+
+        ### Returns:
+        A `str` representation of the `FrameData` instance.
+        """
+        return f"Session ID: {self.session_id.id}, Frame ID: {self.frame_id}"
