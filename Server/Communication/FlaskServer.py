@@ -9,16 +9,20 @@
 ###############
 from flask import Flask, request, jsonify, Response
 from threading import Thread
+from typing import Dict
 import inspect, ipaddress
 import base64, cv2
 import numpy as np
 
-from Server.Pipeline.SessionManager import SessionManager
-from Server.Utilities.Logger import Logger
-from Server.Utilities.Error.ErrorHandler import ErrorHandler
-from Server.Utilities.Error.ErrorCode import ErrorCode
-from Common.ClientServerIcd import ClientServerIcd as ICD
-from Server.Communication.HttpCodes import HttpCodes
+from Server.Communication.HttpCodes           import HttpCodes
+from Server.Pipeline.SessionManager           import SessionManager
+from Server.Utilities.Logger                  import Logger
+from Server.Utilities.Error.ErrorHandler      import ErrorHandler
+from Server.Utilities.Error.ErrorCode         import ErrorCode, ErrorResponse
+from Server.Communication.Communication       import Communication
+from Server.Data.Response.ManagementResponse  import ManagementResponse
+from Server.Data.Response.FeedbackResponse    import FeedbackResponse
+from Server.Data.Response.CalibrationResponse import CalibrationResponse
 
 ##########################
 ### FLASK SERVER CLASS ###
@@ -119,14 +123,14 @@ class FlaskServer:
     ###########################
     ### PREPARE CLIENT INFO ###
     ###########################
-    def _prepare_client_info(self) -> dict[str, str] | ICD.ErrorType:
+    def _prepare_client_info(self) -> Dict[str, str] | ErrorCode:
         """
         ### Brief:
         The `_prepare_client_info` method validates and assembles client metadata including IP address and User-Agent string.
 
         ### Returns:
         - `dict[str, str]`: Dictionary with keys `'ip'` and `'user_agent'` if both are valid.
-        - `ICD.ErrorType`: Specific error enum if either IP or User-Agent is invalid.
+        - `ErrorCode`: Specific error enum if either IP or User-Agent is invalid.
 
         ### Notes:
         - Validates that `client_ip` is a proper IPv4/IPv6 address using the built-in `ipaddress` module.
@@ -143,82 +147,19 @@ class FlaskServer:
             if client_ip is None: raise ValueError
             ipaddress.ip_address(client_ip)
         except ValueError:
-            return ICD.ErrorType.CLIENT_IP_IS_INVALID
+            return ErrorCode.CLIENT_IP_IS_INVALID
         
         # Checking the User Agent.
         client_user_agent = request.headers.get("User-Agent", None)
         if client_user_agent is None:
-            return ICD.ErrorType.CLIENT_AGENT_IS_INVALID
+            return ErrorCode.CLIENT_AGENT_IS_INVALID
         
         # If no errors occured.
         return {
             'ip': client_ip,
             'user_agent': client_user_agent
         }
-    
-    #####################
-    ### ERROR TO DICT ###
-    #####################
-    def _error_to_dict(self, error:ICD.ErrorType) -> dict:
-        """
-        ### Brief:
-        The `_error_to_dict` method gets an `ICD.ErrorType` enum class object, and returns
-        a dictionary containing relavant information about the error, to be returned to the client side.
-        
-        ### Arguments:
-        - `error` (ICD.ErrorType): The error type to be added to the returned dictionary.
-        
-        ### Returns:
-        - A dictionary containing relavant information about the provided error.
-        
-        ### Notes:
-        - `error` must be a valid `ICD.ErrorType` object.
-        """
-        # In case the provided error type is unrecognized.
-        if not isinstance(error, ICD.ErrorType):
-            ErrorHandler.handle(error=ErrorCode.UNRECOGNIZED_ICD_ERROR_TYPE, origin=inspect.currentframe())
-        else:
-            return {
-                'message_type': ICD.MessageType.ERROR.value,
-                'opcode': error.value,
-                'title': error.name,
-                'description': error.description
-            }
-        
-    ########################
-    ### RESPONSE TO DICT ###
-    ########################
-    def _response_to_dict(self, response:ICD.ResponseType, information:dict = None) -> dict:
-        """
-        ### Brief:
-        The `_response_to_dict` method gets an `ICD.ResponseType` enum class object, and returns
-        a dictionary containing relavant information about the response, to be returned to the client side.
-        
-        ### Arguments:
-        - `response` (ICD.ResponseType): The response type to be added to the returned dictionary.
-        - `information` (dict): An extra information dictionary to be added to the respone. Defaults to None.
-        
-        ### Returns:
-        - A dictionary containing relavant information about the provided response.
-        
-        ### Notes:
-        - `response` must be a valid `ICD.ResponseType` object.
-        - `information` can be ignored and not sent.
-        """
-        # In case the provided response type is unrecognized.
-        if not isinstance(response, ICD.ResponseType):
-            ErrorHandler.handle(error=ErrorCode.UNRECOGNIZED_ICD_RESPONSE_TYPE, origin=inspect.currentframe())
-        else:
-            dict_to_return = {
-                'message_type': ICD.MessageType.RESPONSE.value,
-                'opcode': response.value,
-                'title': response.name,
-                'description': response.description
-            }
-            if information is not None:
-                dict_to_return.update(information)
-            return dict_to_return  
-              
+
     #######################################
     ########## ENDPOINT HANDLERS ##########
     #######################################
@@ -238,7 +179,7 @@ class FlaskServer:
         Used by the client at startup or during connectivity checks to verify that the server is reachable.
         """
         Logger.info("Received ping request")
-        return jsonify(self._response_to_dict(ICD.ResponseType.ALIVE)), HttpCodes.OK
+        return jsonify(Communication.ping_response()), HttpCodes.OK
 
     ############################
     ### REGISTER NEW SESSION ###
@@ -261,35 +202,32 @@ class FlaskServer:
         Called when the user enters the exercise instructions screen to register a new session.
         """
         # Get request's JSON data.
-        data = dict(request.get_json())
+        data:dict = dict(request.get_json())
         if data is None:
             Logger.warning("Missing or invalid JSON in request")
-            return jsonify(self._error_to_dict(ICD.ErrorType.INVALID_JSON_PAYLOAD_IN_REQUEST)), HttpCodes.BAD_REQUEST
+            return jsonify(Communication.error_response(ErrorCode.INVALID_JSON_PAYLOAD_IN_REQUEST)), HttpCodes.BAD_REQUEST
 
         # Extract required values.
-        exercise_type = data.get("exercise_type", None)
+        exercise_type:str = data.get("exercise_type", None)
         if exercise_type is None or (isinstance(exercise_type, bool) and exercise_type is False):
             Logger.warning("Missing 'exercise_type' in request")
-            return jsonify(self._error_to_dict(ICD.ErrorType.MISSING_EXERCISE_TYPE_IN_REQUEST)), HttpCodes.BAD_REQUEST
+            return jsonify(Communication.error_response(ErrorCode.MISSING_EXERCISE_TYPE_IN_REQUEST)), HttpCodes.BAD_REQUEST
 
         # Check received client information.
-        client_info_result = self._prepare_client_info()
-        if not isinstance(client_info_result, dict): # It is an ICD.ErrorType instance.
-            return jsonify(self._error_to_dict(client_info_result)), HttpCodes.BAD_REQUEST
+        client_info_result:Dict[str, str] | ErrorCode = self._prepare_client_info()
+        if isinstance(client_info_result, ErrorCode): # It is an ErrorCode instance.
+            return jsonify(Communication.error_response(client_info_result)), HttpCodes.BAD_REQUEST
         
         # If arrived here, the `client_info_result` of `_prepare_client_info` is a dictionary
         # containing information about the client.
-
+        
         # Register client to SessionManager.
-        registration_result = self.session_manager.register_new_session(exercise_type, client_info_result)
+        registration_result:ManagementResponse | ErrorResponse = self.session_manager.register_new_session(exercise_type, client_info_result)
         # Checking the result.
-        if isinstance(registration_result, ICD.ErrorType): # An error with registration.
-            return jsonify(self._error_to_dict(registration_result)), HttpCodes.SERVER_ERROR
+        if isinstance(registration_result, ErrorResponse): # An error with registration.
+            return jsonify(Communication.error_response(registration_result)), HttpCodes.SERVER_ERROR
         else: # The result is a valid SessionId.
-            return jsonify(self._response_to_dict(
-                response=ICD.ResponseType.CLIENT_REGISTERED_SUCCESSFULLY,
-                information={'session_id': registration_result.id})
-            ), HttpCodes.OK
+            return jsonify(Communication.construct_response(registration_result)), HttpCodes.OK
 
     ##########################
     ### UNREGISTER SESSION ###
@@ -311,23 +249,23 @@ class FlaskServer:
         Triggered when the user cancels or returns to the home screen before starting the session.
         """
         # Get request's JSON data.
-        data = dict(request.get_json())
+        data:dict = dict(request.get_json())
         if data is None:
             Logger.warning("Missing or invalid JSON in request")
-            return jsonify(self._error_to_dict(ICD.ErrorType.INVALID_JSON_PAYLOAD_IN_REQUEST)), HttpCodes.BAD_REQUEST
+            return jsonify(Communication.error_response(ErrorCode.INVALID_JSON_PAYLOAD_IN_REQUEST)), HttpCodes.BAD_REQUEST
         
         # Extract required values.
-        session_id = data.get("session_id", None)
+        session_id:str = data.get("session_id", None)
         if session_id is None:
             Logger.warning("Missing 'session_id' in request")
-            return jsonify(self._error_to_dict(ICD.ErrorType.MISSING_SESSION_ID_IN_REQUEST)), HttpCodes.BAD_REQUEST
+            return jsonify(Communication.error_response(ErrorCode.MISSING_SESSION_ID_IN_REQUEST)), HttpCodes.BAD_REQUEST
         
         # Trying to unregister the session.
-        unregister_session_result = self.session_manager.unregister_session(session_id)
-        if isinstance(unregister_session_result, ICD.ErrorType): # If an error occured.
-            return jsonify(self._error_to_dict(unregister_session_result)), HttpCodes.BAD_REQUEST
+        unregister_session_result:ManagementResponse | ErrorResponse = self.session_manager.unregister_session(session_id)
+        if isinstance(unregister_session_result, ErrorCode): # If an error occured.
+            return jsonify(Communication.error_response(unregister_session_result)), HttpCodes.BAD_REQUEST
         else: # If the session unregistered successfully.
-            return jsonify(self._response_to_dict(unregister_session_result)), HttpCodes.OK        
+            return jsonify(Communication.construct_response(unregister_session_result)), HttpCodes.OK        
     
     #####################
     ### START SESSION ###
@@ -349,29 +287,23 @@ class FlaskServer:
         Called when the user starts exercising, activating the registered session.
         """
         # Get request's JSON data.
-        data = dict(request.get_json())
+        data:dict = dict(request.get_json())
         if data is None:
             Logger.warning("Missing or invalid JSON in request")
-            return jsonify(self._error_to_dict(ICD.ErrorType.INVALID_JSON_PAYLOAD_IN_REQUEST)), HttpCodes.BAD_REQUEST
+            return jsonify(Communication.error_response(ErrorCode.INVALID_JSON_PAYLOAD_IN_REQUEST)), HttpCodes.BAD_REQUEST
 
         # Extract required values.
-        session_id = data.get("session_id", None)
+        session_id:str = data.get("session_id", None)
         if session_id is None:
             Logger.warning("Missing 'session_id' in request")
-            return jsonify(self._error_to_dict(ICD.ErrorType.MISSING_SESSION_ID_IN_REQUEST)), HttpCodes.SERVER_ERROR
+            return jsonify(Communication.error_response(ErrorCode.MISSING_SESSION_ID_IN_REQUEST)), HttpCodes.SERVER_ERROR
         
         # Trying to start the session.
-        start_session_result = self.session_manager.start_session(session_id)
-        if isinstance(start_session_result, ICD.ErrorType):
-            if start_session_result is ICD.ErrorType.INVALID_SESSION_ID:
-                return jsonify(self._error_to_dict(start_session_result)), HttpCodes.BAD_REQUEST
-            elif start_session_result is ICD.ErrorType.MAX_CLIENT_REACHED:
-                return jsonify(self._error_to_dict(start_session_result)), HttpCodes.SERVER_ERROR
-            else:
-                # default for semantic client mistakes
-                return jsonify(self._error_to_dict(start_session_result)), HttpCodes.BAD_REQUEST
+        start_session_result:ManagementResponse | ErrorResponse = self.session_manager.start_session(session_id)
+        if isinstance(start_session_result, ErrorResponse):
+            return jsonify(Communication.error_response(start_session_result)), HttpCodes.BAD_REQUEST
         else: # If the session started successfully.
-            return jsonify(self._response_to_dict(start_session_result)), HttpCodes.OK
+            return jsonify(Communication.construct_response(start_session_result)), HttpCodes.OK
             
     #####################
     ### PAUSE SESSION ###
@@ -393,23 +325,23 @@ class FlaskServer:
         Sent when the user pauses a workout (temporarily suspends analysis).
         """
         # Get request's JSON data.
-        data = dict(request.get_json())
+        data:dict = dict(request.get_json())
         if data is None:
             Logger.warning("Missing or invalid JSON in request")
-            return jsonify(self._error_to_dict(ICD.ErrorType.INVALID_JSON_PAYLOAD_IN_REQUEST)), HttpCodes.BAD_REQUEST
+            return jsonify(Communication.error_response(ErrorCode.INVALID_JSON_PAYLOAD_IN_REQUEST)), HttpCodes.BAD_REQUEST
 
         # Extract required values.
-        session_id = data.get("session_id", None)
+        session_id:str = data.get("session_id", None)
         if session_id is None:
             Logger.warning("Missing 'session_id' in request")
-            return jsonify(self._error_to_dict(ICD.ErrorType.MISSING_SESSION_ID_IN_REQUEST)), HttpCodes.BAD_REQUEST
+            return jsonify(Communication.error_response(ErrorCode.MISSING_SESSION_ID_IN_REQUEST)), HttpCodes.BAD_REQUEST
         
         # Trying to pause the session.
-        pause_session_result = self.session_manager.pause_session(session_id)
-        if isinstance(pause_session_result, ICD.ErrorType): # If an error occured.
-            return jsonify(self._error_to_dict(pause_session_result)), HttpCodes.BAD_REQUEST
+        pause_session_result:ManagementResponse | ErrorResponse = self.session_manager.pause_session(session_id)
+        if isinstance(pause_session_result, ErrorResponse): # If an error occured.
+            return jsonify(Communication.error_response(pause_session_result)), HttpCodes.BAD_REQUEST
         else: # If the session unregistered successfully.
-            return jsonify(self._response_to_dict(pause_session_result)), HttpCodes.OK    
+            return jsonify(Communication.construct_response(pause_session_result)), HttpCodes.OK    
 
     ######################
     ### RESUME SESSION ###
@@ -431,23 +363,23 @@ class FlaskServer:
         Triggered when the user resumes the workout after pausing.
         """
         # Get request's JSON data.
-        data = dict(request.get_json())
+        data:dict = dict(request.get_json())
         if data is None:
             Logger.warning("Missing or invalid JSON in request")
-            return jsonify(self._error_to_dict(ICD.ErrorType.INVALID_JSON_PAYLOAD_IN_REQUEST)), HttpCodes.BAD_REQUEST
+            return jsonify(Communication.error_response(ErrorCode.INVALID_JSON_PAYLOAD_IN_REQUEST)), HttpCodes.BAD_REQUEST
 
         # Extract required values.
-        session_id = data.get("session_id", None)
+        session_id:str = data.get("session_id", None)
         if session_id is None:
             Logger.warning("Missing 'session_id' in request")
-            return jsonify(self._error_to_dict(ICD.ErrorType.MISSING_SESSION_ID_IN_REQUEST)), HttpCodes.BAD_REQUEST
+            return jsonify(Communication.error_response(ErrorCode.MISSING_SESSION_ID_IN_REQUEST)), HttpCodes.BAD_REQUEST
         
         # Trying to resume the session.
-        resume_session_result = self.session_manager.resume_session(session_id)
-        if isinstance(resume_session_result, ICD.ErrorType): # If an error occured.
-            return jsonify(self._error_to_dict(resume_session_result)), HttpCodes.SERVER_ERROR
+        resume_session_result:ManagementResponse | ErrorResponse = self.session_manager.resume_session(session_id)
+        if isinstance(resume_session_result, ErrorResponse): # If an error occured.
+            return jsonify(Communication.error_response(resume_session_result)), HttpCodes.SERVER_ERROR
         else: # If the session resumed successfully.
-            return jsonify(self._response_to_dict(resume_session_result)), HttpCodes.OK
+            return jsonify(Communication.construct_response(resume_session_result)), HttpCodes.OK
         
     ###################
     ### END SESSION ###
@@ -469,23 +401,23 @@ class FlaskServer:
         Called when the user finishes exercising or the session timer expires.
         """
         # Get request's JSON data.
-        data = dict(request.get_json())
+        data:dict = dict(request.get_json())
         if data is None:
             Logger.warning("Missing or invalid JSON in request")
-            return jsonify(self._error_to_dict(ICD.ErrorType.INVALID_JSON_PAYLOAD_IN_REQUEST)), HttpCodes.BAD_REQUEST
+            return jsonify(Communication.error_response(ErrorCode.INVALID_JSON_PAYLOAD_IN_REQUEST)), HttpCodes.BAD_REQUEST
 
         # Extract required values.
-        session_id = data.get("session_id", None)
+        session_id:str = data.get("session_id", None)
         if session_id is None:
             Logger.warning("Missing 'session_id' in request")
-            return jsonify(self._error_to_dict(ICD.ErrorType.MISSING_SESSION_ID_IN_REQUEST)), HttpCodes.BAD_REQUEST
+            return jsonify(Communication.error_response(ErrorCode.MISSING_SESSION_ID_IN_REQUEST)), HttpCodes.BAD_REQUEST
         
         # Trying to end the session.
-        end_session_result = self.session_manager.end_session(session_id)
-        if isinstance(end_session_result, ICD.ErrorType): # If an error occured.
-            return jsonify(self._error_to_dict(end_session_result)), HttpCodes.BAD_REQUEST
+        end_session_result:ManagementResponse | ErrorResponse = self.session_manager.end_session(session_id)
+        if isinstance(end_session_result, ErrorResponse): # If an error occured.
+            return jsonify(Communication.error_response(end_session_result)), HttpCodes.BAD_REQUEST
         else: # If the session ended successfully.
-            return jsonify(self._response_to_dict(end_session_result)), HttpCodes.OK    
+            return jsonify(Communication.construct_response(end_session_result)), HttpCodes.OK    
 
     ####################
     ### ANALYZE POSE ###
@@ -513,10 +445,10 @@ class FlaskServer:
         Used repeatedly during an active session to send each camera frame for pose analysis.
         """
         # Get request's JSON data.
-        data = dict(request.get_json())
+        data:dict = dict(request.get_json())
         if not data:
             Logger.warning("Missing or invalid JSON in analyze_pose request")
-            return jsonify(self._error_to_dict(ICD.ErrorType.INVALID_JSON_PAYLOAD_IN_REQUEST)), HttpCodes.BAD_REQUEST
+            return jsonify(Communication.error_response(ErrorCode.INVALID_JSON_PAYLOAD_IN_REQUEST)), HttpCodes.BAD_REQUEST
 
         # Extract required fields.
         session_id:str  = data.get("session_id", None)
@@ -525,7 +457,7 @@ class FlaskServer:
 
         if session_id is None or frame_id is None or content_b64 is None:
             Logger.warning("Missing fields in analyze_pose request")
-            return jsonify(self._error_to_dict(ICD.ErrorType.MISSING_FRAME_DATA_IN_REQUEST)), HttpCodes.BAD_REQUEST
+            return jsonify(Communication.error_response(ErrorCode.MISSING_FRAME_DATA_IN_REQUEST)), HttpCodes.BAD_REQUEST
 
         # Decode base64 to np.ndarray.
         try:
@@ -534,28 +466,21 @@ class FlaskServer:
             frame_content:np.ndarray = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)  # BGR frame
         except Exception as e:
             Logger.error(f"Frame decoding failed: {e}")
-            return jsonify(self._error_to_dict(ICD.ErrorType.FRAME_DECODING_FAILED)), HttpCodes.BAD_REQUEST
+            return jsonify(Communication.error_response(ErrorCode.FRAME_DECODING_FAILED)), HttpCodes.BAD_REQUEST
 
         # Call SessionManager to analyze.
-        analysis_result = self.session_manager.analyze_frame(session_id, frame_id, frame_content)
+        analysis_result:CalibrationResponse | FeedbackResponse | ErrorResponse = \
+            self.session_manager.analyze_frame(
+                session_id=session_id, frame_id=frame_id, frame_content=frame_content
+            )
 
         # Handle errors.
-        if isinstance(analysis_result, ICD.ErrorType):
-            return jsonify(self._error_to_dict(analysis_result)), HttpCodes.BAD_REQUEST
-
-        # Return success.
-        return jsonify(self._response_to_dict(
-            response=ICD.ResponseType.FRAME_ANALYZED_SUCCESSFULLY,
-            information=analysis_result
-        )), HttpCodes.OK
-        '''
-        The returned value from analyze_frame (in case of success) will be a dict:
-        {
-            'session_id': ...,
-            'frame_id': ...,
-            'feedback': { ... }        
-        }
-        '''
+        if isinstance(analysis_result, ErrorResponse):
+            return jsonify(Communication.error_response(analysis_result)), HttpCodes.BAD_REQUEST
+        
+        # Returning CalibrationResponse or FeedbackResponse.
+        else:
+            return jsonify(Communication.construct_response(analysis_result)), HttpCodes.OK
 
     ######################
     ### SESSION STATUS ###
@@ -575,20 +500,20 @@ class FlaskServer:
         active, paused, ended, or cleaned up by the server.
         """
         # Get request's JSON data.
-        data = dict(request.get_json())
+        data:dict = dict(request.get_json())
         if not data:
             Logger.warning("Missing or invalid JSON in analyze_pose request")
-            return jsonify(self._error_to_dict(ICD.ErrorType.INVALID_JSON_PAYLOAD_IN_REQUEST)), HttpCodes.BAD_REQUEST
+            return jsonify(Communication.error_response(ErrorCode.INVALID_JSON_PAYLOAD_IN_REQUEST)), HttpCodes.BAD_REQUEST
 
         # Extract required fields.
         session_id:str = data.get("session_id", None)
         if session_id is None:
             Logger.warning("Missing fields in analyze_pose request")
-            return jsonify(self._error_to_dict(ICD.ErrorType.MISSING_FRAME_DATA_IN_REQUEST)), HttpCodes.BAD_REQUEST
+            return jsonify(Communication.error_response(ErrorCode.MISSING_FRAME_DATA_IN_REQUEST)), HttpCodes.BAD_REQUEST
         
         # Get the status.
-        session_status_icd = self.session_manager.get_session_status(session_id)
-        if isinstance(session_status_icd, ICD.ErrorType):
-            return jsonify(self._error_to_dict(session_status_icd)), HttpCodes.SERVER_ERROR
+        session_status_icd:ManagementResponse | ErrorResponse = self.session_manager.get_session_status(session_id)
+        if isinstance(session_status_icd, ErrorResponse):
+            return jsonify(Communication.error_response(session_status_icd)), HttpCodes.SERVER_ERROR
         else:
-            return jsonify(self._response_to_dict(session_status_icd)), HttpCodes.OK
+            return jsonify(Communication.construct_response(session_status_icd)), HttpCodes.OK

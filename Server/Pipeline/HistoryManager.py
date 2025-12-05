@@ -123,6 +123,15 @@ class HistoryManager:
                 error_counters:dict = history_data.history[HistoryDictKey.ERROR_COUNTERS]
                 if error_counters.get(error_to_add, None) is None: error_counters[error_to_add] = 1
                 else:                                              error_counters[error_to_add] += 1
+
+                # Updating streaks.
+                error_streaks:dict = history_data.history[HistoryDictKey.ERROR_STREAKS]
+                if error_streaks.get(error_to_add, None) is None: streak:int = 1
+                else:                                             streak:int = error_streaks.pop(error_to_add) + 1
+
+                # Reset other streaks.
+                for error in error_streaks: error_streaks[error] = 0
+                error_streaks[error_to_add] = streak
                 return
         
         # If arrived here - did not find the frame in the list (probably it is too old).
@@ -189,7 +198,7 @@ class HistoryManager:
                     history_data.history[HistoryDictKey.BAD_FRAME_STREAKS][pose_quality] = 0
 
             # Break the OK streak.
-            history_data.history[HistoryDictKey.CONSECUTIVE_OK_FRAMES] = 0
+            self.reset_consecutive_ok_streak(history_data)
 
             # If too many bad frames - system is unstable.
             if history_data.history[HistoryDictKey.BAD_FRAME_STREAKS][invalid_reason] >= self.bad_stability_limit:

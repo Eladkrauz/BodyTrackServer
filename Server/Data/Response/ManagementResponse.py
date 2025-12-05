@@ -52,5 +52,5 @@ class ManagementResponse:
             "code":        self.management_code.value,
             "description": self.management_code.description
         }
-        if self.extra_info: return_dict["extra_info"] = return_dict
+        if self.extra_info: return_dict["extra_info"] = self.extra_info
         return return_dict

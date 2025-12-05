@@ -10,6 +10,7 @@
 from typing import Optional, Dict, Any
 from dataclasses import dataclass, field
 from datetime import datetime
+from threading import RLock
 
 from Server.Utilities.SessionIdGenerator import SessionId
 from Server.Data.Session.ExerciseType    import ExerciseType
@@ -50,6 +51,8 @@ class SessionData:
     extended_evaluation: bool = False
     history_data: HistoryData
     analyzing_state: AnalyzingState.INIT
+    lock:RLock = field(default_factory=RLock, init=False, repr=False)
+    session_status:SessionStatus = SessionStatus.REGISTERED
 
     #################
     ### POST INIT ###
@@ -137,16 +140,16 @@ class SessionData:
     ###########################
     def get_analyzing_state(self) -> AnalyzingState:
         return self.analyzing_state
+    
+    ##########################
+    ### GET SESSION STATUS ###
+    ##########################
+    def get_session_status(self) -> SessionStatus:
+        return self.session_status
 
     #####################################################################
     ############################## SETTERS ##############################
     #####################################################################
-
-    ######################
-    ### GET SESSION ID ###
-    ######################
-    def get_session_id(self, sessionid:SessionId) -> None:
-        self.session_id = sessionid
 
     #######################
     ### SET CLIENT INFO ###
@@ -171,3 +174,10 @@ class SessionData:
     ###########################
     def set_analyzing_state(self, analyzing_state:AnalyzingState) -> None:
         self.analyzing_state = analyzing_state
+
+    ##########################
+    ### SET SESSION STATUS ###
+    ##########################
+    def set_session_status(self, session_status:SessionStatus) -> None:
+        self.session_status = session_status
+        self.update_time_stamp(session_status)

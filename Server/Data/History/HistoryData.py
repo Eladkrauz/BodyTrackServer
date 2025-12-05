@@ -39,6 +39,7 @@ class HistoryData:
         `HistoryDictKey.LAST_VALID_FRAME`:        A `dict` which holds the last valid frame
         `HistoryDictKey.CONSECUTIVE_OK_FRAMES`:   An `int` which holds the number of consecutive OK frames
         `HistoryDictKey.ERROR_COUNTERS`:          A `dict` containing counters for detected errors.
+        `HistoryDictKey.ERROR_STRIKES`:           A `dict` containing consecutive counters for detected errors.
 
         `HistoryDictKey.PHASE_STATE`:             The current exercise phase (`PhaseType` enum element)
         'HistoryDictKey.PHASE_START_TIME`:        The time when the phase started
@@ -92,6 +93,9 @@ class HistoryData:
 
     ### Error Counters (`Dict[str, int]`):
     - Stores counters for errors detected (of valid frames).
+
+    ### Error Streaks (`Dict[str, int]`):
+    - Stores consecutive counters for errors detected (of valid frames).
 
     ### Phase State (`PhaseType`):
     - Tracks the current phase in the state machine (e.g., "down", "bottom", "up").
@@ -206,6 +210,7 @@ class HistoryData:
             HistoryDictKey.LAST_VALID_FRAME:        None,
             HistoryDictKey.CONSECUTIVE_OK_FRAMES:   0,
             HistoryDictKey.ERROR_COUNTERS:          {},
+            HistoryDictKey.ERROR_STREAKS:           {},
 
             HistoryDictKey.PHASE_STATE:             None,
             HistoryDictKey.PHASE_START_TIME:        None,
@@ -255,13 +260,14 @@ class HistoryData:
         """
         ### Brief:
         The `is_state_ok` method returns whether the current state is ok.
-        Meaning: the last frame recieved was `OK`.
+        Meaning: the camera state is stable - the amount of valid frames
+        recieved is above the required threshold.
 
         ### Returns:
         - `True` if the state is ok.
         - `False` if the state is not ok.
         """
-        return self.history[HistoryDictKey.CONSECUTIVE_OK_FRAMES] > 0
+        return self.history[HistoryDictKey.IS_CAMERA_STABLE]
 
     ############################
     ### GET LAST VALID FRAME ###
@@ -302,6 +308,19 @@ class HistoryData:
         - A `Dict[str, int]` containing the error counters.
         """
         return self.history[HistoryDictKey.ERROR_COUNTERS]
+    
+    #########################
+    ### GET ERROR STREAKS ###
+    #########################
+    def get_error_streaks(self) -> Dict[str, int]:
+        """
+        ### Brief:
+        The `get_error_streaks` method returns the error streaks `dict`.
+        
+        ### Returns:
+        - A `Dict[str, int]` containing the error streaks.
+        """
+        return self.history[HistoryDictKey.ERROR_STREAKS]
 
     #######################
     ### GET PHASE STATE ###
@@ -467,19 +486,6 @@ class HistoryData:
         A `dict` containing counters per bad-frame type, based on `PoseQuality`.
         """
         return self.history[HistoryDictKey.BAD_FRAME_COUNTERS]
-    
-    ############################
-    ### GET IF CAMERA STABLE ###
-    ############################
-    def get_if_camera_stable(self) -> bool:
-        """
-        ### Brief:
-        The `get_if_camera_stable` method returns whether the camera is stable or not.
-
-        ### Returns:
-        A `bool` indicating whether the camera is stable or not.
-        """
-        return self.history[HistoryDictKey.IS_CAMERA_STABLE]
     
     #################################
     ### GET CONSECUTIVE OK STREAK ###
