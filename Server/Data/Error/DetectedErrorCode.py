@@ -52,3 +52,8 @@ class DetectedErrorCode(Enum):
     LATERAL_ELBOWS_BENT_TOO_MUCH   = 3202   # elbow_set too low
     LATERAL_TORSO_SWAYING          = 3203   # torso tilt low/high
     LATERAL_PARTIAL_REP            = 3204   # elbow_set or shoulder_line too high/low
+
+    ######################
+    ### NO ERROR FOUND ###
+    ######################
+    NO_BIOMECHANICAL_ERROR         = 3999
