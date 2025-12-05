@@ -25,6 +25,7 @@ from Server.Pipeline.JointAnalyzer            import JointAnalyzer
 from Server.Pipeline.PhaseDetector            import PhaseDetector
 from Server.Pipeline.HistoryManager           import HistoryManager
 from Server.Pipeline.ErrorDetector            import ErrorDetector
+from Server.Pipeline.FeedbackFormatter        import FeedbackFormatter
 
 # Data.
 from Server.Data.Session.SessionData          import SessionData
@@ -36,6 +37,7 @@ from Server.Data.Pose.PoseLandmarks           import PoseLandmarksArray
 from Server.Data.History.HistoryData          import HistoryData
 from Server.Data.Response.CalibrationResponse import CalibrationCode
 from Server.Data.Response.FeedbackResponse    import FeedbackCode
+from Server.Data.Error.DetectedErrorCode      import DetectedErrorCode
 
 ################################
 ### PIPELINE PROCESSOR CLASS ###
@@ -83,7 +85,7 @@ class PipelineProcessor:
         self.history_manager      = HistoryManager()
         self.phase_detector       = PhaseDetector()
         self.error_detector       = ErrorDetector()
-        # self.feedback_manager     = FeedbackManager()
+        self.feedback_formatter   = FeedbackFormatter()
 
         # For easy access to all pipeline modules.
         self.pipeline_modules = {
@@ -367,29 +369,40 @@ class PipelineProcessor:
         )
 
         # Detecting errors --- using ErrorDetector.
-        error_detector_result = self.error_detector.detect_errors(session_data)
-        if self._check_for_error(error_detector_result): return error_detector_result
+        error_detector_result:DetectedErrorCode = self.error_detector.detect_errors(session_data)
+        if self._check_for_error(error_detector_result): return error_detector_result     
         
-        # If there was a detected error, recording it.
-        if error_detector_result is not None:
-            
-            self.history_manager.add_frame_error(
-                history_data=history,
-                error_to_add=error_detector_result,
-                frame_id=frame_data.frame_id
-            )
+        # Recording the error (also NO_BIOMECHANICAL_ERROR is recorded).   
+        self.history_manager.add_frame_error(
+            history_data=history,
+            error_to_add=error_detector_result,
+            frame_id=frame_data.frame_id
+        )
+        if not error_detector_result in (
+            DetectedErrorCode.NO_BIOMECHANICAL_ERROR,
+            DetectedErrorCode.NOT_READY_FOR_ANALYSIS
+        ):
             self.history_manager.add_error_to_current_rep(
                 history_data=history,
                 error_to_add=error_detector_result
             )
 
         # Combining feedback --- using FeedbackFormatter.
-        # feedback:FeedbackCode = self.feedback_formatter.construct_invalid_frame_feedback(...)
-        # return feedback        
+        feedback_formatter_result:FeedbackCode = self.feedback_formatter.select_feedback_message()
+        if self._check_for_error(feedback_formatter_result): return feedback_formatter_result
 
-    #############################################################################
-    ############################## PRIVATE METHODS ##############################
-    #############################################################################
+        # Upating history according to the feedback result.
+        if feedback_formatter_result in (FeedbackCode.SILENT, FeedbackCode.VALID):
+            self.history_manager.increment_frames_since_last_feedback(history)
+        else:
+            self.history_manager.reset_frames_since_last_feedback(history)
+        
+        # Returning the feedback result.
+        return feedback_formatter_result
+
+    #####################################################################
+    ############################## HELPERS ##############################
+    #####################################################################
 
     #######################
     ### CHECK FOR ERROR ###

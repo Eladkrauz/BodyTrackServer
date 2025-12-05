@@ -299,14 +299,14 @@ class HistoryManager:
     ################################
     ### ADD ERROR TO CURRENT REP ###
     ################################
-    def add_error_to_current_rep(self, history_data:HistoryData, error_to_add:str) -> None:
+    def add_error_to_current_rep(self, history_data:HistoryData, error_to_add:DetectedErrorCode) -> None:
         """
         ### Brief:
         The `add_error_to_current_rep` method adds a new detected error to the current repetition.
 
         ### Arguments:
         - `history_data` (HistoryData): The `HistoryData` instance to work with.
-        - `error_to_add` (str): The detected error to be added.
+        - `error_to_add` (DetectedErrorCode): The detected error to be added.
         """
         if history_data.history[HistoryDictKey.CURRENT_REP] is None:
             from Server.Utilities.Error.ErrorHandler import ErrorHandler
@@ -504,6 +504,26 @@ class HistoryManager:
         correct initial phase detections.
         """
         history_data.history[HistoryDictKey.INITIAL_PHASE_COUNTER] = 0
+
+    ############################################
+    ### INCREMENT FRAMES SINCE LAST FEEDBACK ###
+    ############################################
+    def increment_frames_since_last_feedback(self, history_data:HistoryData) -> None:
+        """
+        ### Brief:
+        The `increment_frames_since_last_feedback` method increments the number of frames since last feedback.
+        """
+        history_data.history[HistoryDictKey.FRAMES_SINCE_LAST_FEEDBACK] += 1
+
+    ########################################
+    ### RESET FRAMES SINCE LAST FEEDBACK ###
+    ########################################
+    def reset_frames_since_last_feedback(self, history_data:HistoryData) -> None:
+        """
+        ### Brief:
+        The `reset_frames_since_last_feedback` method resets the number of frames since last feedback.
+        """
+        history_data.history[HistoryDictKey.FRAMES_SINCE_LAST_FEEDBACK] = 0
 
     #####################################################################
     ############################## HELPERS ##############################

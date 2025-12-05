@@ -57,3 +57,4 @@ class DetectedErrorCode(Enum):
     ### NO ERROR FOUND ###
     ######################
     NO_BIOMECHANICAL_ERROR         = 3999
+    NOT_READY_FOR_ANALYSIS         = 4000

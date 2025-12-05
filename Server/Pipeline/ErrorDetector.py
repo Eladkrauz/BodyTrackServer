@@ -8,7 +8,7 @@
 ### IMPORTS ###
 ###############
 from __future__ import annotations
-from typing import Dict, TYPE_CHECKING
+from typing import Dict, TYPE_CHECKING, Any
 from math import isnan
 import inspect
 
@@ -61,7 +61,7 @@ class ErrorDetector:
         Loads all exercise thresholds from configuration.
         Uses ErrorHandler on failure and initializes with empty thresholds.
         """
-        self.thresholds = ConfigLoader.get(
+        self.thresholds:Dict[str, Any] = ConfigLoader.get(
             key=None,
             different_file="Server/Files/Config/ExerciseThresholds.JSON",
             read_all=True
@@ -70,46 +70,28 @@ class ErrorDetector:
     #####################
     ### DETECT ERRORS ###
     #####################
-    def detect_errors(self, session: SessionData) -> DetectedErrorCode | None:
+    def detect_errors(self, session:SessionData) -> DetectedErrorCode:
         """
         ### Brief:
         The `detect_errors` method detects biomechanical validation based on the current session state.
 
         ### Arguments:
-        - `session` (SessionData):
-            The current session container, which must provide:
-            - `exercise_type` (ExerciseType)
-            - `history_data` (HistoryData) with:
-                - `get_current_phase() -> PhaseType | None`
-                - `get_current_angles() -> dict[str, float] | None`
+        - `session` (SessionData): The current session container.
 
         ### Returns:
-        - `DetectedErrorCode` if a biomechanical error is detected.
-        - `None` if:
-            - No errors detected.
-            - Exercise/phase unsupported.
-            - Missing phase/angles/history.
+        - `DetectedErrorCode`
         """
-        #load history data from session object
         # Ensure last frame is valid.
         history:HistoryData = session.history_data
-        if not history.is_last_frame_actually_valid(): return # Do nothing.
+        if not history.is_last_frame_actually_valid():
+            return DetectedErrorCode.NOT_READY_FOR_ANALYSIS
         
-        exercise_type : ExerciseType = session.exercise_type
+        exercise_type:ExerciseType = session.exercise_type
         exercise_name = exercise_type.value
         phase:PhaseType = history.get_phase_state()
-        angles:Dict[str, float] = history.history[HistoryDictKey.LAST_VALID_FRAME][HistoryDictKey.Frame.JOINTS]
+        angles:Dict[str, float] = history.get_last_valid_frame().get(HistoryDictKey.Frame.JOINTS)
 
-        # Unknown exercise (misconfigured or unsupported).
-        if exercise_name not in self.thresholds:
-            ErrorHandler.handle(
-                error=ErrorCode.ERROR_DETECTOR_UNSUPPORTED_EXERCISE,
-                origin=inspect.currentframe(),
-                extra_info={"exercise": exercise_name}
-            )
-            return ErrorCode.ERROR_DETECTOR_UNSUPPORTED_EXERCISE
-
-        phase_thresholds = self.thresholds[exercise_name].get(phase.name)
+        phase_thresholds:Dict[str, Any] = self.thresholds[exercise_name].get(phase.name)
 
         # A valid exercise may lack thresholds for this specific phase.
         if not phase_thresholds:
@@ -117,13 +99,12 @@ class ErrorDetector:
 
         # Iterate angles in the exact order defined in JSON.
         for angle_name, rules in phase_thresholds.items():
-
             # Angle missing from JointAnalyzer output.
             if angle_name not in angles:
                 ErrorHandler.handle(
                     error=ErrorCode.ERROR_DETECTOR_INVALID_ANGLE,
                     origin=inspect.currentframe(),
-                    extra_info={"angle": angle_name}
+                    extra_info={ "angle": angle_name }
                 )
                 continue
 
@@ -167,7 +148,7 @@ class ErrorDetector:
     ##############################
     ### MAP ANGLE TO ERROR LOW ###
     ##############################
-    def _map_angle_to_error_low(self, exercise: str, angle_name: str):
+    def _map_angle_to_error_low(self, exercise: str, angle_name: str) -> DetectedErrorCode | None:
         """
         ### Brief:
         The `_map_angle_to_error_low` method maps an angle (below minimum range) to a biomechanical DetectedErrorCode.
@@ -188,7 +169,7 @@ class ErrorDetector:
     ###############################
     ### MAP ANGLE TO ERROR HIGH ###
     ###############################
-    def _map_angle_to_error_high(self, exercise: str, angle_name: str):
+    def _map_angle_to_error_high(self, exercise: str, angle_name: str) -> DetectedErrorCode | None:
         """
         ### Brief:
         The `_map_angle_to_error_high` method maps an angle (above maximum range) to a biomechanical DetectedErrorCode.
