@@ -12,7 +12,6 @@ from os.path import basename
 from types import FrameType
 
 from Server.Utilities.Logger import Logger as Logger
-from Common.ClientServerIcd import ClientServerIcd as ICD
 from Server.Utilities.Error.ErrorCode import ErrorCode
 
 ###########################
@@ -131,35 +130,3 @@ class ErrorHandler:
         - `origin` (FrameType): The origin of where the error happened.
         """
         cls.handle(error=error, origin=origin, do_not_log=True)
-
-    ######################
-    ### CONVERT TO ICD ###
-    ######################
-    @classmethod
-    def convert_to_icd(cls, error_code:ErrorCode) -> ICD.ErrorType:
-        """
-        ### Brief:
-        The `convert_to_icd` method dynamically converts an `ErrorCode` into
-        the corresponding `ICD.ErrorType` based on matching enum names.
-
-        ### Arguments:
-        `error_code` (ErrorCode): The error code to be converted.
-
-        ### Returns:
-        The corresponding `ICD.ErrorType` object.
-
-        ### Notes:
-        If no matching `ICD.ErrorType` exists, returns `ICD.ErrorType.INTERNAL_SERVER_ERROR`
-        and logs `ErrorCode.UNRECOGNIZED_ICD_ERROR_TYPE`.
-        """
-        try:
-            # Try to access ICD.ErrorType member by name.
-            return ICD.ErrorType[error_code.name]
-        except Exception as e:
-            # If not found, log and return default.
-            cls.handle(
-                error=ErrorCode.UNRECOGNIZED_ICD_ERROR_TYPE,
-                origin=inspect.currentframe(),
-                extra_info={ "Provided error": f"Value: {error_code.value}, Name: {error_code.name}" }
-            )
-            return ICD.ErrorType.INTERNAL_SERVER_ERROR

@@ -1,6 +1,6 @@
 from Server.Utilities.Logger import Logger
 from Server.Communication.FlaskServer import FlaskServer
-from Common.ClientServerIcd import ClientServerIcd as ICD
+from Server.Communication.Communication import Communication
 import json
 
 def test_ping():

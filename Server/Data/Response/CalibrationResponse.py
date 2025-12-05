@@ -48,5 +48,5 @@ class CalibrationResponse:
             "code":        self.calibration_code.value,
             "description": self.calibration_code.description
         }
-        if self.extra_info: return_dict["extra_info"] = return_dict
+        if self.extra_info: return_dict["extra_info"] = self.extra_info
         return return_dict

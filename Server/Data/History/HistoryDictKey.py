@@ -13,6 +13,7 @@ class HistoryDictKey:
     LAST_VALID_FRAME        = "last_valid_frame"
     CONSECUTIVE_OK_FRAMES   = "consecutive_ok_frames"
     ERROR_COUNTERS          = "error_counters"
+    ERROR_STREAKS           = "error_streaks"
     # Phase.
     PHASE_STATE             = "phase_state"
     PHASE_START_TIME        = "phase_start_time"
