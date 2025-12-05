@@ -9,31 +9,33 @@
 #############################
 class HistoryDictKey:
     # Valid frames.
-    FRAMES                  = "frames"
-    LAST_VALID_FRAME        = "last_valid_frame"
-    CONSECUTIVE_OK_FRAMES   = "consecutive_ok_frames"
-    ERROR_COUNTERS          = "error_counters"
-    ERROR_STREAKS           = "error_streaks"
+    FRAMES                      = "frames"
+    LAST_VALID_FRAME            = "last_valid_frame"
+    CONSECUTIVE_OK_FRAMES       = "consecutive_ok_frames"
+    ERROR_COUNTERS              = "error_counters"
+    ERROR_STREAKS               = "error_streaks"
     # Phase.
-    PHASE_STATE             = "phase_state"
-    PHASE_START_TIME        = "phase_start_time"
-    PHASE_TRANSITIONS       = "phase_transitions"
-    PHASE_DURATIONS         = "phase_durations"
-    INITIAL_PHASE_COUNTER   = "initial_phase_counter"
+    PHASE_STATE                 = "phase_state"
+    PHASE_START_TIME            = "phase_start_time"
+    PHASE_TRANSITIONS           = "phase_transitions"
+    PHASE_DURATIONS             = "phase_durations"
+    INITIAL_PHASE_COUNTER       = "initial_phase_counter"
     # Bad frames.
-    BAD_FRAME_COUNTERS      = "bad_frame_counters"
-    BAD_FRAME_STREAKS       = "bad_frame_streaks"
-    BAD_FRAMES_LOG          = "bad_frames_log"
-    FRAMES_SINCE_LAST_VALID = "frames_since_last_valid"
-    # Repetitions.
-    REP_COUNT               = "rep_count"
-    REPETITIONS             = "repetitions"
-    CURRENT_REP             = "current_rep"
+    BAD_FRAME_COUNTERS          = "bad_frame_counters"
+    BAD_FRAME_STREAKS           = "bad_frame_streaks"
+    BAD_FRAMES_LOG              = "bad_frames_log"
+    FRAMES_SINCE_LAST_VALID     = "frames_si    nce_last_valid"
+    # Repetitions.  
+    REP_COUNT                   = "rep_count    "
+    REPETITIONS                 = "repetitions"
+    CURRENT_REP                 = "current_rep"
     # Timestamps.
-    EXERCISE_START_TIME     = "exercise_start_time"
-    EXERCISE_END_TIME       = "exercise_end_time"
-    # Others.
-    IS_CAMERA_STABLE        = "is_camera_stable"
+    EXERCISE_START_TIME         = "exercise_start_time"
+    EXERCISE_END_TIME           = "exercise_end_time"
+    # Feedback  .
+    FRAMES_SINCE_LAST_FEEDBACK  = "frames_since_last_feedback"
+    # Oth   ers.
+    IS_CAMERA_STABLE            = "is_camera_stable"
 
     #############
     ### FRAME ###

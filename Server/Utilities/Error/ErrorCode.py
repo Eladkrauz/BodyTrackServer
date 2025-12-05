@@ -130,7 +130,6 @@ class ErrorCode(enum):
     # ErrorDetector.
     ERROR_DETECTOR_INVALID_ANGLE                = (700, "Invalid angle value provided to ErrorDetector.",                                   None, False)
     ERROR_DETECTOR_MISSING_THRESHOLD            = (701, "Missing threshold entry in JSON for angle.",                                       None, False)
-    ERROR_DETECTOR_UNSUPPORTED_EXERCISE         = (702, "The provided exercise type is not supported by ErrorDetector.",                    None, False)
     ERROR_DETECTOR_MAPPING_NOT_FOUND            = (703, "Mapping from angle to error code not found.",                                      None, False)
     ERROR_DETECTOR_UNSUPPORTED_PHASE            = (704, "The provided exercise phase is not supported by ErrorDetector.",                   None, False)
     

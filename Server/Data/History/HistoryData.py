@@ -35,31 +35,33 @@ class HistoryData:
     ### Stored Elements:
 
     {
-        `HistoryDictKey.FRAMES`:                  A `list` of Frame dictionaries
-        `HistoryDictKey.LAST_VALID_FRAME`:        A `dict` which holds the last valid frame
-        `HistoryDictKey.CONSECUTIVE_OK_FRAMES`:   An `int` which holds the number of consecutive OK frames
-        `HistoryDictKey.ERROR_COUNTERS`:          A `dict` containing counters for detected errors.
-        `HistoryDictKey.ERROR_STRIKES`:           A `dict` containing consecutive counters for detected errors.
+        `HistoryDictKey.FRAMES`:                        A `list` of Frame dictionaries
+        `HistoryDictKey.LAST_VALID_FRAME`:              A `dict` which holds the last valid frame
+        `HistoryDictKey.CONSECUTIVE_OK_FRAMES`:         An `int` which holds the number of consecutive OK frames
+        `HistoryDictKey.ERROR_COUNTERS`:                A `dict` containing counters for detected errors.
+        `HistoryDictKey.ERROR_STRIKES`:                 A `dict` containing consecutive counters for detected errors.
 
-        `HistoryDictKey.PHASE_STATE`:             The current exercise phase (`PhaseType` enum element)
-        'HistoryDictKey.PHASE_START_TIME`:        The time when the phase started
-        `HistoryDictKey.PHASE_TRANSITIONS`:       A `dict` for historical context of phase changes
-        `HistoryDictKey.PHASE_DURATIONS`:         A `dict` for historical context of phase durations
-        `HistoryDictKey.INITIAL_PHASE_COUNTER`:   An `int` which holds the number of consecutive frames with initial exercise phase
+        `HistoryDictKey.PHASE_STATE`:                   The current exercise phase (`PhaseType` enum element)
+        'HistoryDictKey.PHASE_START_TIME`:              The time when the phase started
+        `HistoryDictKey.PHASE_TRANSITIONS`:             A `dict` for historical context of phase changes
+        `HistoryDictKey.PHASE_DURATIONS`:               A `dict` for historical context of phase durations
+        `HistoryDictKey.INITIAL_PHASE_COUNTER`:         An `int` which holds the number of consecutive frames with initial exercise phase
 
-        `HistoryDictKey.BAD_FRAME_COUNTERS`:      A `dict` containing counters for bad frames
-        `HistoryDictKey.BAD_FRAME_STREAKS`:       A `dict` containing consecutive counters for bad frames
-        `HistoryDictKey.BAD_FRAMES_LOG`:          A `list` that stores minimal info about bad frames
-        `HistoryDictKey.FRAMES_SINCE_LAST_VALID`: A counter for tracking the gap between valid frames
+        `HistoryDictKey.BAD_FRAME_COUNTERS`:            A `dict` containing counters for bad frames
+        `HistoryDictKey.BAD_FRAME_STREAKS`:             A `dict` containing consecutive counters for bad frames
+        `HistoryDictKey.BAD_FRAMES_LOG`:                A `list` that stores minimal info about bad frames
+        `HistoryDictKey.FRAMES_SINCE_LAST_VALID`:       A counter for tracking the gap between valid frames
 
-        `HistoryDictKey.REP_COUNT`:               A counter for tracking amount of repetitions
-        `HistoryDictKey.REPETITIONS`:             A `list` that stores finished repetitions
-        `HistoryDictKey.CURRENT_REP`:             A `dict` which stores current repetition info
+        `HistoryDictKey.REP_COUNT`:                     A counter for tracking amount of repetitions
+        `HistoryDictKey.REPETITIONS`:                   A `list` that stores finished repetitions
+        `HistoryDictKey.CURRENT_REP`:                   A `dict` which stores current repetition info
 
-        `HistoryDictKey.EXERCISE_START_TIME`:     The time when the session started
-        `HistoryDictKey.EXERCISE_END_TIME`:       The time when the session ended
+        `HistoryDictKey.EXERCISE_START_TIME`:           The time when the session started
+        `HistoryDictKey.EXERCISE_END_TIME`:             The time when the session ended
+
+        `HistoryDictKey.FRAMES_SINCE_LAST_FEEDBACK`:    A counter for tracking frames arrived since last feedback sent
         
-        `HistoryDictKey.IS_CAMERA_STABLE`:        A `bool` indicating whether the camera is stable or not.
+        `HistoryDictKey.IS_CAMERA_STABLE`:              A `bool` indicating whether the camera is stable or not.
     }
 
     ### Frames (`list[dict]`):
@@ -194,6 +196,9 @@ class HistoryData:
     - Set when session ends.
     - Used for calculating total exercise time.
 
+    ### Frames Since Last Feedback (`int`):
+    - A counter for tracking frames arrived since last feedback sent.
+
     ### Is Camera Stable (`bool`):
     - Indicates whether the camera is stable or not.
     """
@@ -206,31 +211,33 @@ class HistoryData:
         The `__init__` method initializes the `HistoryData` instance.
         """
         self.history:Dict[str, Any] = {
-            HistoryDictKey.FRAMES:                  [],
-            HistoryDictKey.LAST_VALID_FRAME:        None,
-            HistoryDictKey.CONSECUTIVE_OK_FRAMES:   0,
-            HistoryDictKey.ERROR_COUNTERS:          {},
-            HistoryDictKey.ERROR_STREAKS:           {},
+            HistoryDictKey.FRAMES:                      [],
+            HistoryDictKey.LAST_VALID_FRAME:            None,
+            HistoryDictKey.CONSECUTIVE_OK_FRAMES:       0,
+            HistoryDictKey.ERROR_COUNTERS:              {},
+            HistoryDictKey.ERROR_STREAKS:               {},
 
-            HistoryDictKey.PHASE_STATE:             None,
-            HistoryDictKey.PHASE_START_TIME:        None,
-            HistoryDictKey.PHASE_TRANSITIONS:       [],
-            HistoryDictKey.PHASE_DURATIONS:         [],
-            HistoryDictKey.INITIAL_PHASE_COUNTER:   0,
+            HistoryDictKey.PHASE_STATE:                 None,
+            HistoryDictKey.PHASE_START_TIME:            None,
+            HistoryDictKey.PHASE_TRANSITIONS:           [],
+            HistoryDictKey.PHASE_DURATIONS:             [],
+            HistoryDictKey.INITIAL_PHASE_COUNTER:       0,
 
-            HistoryDictKey.BAD_FRAME_COUNTERS:      { quality_enum.name: 0 for quality_enum in PoseQuality },
-            HistoryDictKey.BAD_FRAME_STREAKS:       { quality_enum.name: 0 for quality_enum in PoseQuality },
-            HistoryDictKey.BAD_FRAMES_LOG:          [],
-            HistoryDictKey.FRAMES_SINCE_LAST_VALID: 0,
+            HistoryDictKey.BAD_FRAME_COUNTERS:          { quality_enum.name: 0 for quality_enum in PoseQuality },
+            HistoryDictKey.BAD_FRAME_STREAKS:           { quality_enum.name: 0 for quality_enum in PoseQuality },
+            HistoryDictKey.BAD_FRAMES_LOG:              [],
+            HistoryDictKey.FRAMES_SINCE_LAST_VALID:     0,
 
-            HistoryDictKey.REP_COUNT:               0,
-            HistoryDictKey.REPETITIONS:             [],
-            HistoryDictKey.CURRENT_REP:             None,
+            HistoryDictKey.REP_COUNT:                   0,
+            HistoryDictKey.REPETITIONS:                 [],
+            HistoryDictKey.CURRENT_REP:                 None,
 
-            HistoryDictKey.EXERCISE_START_TIME:     None,
-            HistoryDictKey.EXERCISE_END_TIME:       None,
+            HistoryDictKey.EXERCISE_START_TIME:         None,
+            HistoryDictKey.EXERCISE_END_TIME:           None,
 
-            HistoryDictKey.IS_CAMERA_STABLE:        True
+            HistoryDictKey.FRAMES_SINCE_LAST_FEEDBACK:  0,
+
+            HistoryDictKey.IS_CAMERA_STABLE:            True
         }
 
     ####################################
@@ -487,6 +494,19 @@ class HistoryData:
         """
         return self.history[HistoryDictKey.BAD_FRAME_COUNTERS]
     
+    #############################
+    ### GET BAD FRAME STREAKS ###
+    #############################
+    def get_bad_frame_streaks(self) -> Dict[str, int]:
+        """
+        ### Brief:
+        The `get_bad_frame_streaks` method returns the streaks of bad frames.
+
+        ### Returns:
+        A `dict` containing streaks per bad-frame type, based on `PoseQuality`.
+        """
+        return self.history[HistoryDictKey.BAD_FRAME_STREAKS]
+    
     #################################
     ### GET CONSECUTIVE OK STREAK ###
     #################################
@@ -499,6 +519,19 @@ class HistoryData:
         An `int` indicating the number of consecutive `OK` frames.
         """
         return self.history[HistoryDictKey.CONSECUTIVE_OK_FRAMES]
+    
+    ######################################
+    ### GET FRAMES SINCE LAST FEEDBACK ###
+    ######################################
+    def get_frames_since_last_feedback(self) -> int:
+        """
+        ### Brief:
+        The `get_frames_since_last_feedback` method returns the number of frames since the last feedback sent.
+
+        ### Returns:
+        An `int` indicating the number of frames since the last feedback sent.
+        """
+        return self.history[HistoryDictKey.FRAMES_SINCE_LAST_FEEDBACK]
 
     ###################
     ### GET SUMMARY ###
