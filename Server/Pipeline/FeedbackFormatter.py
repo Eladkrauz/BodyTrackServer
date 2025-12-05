@@ -46,37 +46,32 @@ class FeedbackFormatter:
         """
         self.PoseQualityFeedbackThreshold : int = ConfigLoader().get([
             ConfigParameters.Major.POSE_QUALITY_FEEDBACK_THRESHOLD, ConfigParameters.Minor.VALUE])
-        self.PoseQualityFeedbackThreshold : int = ConfigLoader().get([
-            ConfigParameters.Major.DETECTED_ERROR_FEEDBACK_THRESHOLD, ConfigParameters.Minor.VALUE])
         self.COOLDOWN_FRAMES : int = ConfigLoader().get([
             ConfigParameters.Major.FEEDBACK_COOLDOWN_FRAMES, ConfigParameters.Minor.VALUE])
 
     ####################################
     ### SELECT FEEDBACK MESSAGE TYPE ###
     ####################################
-    def select_feedback_message(session : SessionData) -> FeedbackCode:
+    def select_feedback_message(self, session : SessionData) -> FeedbackCode:
         """
         """
         history:HistoryData = session.history_data
         current_state_ok : bool = history.is_state_ok()   
         if current_state_ok :
             biomechanical_feedback : FeedbackCode = self._select_biomechanical_feedback(history)
-            if biomechanical_feedback == FeedbackCode.SILENT 
+            if biomechanical_feedback is FeedbackCode.SILENT or biomechanical_feedback is FeedbackCode.VALID:
                 return biomechanical_feedback
-            
-        # 1. Check for PoseQuality problems
-        pose_feedback : FeedbackCode = self._select_pose_quality_feedback(history)
-        if pose_feedback is not None :
-            return self._apply_cooldown(history, pose_feedback)
+            else:
+                if self._is_allowed_to_return_feedback(history): return biomechanical_feedback
+                else: return FeedbackCode.SILENT
+        else :
+            pose_feedback : FeedbackCode = self._select_pose_quality_feedback(history)
+            if pose_feedback is FeedbackCode.SILENT :
+                return pose_feedback
+            else:
+                if self._is_allowed_to_return_feedback(history): return pose_feedback
+                else: return FeedbackCode.SILENT
         
-        # 2. Check for Biomechanical errors
-        biomechanical_feedback : FeedbackCode = self._select_biomechanical_feedback(history)
-        if biomechanical_feedback is not None :
-            return self._apply_cooldown(history, biomechanical_feedback)
-
-        # 3. If no issues detected, return VALID feedback
-        return self._apply_cooldown(history, FeedbackCode.VALID)
-    
     ####################################
     ### SELECT POSE QUALITY FEEDBACK ###
     ####################################
@@ -100,39 +95,26 @@ class FeedbackFormatter:
         """
         if not history.is_state_ok():
             return None
-        counters : dict[str, int] = history.get_error_counters()
-        if not counters:
+        biomechanical_streaks : dict[str, int] = history.get_error_streaks()
+        worst_error_streak = max(biomechanical_streaks, key=biomechanical_streaks.get)
+
+        if biomechanical_streaks[worst_error_streak] < self.PoseQualityFeedbackThreshold:
             return FeedbackCode.SILENT
-        worst_error_streak = max(counters, key=counters.get)
-        detected_enum = DetectedErrorCode[worst_error]
+        detected_enum = DetectedErrorCode[worst_error_streak]
         return FeedbackCode.from_detected_error(detected_enum)
     
-    ######################
-    ### APPLY COOLDOWN ###
-    ######################
-    def _apply_cooldown(self, history: HistoryData, new_code: FeedbackCode) -> FeedbackCode:
+    #####################################
+    ### IS ALLOWED TO RETURN FEEDBACK ###
+    #####################################
+    def _is_allowed_to_return_feedback(self, history: HistoryData) -> bool:
         """
-        Ensures feedback is not shown too frequently.
-        Uses history-data for per-session state.
-        Always returns a FeedbackCode (including SILENT).
         """
+        frames_since_last_feedback = history.get_frames_since_last_feedback()
+        if frames_since_last_feedback >= self.COOLDOWN_FRAMES:
+            return True
+        else:
+            return False
 
-        last_code = history.history.last_feedback_code
-        frames_since = history.history.frames_since_last_feedback
-
-        # If new feedback is different — show immediately
-        if new_code != last_code:
-            history.history.last_feedback_code = new_code
-            history.history.frames_since_last_feedback = 0
-            return new_code
-
-        # If same feedback but cooldown passed → return again
-        if frames_since >= self.COOLDOWN_FRAMES:
-            history.history.frames_since_last_feedback = 0
-            return new_code
-
-        # Otherwise, still in cooldown → return SILENT
-        return FeedbackCode.SILENT
         
              
 
@@ -159,13 +141,4 @@ class FeedbackFormatter:
 
 
 
-
-
-frames_since_last_valid : int = history.get_frames_since_last_valid()
-            if frames_since_last_valid >= self.PoseQualityFeedbackThreshold:
-                bad_frame_streak : dict[str, int] = history.get_bad_frame_streak()
-                worst_quality : PoseQuality = max(bad_frame_streak, key=bad_frame_streak.get)
-                return worst_quality
-            else:
-                return FeedbackMessageType.NO_FEEDBACK
 
