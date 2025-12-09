@@ -43,14 +43,20 @@ class ServerManager:
             print(res)
             time.sleep(2)
 
-        show(requests.post("http://localhost:8080/start/session", json={'session_id': 'a1f58b88-bc32-455a-b9db-dc578afe1217', 'extended_evaluation': False}).json())
-        return
-        show(requests.get("http://localhost:8080/ping").json())
         result = requests.post("http://localhost:8080/register/new/session", json={'exercise_type': 'squat'}).json()
         show(result)
         session_id = result['extra_info']['session_id']
-        print("SESSION ID:", session_id)
-        show(requests.post("http://localhost:8080/register/new/session", json={'exercise_type': 'squat'}).json())
-        show(requests.post("http://localhost:8080/session/status", json={'session_id': session_id}).json())
+
         show(requests.post("http://localhost:8080/start/session", json={'session_id': session_id, 'extended_evaluation': False}).json())
-        show(requests.post("http://localhost:8080/session/status", json={'session_id': session_id}).json())
+
+        import base64
+        with open("/Users/eladkrauz/Desktop/try3.jpeg", "rb") as image:
+            image_bytes = image.read()
+
+        image_b64 = base64.b64encode(image_bytes).decode('utf-8')
+        payload = {
+            "session_id": session_id,
+            "frame_id": 1,
+            "frame_content": image_b64
+        }
+        show(requests.post("http://localhost:8080/analyze", json=payload).json())

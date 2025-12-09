@@ -195,7 +195,7 @@ class PipelineProcessor:
             ErrorHandler.handle(
                 error=error,
                 origin=inspect.currentframe(),
-                extra_info={ "Frame details", str(frame_data) }
+                extra_info={ "Frame details": str(frame_data) }
             )
             return error
         # Otherwise, quality is PoseQuality.OK.

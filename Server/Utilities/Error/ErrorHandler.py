@@ -99,10 +99,10 @@ class ErrorHandler:
         if error.extra_info is None and extra_info is not None:
             error.extra_info = extra_info
         elif error.extra_info is not None and extra_info is not None:
-            dict(error.extra_info).update(extra_info)
+            error.extra_info.update(extra_info)
 
         if error.extra_info: # If extra info is provided, add it to the message.
-            for key, value in dict(error.extra_info).items():
+            for key, value in error.extra_info.items():
                 full_message += f"\n{key}: {value}"
 
         full_message += f"\nOrigin: File - {basename(origin.f_code.co_filename)} | Function - {origin.f_code.co_name} | Line - {origin.f_lineno}"

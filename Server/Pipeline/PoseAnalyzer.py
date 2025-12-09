@@ -172,8 +172,7 @@ class PoseAnalyzer:
     ########################
     ### PREPROCESS FRAME ###
     ########################
-    @classmethod
-    def _preprocess_frame(cls, frame_content:np.ndarray) -> np.ndarray | ErrorCode:
+    def _preprocess_frame(self, frame_content:np.ndarray) -> np.ndarray | ErrorCode:
         """
         ### Brief:
         The `_preprocess_frame` static method preprocesses an input frame before sending it to the MediaPipe Pose model.
@@ -191,7 +190,7 @@ class PoseAnalyzer:
         """
         # Resize the frame.
         try:
-            frame_content = cv2.resize(frame_content, (cls.frame_width, cls.frame_height))
+            frame_content = cv2.resize(frame_content, (self.frame_width, self.frame_height))
         except cv2.error as e:
             ErrorHandler.handle(
                 error=ErrorCode.FRAME_PREPROCESSING_ERROR,
