@@ -45,9 +45,11 @@ class FeedbackFormatter:
         ### Args:
         """
         self.PoseQualityFeedbackThreshold : int = ConfigLoader().get([
-            ConfigParameters.Major.POSE_QUALITY_FEEDBACK_THRESHOLD, ConfigParameters.Minor.VALUE])
+            ConfigParameters.Major.FEEDBACK, ConfigParameters.Minor.POSE_QUALITY_FEEDBACK_THRESHOLD])
+        self.biomechanicalFeedbackThreshold : int = ConfigLoader().get([
+            ConfigParameters.Major.FEEDBACK, ConfigParameters.Minor.BIO_FEEDBACK_THRESHOLD])
         self.COOLDOWN_FRAMES : int = ConfigLoader().get([
-            ConfigParameters.Major.FEEDBACK_COOLDOWN_FRAMES, ConfigParameters.Minor.VALUE])
+            ConfigParameters.Major.FEEDBACK, ConfigParameters.Minor.VALUFEEDBACK_COOLDOWN_FRAMESE])
 
     ####################################
     ### SELECT FEEDBACK MESSAGE TYPE ###
@@ -83,7 +85,7 @@ class FeedbackFormatter:
         frames_since_last_valid : int = history.get_frames_since_last_valid()
         if frames_since_last_valid < self.PoseQualityFeedbackThreshold:
             return FeedbackCode.SILENT
-        bad_frame_streak : dict[str, int] = history.get_bad_frame_streak()
+        bad_frame_streak : dict[str, int] = history.get_bad_frame_streaks()
         worst_quality : PoseQuality = max(bad_frame_streak, key=bad_frame_streak.get)
         return FeedbackCode.from_pose_quality(worst_quality)        
     
@@ -98,7 +100,7 @@ class FeedbackFormatter:
         biomechanical_streaks : dict[str, int] = history.get_error_streaks()
         worst_error_streak = max(biomechanical_streaks, key=biomechanical_streaks.get)
 
-        if biomechanical_streaks[worst_error_streak] < self.PoseQualityFeedbackThreshold:
+        if biomechanical_streaks[worst_error_streak] < self.biomechanicalFeedbackThreshold:
             return FeedbackCode.SILENT
         detected_enum = DetectedErrorCode[worst_error_streak]
         return FeedbackCode.from_detected_error(detected_enum)
