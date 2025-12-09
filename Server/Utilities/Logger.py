@@ -7,7 +7,7 @@
 ###############
 ### IMPORTS ###
 ###############
-import logging, os
+import logging, os, inspect
 from datetime import datetime
 
 class Logger:
@@ -84,10 +84,10 @@ class Logger:
     ### GET INSTANCE ###
     ####################
     @classmethod
-    def get_instance(cls) -> 'Logger':
+    def _get_instance(cls) -> 'Logger':
         """
         ### Brief:
-        The `get_instance` method returns an instance of the `Logger` object.
+        The `_get_instance` method returns an instance of the `Logger` object.
         It functions as a **singleton** instance creator.
         ### Arguments:
         - `cls`: The class object.
@@ -121,9 +121,9 @@ class Logger:
         ### Notes:
         - In case the logger is not configured or failed to be configured, the message won't be logged.
         """
-        logObject = cls.get_instance()
+        logObject = cls._get_instance()
         if logObject is not None and cls._ready:
-            logObject.logger.info(msg)
+            logObject.logger.info(f"{cls._who_called()}: {msg}")
             return True
         return False
 
@@ -143,9 +143,9 @@ class Logger:
         ### Notes:
         - In case the logger is not configured or failed to be configured, the message won't be logged.
         """
-        logObject = cls.get_instance()
+        logObject = cls._get_instance()
         if logObject is not None and cls._ready:
-            logObject.logger.debug(msg)
+            logObject.logger.debug(f"{cls._who_called()}: {msg}")
             return True
         return False        
 
@@ -165,9 +165,9 @@ class Logger:
         ### Notes:
         - In case the logger is not configured or failed to be configured, the message won't be logged.
         """
-        logObject = cls.get_instance()
+        logObject = cls._get_instance()
         if logObject is not None and cls._ready:
-            logObject.logger.warning(msg)
+            logObject.logger.warning(f"{cls._who_called()}: {msg}")
             return True
         return False
 
@@ -187,9 +187,9 @@ class Logger:
         ### Notes:
         - In case the logger is not configured or failed to be configured, the message won't be logged.
         """
-        logObject = cls.get_instance()
+        logObject = cls._get_instance()
         if logObject is not None and cls._ready:
-            logObject.logger.error(msg)
+            logObject.logger.error(f"{cls._who_called()}: {msg}")
             return True
         return False
 
@@ -209,15 +209,22 @@ class Logger:
         ### Notes:
         - In case the logger is not configured or failed to be configured, the message won't be logged.
         """
-        logObject = cls.get_instance()
+        logObject = cls._get_instance()
         if logObject is not None and cls._ready:
-            logObject.logger.critical(msg)
+            logObject.logger.critical(f"{cls._who_called()}: {msg}")
             return True
         return False
     
+    ##################
+    ### INITIALIZE ###
+    ##################
     @classmethod
     def initialize(cls) -> None:
-        cls.get_instance()
+        """
+        ### Brief:
+        The `initialize` method initializes the logger singleton instance.
+        """
+        cls._get_instance()
         cls._ready = True
         print("[INFO]: Logger is initialized.")
 
@@ -249,3 +256,21 @@ class Logger:
             ConfigParameters.Major.LOG,
             ConfigParameters.Minor.LOG_LEVEL
         ])
+
+    ##################
+    ### WHO CALLED ###
+    ##################
+    @classmethod
+    def _who_called(cls):
+        """
+        ### Brief:
+        The `_who_called` method retrieves the name of the class that called the logger.
+        """
+        list_of_callers = inspect.stack()[2:]
+        for frameinfo in list_of_callers:
+            loc = frameinfo.frame.f_locals
+            if 'self' in loc:
+                return loc['self'].__class__.__name__
+            if 'cls' in loc:
+                return loc['cls'].__name__
+        return "UnknownClass"

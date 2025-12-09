@@ -16,7 +16,7 @@ from Server.Utilities.SessionIdGenerator import SessionId
 from Server.Data.Session.ExerciseType    import ExerciseType
 from Server.Data.Session.SessionStatus   import SessionStatus
 from Server.Data.Session.AnalyzingState  import AnalyzingState
-from Server.Data.History                 import HistoryData
+from Server.Data.History.HistoryData     import HistoryData
 
 ##########################
 ### SESSION DATA CLASS ###
@@ -38,21 +38,21 @@ class SessionData:
     ###########################
     ### SESSION DATA FIELDS ###
     ###########################
-    session_id: SessionId
-    client_info: Dict[str, Any]
-    exercise_type: ExerciseType
-    time: Dict[str, Optional[datetime]] = field(default_factory=lambda: {
+    history_data:HistoryData            = field(init=False)
+    session_id:SessionId                = field()
+    client_info:Dict[str, Any]          = field()
+    exercise_type:ExerciseType          = field()
+    time:Dict[str, Optional[datetime]]  = field(default_factory=lambda: {
         "registered": datetime.now(),
         "started": None,
         "paused": None,
         "ended": None,
-        "last_activity": datetime.now()
+        "last_activity": datetime.now(),
     })
-    extended_evaluation: bool = False
-    history_data: HistoryData
-    analyzing_state: AnalyzingState.INIT
-    lock:RLock = field(default_factory=RLock, init=False, repr=False)
-    session_status:SessionStatus = SessionStatus.REGISTERED
+    extended_evaluation:bool            = field(default=False)
+    analyzing_state:AnalyzingState      = field(default=AnalyzingState.INIT)
+    lock:RLock                          = field(default_factory=RLock, init=False, repr=False)
+    session_status:SessionStatus        = field(default=SessionStatus.REGISTERED)
 
     #################
     ### POST INIT ###
@@ -63,7 +63,7 @@ class SessionData:
         The `__post_init__` method initializes the `HistoryData` instance after all other fields are set.
         """
         try:
-            self.history_data    = HistoryData()
+            self.history_data = HistoryData()
         except Exception as e:
             from Server.Utilities.Error.ErrorHandler import ErrorHandler
             from Server.Utilities.Error.ErrorCode import ErrorCode

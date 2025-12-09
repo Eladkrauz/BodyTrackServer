@@ -69,7 +69,7 @@ class PoseAnalyzer:
             # Works together with mp_drawing to render pose annotations consistently.
             self.mp_drawing_styles = mp.solutions.drawing_styles
 
-            Logger.info("PoseAnalyzer: Initialized successfully.")
+            Logger.info("Initialized successfully.")
         except ValueError as e:
             ErrorHandler.handle(
                 error=ErrorCode.ERROR_INITIALIZING_POSE,

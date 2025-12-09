@@ -41,6 +41,7 @@ class Communication:
     ######################
     ### ERROR RESPONSE ###
     ######################
+    @classmethod
     def error_response(cls, error:ErrorResponse = None, error_code:ErrorCode = None) -> ErrorResponseDict:
         """
         ### Brief:
@@ -79,6 +80,7 @@ class Communication:
     ##########################
     ### CONSTRUCT RESPONSE ###
     ##########################
+    @classmethod
     def construct_response(
         cls, response:ManagementResponse | CalibrationResponse | FeedbackResponse
     ) -> ManagementResponseDict | CalibrationResponseDict | FeedbackResponseDict:
@@ -116,7 +118,8 @@ class Communication:
     #####################
     ### PING RESPONSE ###
     #####################
-    def ping_response(self) -> PingResponseDict:
+    @classmethod
+    def ping_response(cls) -> PingResponseDict:
         """
         ### Brief:
         The `ping_response` method constructs a `HTTP` ping response `dict` message.

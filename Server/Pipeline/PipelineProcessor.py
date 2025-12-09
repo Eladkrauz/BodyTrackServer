@@ -25,7 +25,7 @@ from Server.Pipeline.JointAnalyzer            import JointAnalyzer
 from Server.Pipeline.PhaseDetector            import PhaseDetector
 from Server.Pipeline.HistoryManager           import HistoryManager
 from Server.Pipeline.ErrorDetector            import ErrorDetector
-from Server.Pipeline.FeedbackFormatter        import FeedbackFormatter
+# from Server.Pipeline.FeedbackFormatter        import FeedbackFormatter
 
 # Data.
 from Server.Data.Session.SessionData          import SessionData
@@ -85,7 +85,7 @@ class PipelineProcessor:
         self.history_manager      = HistoryManager()
         self.phase_detector       = PhaseDetector()
         self.error_detector       = ErrorDetector()
-        self.feedback_formatter   = FeedbackFormatter()
+        # self.feedback_formatter   = FeedbackFormatter()
 
         # For easy access to all pipeline modules.
         self.pipeline_modules = {
@@ -99,7 +99,7 @@ class PipelineProcessor:
         }
 
         self.retrieve_configurations()
-        Logger.info("PipelineProcessor: Initialized successfully")
+        Logger.info("Initialized successfully")
 
     ############################################################################
     ############################## PUBLIC METHODS ##############################
@@ -388,17 +388,17 @@ class PipelineProcessor:
             )
 
         # Combining feedback --- using FeedbackFormatter.
-        feedback_formatter_result:FeedbackCode = self.feedback_formatter.select_feedback_message()
-        if self._check_for_error(feedback_formatter_result): return feedback_formatter_result
+        # feedback_formatter_result:FeedbackCode = self.feedback_formatter.select_feedback_message()
+        # if self._check_for_error(feedback_formatter_result): return feedback_formatter_result
 
-        # Upating history according to the feedback result.
-        if feedback_formatter_result in (FeedbackCode.SILENT, FeedbackCode.VALID):
-            self.history_manager.increment_frames_since_last_feedback(history)
-        else:
-            self.history_manager.reset_frames_since_last_feedback(history)
+        # # Upating history according to the feedback result.
+        # if feedback_formatter_result in (FeedbackCode.SILENT, FeedbackCode.VALID):
+        #     self.history_manager.increment_frames_since_last_feedback(history)
+        # else:
+        #     self.history_manager.reset_frames_since_last_feedback(history)
         
-        # Returning the feedback result.
-        return feedback_formatter_result
+        # # Returning the feedback result.
+        # return feedback_formatter_result
 
     #####################################################################
     ############################## HELPERS ##############################
@@ -436,14 +436,14 @@ class PipelineProcessor:
 
         # Number of active session initialization OK frames.
         self.num_of_min_init_ok_frames = ConfigLoader.get([
-            ConfigParameters.Major.TASKS,
+            ConfigParameters.Major.SESSION,
             ConfigParameters.Minor.NUM_OF_MIN_INIT_OK_FRAMES
         ])
         Logger.info(f"SessionManager: Num of min init ok frames: {self.num_of_min_init_ok_frames}")
 
         # Number of active session initialization correct phase frames.
         self.num_of_min_correct_phase_frames = ConfigLoader.get([
-            ConfigParameters.Major.TASKS,
+            ConfigParameters.Major.SESSION,
             ConfigParameters.Minor.NUM_OF_MIN_INIT_CORRECT_PHASE
         ])
         Logger.info(f"SessionManager: Num of min init correct phase: {self.num_of_min_correct_phase_frames}")
