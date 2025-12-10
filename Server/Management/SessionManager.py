@@ -795,6 +795,10 @@ class SessionManager:
         used only for debugging and runtime monitoring.
         """
         with self.sessions_lock, self.ip_map_lock:
+            registered_counter = 0
+            active_counter     = 0
+            paused_counter     = 0
+            ended_counter      = 0
 
             session_summaries = {}
             for sid, session in self.sessions.items():
@@ -803,37 +807,47 @@ class SessionManager:
                     "exercise_type": session.get_exercise_type().name,
                     "extended_evaluation": session.get_extended_evaluation(),
                     "analyzing_state": session.get_analyzing_state().name,
-                    "last_activity": session.time.get("last_activity"),
-                    "paused_at": session.time.get("paused"),
-                    "ended_at": session.time.get("ended"),
+                    "last_activity": session.time.get("last_activity")
                 }
+                if session.get_session_status() is SessionStatus.REGISTERED:
+                    registered_counter += 1
+                elif session.get_session_status() is SessionStatus.ACTIVE:
+                    active_counter += 1
+                elif session.get_session_status() is SessionStatus.PAUSED:
+                    paused_counter += 1
+                elif session.get_session_status() is SessionStatus.ENDED:
+                    ended_counter += 1
 
             return {
-                # configuration
+                # General information.
                 "supported_exercises": list(self.supported_exercises),
                 "maximum_clients": self.maximum_clients,
-
-                # realtime counters
-                "current_active_sessions": self.current_active_sessions,
+                "counters": {
+                    "registered_sessions": registered_counter,
+                    "active_sessions": active_counter,
+                    "paused_sessions": paused_counter,
+                    "ended_sessions": ended_counter
+                },
                 "total_sessions": len(self.sessions),
 
-                # ip mapping
+                # IP mapping.
                 "ip_map": {
                     ip: sid.id for ip, sid in self.ip_map.items()
                 },
 
-                # session details
+                # Session details.
                 "sessions": session_summaries,
 
-                # tasks configuration
-                "cleanup_interval_minutes": getattr(self, "cleanup_interval_minutes", None),
-                "max_registration_minutes": getattr(self, "max_registration_minutes", None),
-                "max_inactive_minutes": getattr(self, "max_inactive_minutes", None),
-                "max_pause_minutes": getattr(self, "max_pause_minutes", None),
-                "max_ended_retention": getattr(self, "max_ended_retention", None),
+                # Tasks configuration
+                "cleanup_interval_minutes": self.cleanup_interval_minutes,
+                "max_registration_minutes": self.max_registration_minutes,
+                "max_inactive_minutes": self.max_inactive_minutes,
+                "max_pause_minutes": self.max_pause_minutes,
+                "max_ended_retention": self.max_ended_retention,
 
+                # Memory.
                 "memory_mb": psutil.Process(os.getpid()).memory_info().rss/1024/1024,
 
-                # debug timestamp
+                # Timestamp.
                 "timestamp": datetime.now().isoformat()
             }

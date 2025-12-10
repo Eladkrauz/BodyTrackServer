@@ -28,6 +28,7 @@ class ManagementCode(enum):
     CLIENT_SESSION_IS_ENDED             = (6, "The client's session is ended.")
     CLIENT_SESSION_IS_UNREGISTERED      = (7, "The client's session is unregistered.")
     CLIENT_SESSION_IS_NOT_IN_SYSTEM     = (8, "The client's session is not in the system.")
+    SERVER_IS_BEING_SHUTDOWN            = (9, "The server is being shutdown.")
 
     def __new__(cls, code, description):
         obj = object.__new__(cls)

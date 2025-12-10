@@ -69,6 +69,7 @@ class ErrorCode(enum):
     USER_IS_NOT_LOGGED_IN                       = (112, "The user with the given credentials is not logged in.",                            None, False)
     USER_NOT_FOUND                              = (113, "The user with the given user id is not found in the system.",                      None, False)
     FRAME_DECODING_FAILED                       = (114, "The recieved frame failed to be decoded.",                                         None, False)
+    TERMINATION_INCORRECT_PASSWORD              = (115, "The provided password for termination is incorrect.",                              None, True)
     
     # Session Manager.  
     EXERCISE_TYPE_DOES_NOT_EXIST                = (200, "The provided exercise type is not supported in the system",                        None, False)

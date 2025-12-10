@@ -75,8 +75,8 @@ class FlaskServer:
             self.app.add_url_rule("/end/session",          view_func=self._end_session,          methods=["POST"])
             self.app.add_url_rule("/analyze",              view_func=self._analyze_pose,         methods=["POST"])
             self.app.add_url_rule("/session/status",       view_func=self._session_status,       methods=["POST"])
-            self.app.add_url_rule("/internal/debug/session-manager", view_func=self.debug_session_manager, methods=["GET"])
-            self.app.add_url_rule("/terminate/server", view_func=self._terminate_server, methods=["GET"])
+            self.app.add_url_rule("/internal/telemetry",   view_func=self._telemetry,             methods=["GET"])
+            self.app.add_url_rule("/terminate/server",     view_func=self._terminate_server,     methods=["POST"])
         except Exception as e:
             ErrorHandler.handle(
                 error=ErrorCode.CANT_ADD_URL_RULE_TO_FLASK_SERVER,
@@ -530,10 +530,22 @@ class FlaskServer:
             return jsonify(Communication.error_response(session_status_icd)), HttpCodes.SERVER_ERROR
         else:
             return jsonify(Communication.construct_response(session_status_icd)), HttpCodes.OK
-        
-    def debug_session_manager(self):
+    
+    #################
+    ### TELEMETRY ###
+    #################
+    def _telemetry(self):
+        """
+        ### Brief:
+        The `telemetry` method provides internal server state information for debugging purposes.
+        It returns it as a JSON response, and this information can be used to monitor server
+        health and performance.
+        """
         return jsonify(self.session_manager.get_debug_state()), HttpCodes.OK
 
+    ########################
+    ### TERMINATE SERVER ###
+    ########################
     def _terminate_server(self) -> None:
         """
         ### Brief:
@@ -542,11 +554,27 @@ class FlaskServer:
         ### Use:
         Used for debugging purposes to gracefully shut down the server.
         """
+        data:dict = dict(request.get_json())
+        if not data:
+            Logger.warning("Missing or invalid JSON in analyze_pose request")
+            return jsonify(Communication.error_response(error=None, error_code=ErrorCode.INVALID_JSON_PAYLOAD_IN_REQUEST)), HttpCodes.BAD_REQUEST
+
+        # Extract required fields.
+        password:str = data.get("password", None)
+        if password is None:
+            return jsonify(Communication.error_response(error=None, error_code=ErrorCode.INVALID_JSON_PAYLOAD_IN_REQUEST)), HttpCodes.BAD_REQUEST
+        if password != "123456":
+            return jsonify(Communication.error_response(error=None, error_code=ErrorCode.TERMINATION_INCORRECT_PASSWORD)), HttpCodes.UNAUTHORIZED
+        
         Logger.info("###################################")
         Logger.info("##### SERVER IS SHUTTING DOWN #####")
         Logger.info("###################################")
-        response = jsonify({"message": "Server is shutting down..."}), HttpCodes.OK
+
+        from Server.Data.Response.ManagementResponse import ManagementCode
+        response = jsonify(Communication.construct_response(
+                ManagementResponse(management_code=ManagementCode.SERVER_IS_BEING_SHUTDOWN)
+            )), HttpCodes.OK
 
         # Use a background thread to exit the system after the response is sent.
-        def exit_system(): os._exit(0)
+        def exit_system(): import time; time.sleep(1); os._exit(0)
         Thread(target=exit_system).start(); return response
