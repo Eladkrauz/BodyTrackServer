@@ -10,6 +10,9 @@
 from enum import Enum as enum
 from typing import Dict, Any, Optional
 from dataclasses import dataclass
+from Server.Data.Pose.PoseQuality import PoseQuality
+from Server.Data.Error.DetectedErrorCode import DetectedErrorCode
+
 
 ####################################
 ### FEEDBACK RESPONSE DICT ALIAS ###
@@ -85,6 +88,27 @@ class FeedbackCode(enum):
         obj._value_ = code
         obj.description = description
         return obj
+    
+    @staticmethod
+    def from_pose_quality(pose_quality:PoseQuality) -> 'FeedbackCode':
+        mapping = {
+            PoseQuality.NO_PERSON:      FeedbackCode.NO_PERSON,
+            PoseQuality.LOW_VISIBILITY: FeedbackCode.LOW_VISIBILITY,
+            PoseQuality.PARTIAL_BODY:   FeedbackCode.PARTIAL_BODY,
+            PoseQuality.TOO_FAR:        FeedbackCode.TOO_FAR,
+            PoseQuality.TOO_CLOSE:      FeedbackCode.TOO_CLOSE,
+            PoseQuality.UNSTABLE:       FeedbackCode.UNSTABLE
+        }
+        return mapping.get(pose_quality, FeedbackCode.SILENT)
+    
+    @staticmethod
+    def from_detected_error(detected_error:DetectedErrorCode) -> 'FeedbackCode':
+        try:
+            if detected_error.name is DetectedErrorCode.NO_BIOMECHANICAL_ERROR.name:
+                return FeedbackCode.VALID
+            return FeedbackCode[detected_error.name]
+        except KeyError:
+            return FeedbackCode.SILENT
 
 @dataclass
 ###############################
