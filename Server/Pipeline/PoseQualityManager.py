@@ -63,7 +63,7 @@ class PoseQualityManager:
             self.last_landmarks = None
             self.last_quality = PoseQuality.OK
 
-            Logger.info("PoseQualityManager initialized successfully.")
+            Logger.info("Initialized successfully.")
         except Exception as e:
             ErrorHandler.handle(
                 error=ErrorCode.FAILED_TO_INITIALIZE_QUALITY_MANAGER,

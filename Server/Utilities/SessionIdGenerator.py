@@ -13,10 +13,16 @@ from Server.Utilities.Error.ErrorCode import ErrorCode
 from Server.Utilities.Logger import Logger
 from dataclasses import dataclass
 
-@dataclass
+########################
+### SESSION ID CLASS ###
+########################
+@dataclass(frozen=True)
 class SessionId:
     id:str
 
+##################################
+### SESSION ID GENERATOR CLASS ###
+##################################
 class SessionIdGenerator:
     """
     ### Description:

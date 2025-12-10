@@ -1,5 +1,5 @@
 ###############################################################
-############### BODY TRACK // SERVER // PIPELINE ##############
+############## BODY TRACK // SERVER // MANAGEMENT #############
 ###############################################################
 #################### CLASS: SessionManager ####################
 ###############################################################
@@ -70,7 +70,7 @@ class SessionManager:
         )
         # self._cleanup_thread.start()
         # self._config_retrieve_thread.start()
-        Logger.info("SessionManager: Initialized successfully")
+        Logger.info("Initialized successfully")
 
     #################################################################################################
     ############################## SESSION REGISTRATION AND MANAGEMENT ##############################
@@ -563,7 +563,7 @@ class SessionManager:
         - Ended (expired retention window)
         """
         while True:
-            Logger.info("SessionManager: Starting cleanup task.")
+            Logger.info("Starting cleanup task.")
             now = datetime.now()
             remove_keys = []
 
@@ -588,9 +588,9 @@ class SessionManager:
                 
                 # Removing identified stale sessions.
                 for sid in remove_keys: self.sessions.pop(sid, None)
-                Logger.info(f"SessionManager: Removed {len(remove_keys)} stale sessions.")
+                Logger.info(f"Removed {len(remove_keys)} stale sessions.")
                     
-            Logger.info("SessionManager: Finishing cleanup task.")
+            Logger.info("Finishing cleanup task.")
 
             # Sleep until next cycle.
             time.sleep(self.cleanup_interval_minutes * 60)
@@ -604,9 +604,9 @@ class SessionManager:
         server configurations from the `JSON` file.
         """
         while True:
-            Logger.info("SessionManager: Starting retrieve configuration task.")
+            Logger.info("Starting retrieve configuration task.")
             self.retrieve_configurations()
-            Logger.info("SessionManager: Starting retrieve configuration task.")
+            Logger.info("Starting retrieve configuration task.")
 
             # Sleep until next cycle.
             time.sleep(self.retrieve_configuration_minutes * 60)
@@ -658,7 +658,9 @@ class SessionManager:
                 raise ValueError("Expected string for IP address.")
             else:
                 with self.ip_map_lock:
-                    session_id = self.ip_map[key]
+                    session_id = self.ip_map.get(key, None)
+                    if session_id is None:
+                        return SessionStatus.NOT_IN_SYSTEM
         elif search_type is SearchType.ID:
             if not isinstance(key, SessionId): raise ValueError("Expected SessionId for session ID.")
             else:                              session_id = key
@@ -730,53 +732,56 @@ class SessionManager:
         from Server.Utilities.Config.ConfigLoader import ConfigLoader
         from Server.Utilities.Config.ConfigParameters import ConfigParameters
 
+        # Refresh the configuration data.
+        ConfigLoader.refresh()
+
         # Supported exercises.
         self.supported_exercises:list = ConfigLoader.get([
             ConfigParameters.Major.SESSION,
             ConfigParameters.Minor.SUPPORTED_EXERCIES
         ])
-        Logger.info(f"SessionManager: Supported exercises: {self.supported_exercises}")
+        Logger.info(f"Supported exercises: {self.supported_exercises}")
 
         # Maximum clients at the same time.
         self.maximum_clients:int = ConfigLoader.get([
             ConfigParameters.Major.SESSION,
             ConfigParameters.Minor.MAXIMUM_CLIENTS
         ])
-        Logger.info(f"SessionManager: Maximum clients: {self.maximum_clients}")
+        Logger.info(f"Maximum clients: {self.maximum_clients}")
 
         # Cleanup background thread.
         self.cleanup_interval_minutes = ConfigLoader.get([
             ConfigParameters.Major.TASKS,
             ConfigParameters.Minor.CLEANUP_INTERVAL_MINUTES
         ])
-        Logger.info(f"SessionManager: Cleanup interval minutes: {self.cleanup_interval_minutes}")
+        Logger.info(f"Cleanup interval minutes: {self.cleanup_interval_minutes}")
         self.max_registration_minutes = ConfigLoader.get([
             ConfigParameters.Major.TASKS,
             ConfigParameters.Minor.MAX_REGISTRATION_MINUTES
         ])
-        Logger.info(f"SessionManager: Maximum registration minutes: {self.max_registration_minutes}")
+        Logger.info(f"Maximum registration minutes: {self.max_registration_minutes}")
         self.max_inactive_minutes = ConfigLoader.get([
             ConfigParameters.Major.TASKS,
             ConfigParameters.Minor.MAX_INACTIVE_MINUTS
         ])
-        Logger.info(f"SessionManager: Maximum inactive minutes: {self.max_inactive_minutes}")
+        Logger.info(f"Maximum inactive minutes: {self.max_inactive_minutes}")
         self.max_pause_minutes = ConfigLoader.get([
             ConfigParameters.Major.TASKS,
             ConfigParameters.Minor.MAX_PAUSE_MINUTES
         ])
-        Logger.info(f"SessionManager: Maximum pause minutes: {self.max_pause_minutes}")
+        Logger.info(f"Maximum pause minutes: {self.max_pause_minutes}")
         self.max_ended_retention = ConfigLoader.get([
             ConfigParameters.Major.TASKS,
             ConfigParameters.Minor.MAX_ENDED_RETENTION
         ])
-        Logger.info(f"SessionManager: Maximum ended retention: {self.max_ended_retention}")
+        Logger.info(f"Maximum ended retention: {self.max_ended_retention}")
 
         # Retrieve configuration thread.
         self.retrieve_configuration_minutes = ConfigLoader.get([
             ConfigParameters.Major.TASKS,
             ConfigParameters.Minor.RETRIEVE_CONFIGURATION_MINUTES
         ])
-        Logger.info(f"SessionManager: Retrieve configuration minutes: {self.retrieve_configuration_minutes}")
+        Logger.info(f"Retrieve configuration minutes: {self.retrieve_configuration_minutes}")
 
         # Run PipelineProcessor configuration retrieval.
         self.pipeline_processor.retrieve_configurations()

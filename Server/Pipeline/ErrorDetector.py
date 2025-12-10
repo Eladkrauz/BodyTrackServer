@@ -12,19 +12,19 @@ from typing import Dict, TYPE_CHECKING, Any
 from math import isnan
 import inspect
 
-from Server.Data.Phase.PhaseType import PhaseType
-from Server.Data.Session.ExerciseType import ExerciseType
-from Server.Utilities.Config.ConfigLoader import ConfigLoader
-from Server.Utilities.Config.ConfigParameters import ConfigParameters
-from Server.Utilities.Error.ErrorHandler import ErrorHandler
-from Server.Utilities.Error.ErrorCode import ErrorCode
-from Server.Data.Session.SessionData import SessionData
-from Server.Data.Error.ErrorMappings import ErrorMappings
-from Server.Data.Error.DetectedErrorCode import DetectedErrorCode
+from Server.Data.Phase.PhaseType            import PhaseType
+from Server.Data.Session.ExerciseType       import ExerciseType
+from Server.Utilities.Error.ErrorHandler    import ErrorHandler
+from Server.Utilities.Error.ErrorCode       import ErrorCode
+from Server.Utilities.Logger                import Logger
+from Server.Data.Session.SessionData        import SessionData
+from Server.Data.Error.ErrorMappings        import ErrorMappings
+from Server.Data.Error.DetectedErrorCode    import DetectedErrorCode
 
 if TYPE_CHECKING:
-    from Server.Data.History.HistoryData import HistoryData
+    from Server.Data.History.HistoryData    import HistoryData
     from Server.Data.History.HistoryDictKey import HistoryDictKey
+    
 ############################
 ### ERROR DETECTOR CLASS ###
 ############################
@@ -61,11 +61,8 @@ class ErrorDetector:
         Loads all exercise thresholds from configuration.
         Uses ErrorHandler on failure and initializes with empty thresholds.
         """
-        self.thresholds:Dict[str, Any] = ConfigLoader.get(
-            key=None,
-            different_file="Server/Files/Config/ExerciseThresholds.JSON",
-            read_all=True
-        )
+        self.retrieve_configurations()
+        Logger.info("Initialized successfully")
 
     #####################
     ### DETECT ERRORS ###
@@ -186,3 +183,28 @@ class ErrorDetector:
         elif exercise is ExerciseType.BICEPS_CURL:   return ErrorMappings.BICEPS_CURL_ERROR_MAP_HIGH.get(angle_name)
         elif exercise is ExerciseType.LATERAL_RAISE: return ErrorMappings.LATERAL_RAISE_ERROR_MAP_HIGH.get(angle_name)
         else:                                        return None
+
+    ###############################
+    ### RETRIEVE CONFIGURATIONS ###
+    ###############################
+    def retrieve_configurations(self) -> None:
+        """
+        ### Brief:
+        The `retrieve_configurations` method gets the updated configurations from the
+        configuration file.
+        """
+        from Server.Utilities.Config.ConfigLoader import ConfigLoader
+        from Server.Utilities.Config.ConfigParameters import ConfigParameters
+
+        self.config_file_path = ConfigLoader.get(
+            key=[
+                ConfigParameters.Major.ERROR,
+                ConfigParameters.Minor.ERROR_DETECTOR_CONFIG_FILE
+            ]
+        )
+
+        self.thresholds:Dict[str, Any] = ConfigLoader.get(
+            key=None,
+            different_file=self.config_file_path,
+            read_all=True
+        )

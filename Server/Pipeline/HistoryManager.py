@@ -17,6 +17,7 @@ from Server.Data.Pose.PoseQuality import PoseQuality
 from Server.Data.History.HistoryDictKey import HistoryDictKey
 from Server.Data.History.HistoryData import HistoryData
 from Server.Data.Error.DetectedErrorCode import DetectedErrorCode
+from Server.Utilities.Logger import Logger
 
 if TYPE_CHECKING:
     from Server.Data.Phase.PhaseType import PhaseType
@@ -42,6 +43,7 @@ class HistoryManager:
         The `__init__` method initializes the `HistoryManager` instance.
         """
         self.retrieve_configurations()
+        Logger.info("Initialized successfully.")
 
     ###############################################################################################
     ############################## RECORD NEW VALID OR INVALID FRAME ##############################

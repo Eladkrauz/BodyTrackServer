@@ -15,7 +15,7 @@ import base64, cv2
 import numpy as np
 
 from Server.Communication.HttpCodes           import HttpCodes
-from Server.Pipeline.SessionManager           import SessionManager
+from Server.Management.SessionManager         import SessionManager
 from Server.Utilities.Logger                  import Logger
 from Server.Utilities.Error.ErrorHandler      import ErrorHandler
 from Server.Utilities.Error.ErrorCode         import ErrorCode, ErrorResponse
@@ -81,6 +81,8 @@ class FlaskServer:
                 }
             )
 
+        Logger.info("Initialized successfully.")
+
         # Session Manager.
         self.session_manager = SessionManager()
 
@@ -109,6 +111,7 @@ class FlaskServer:
         server_thread = Thread(target=self.run)
         server_thread.daemon = True  # Thread will exit when main program exits.
         try:
+            Logger.info(f"Starting server on {self.host}:{self.port}")
             server_thread.start()
         except RuntimeError as e:
             ErrorHandler.handle(
@@ -205,13 +208,13 @@ class FlaskServer:
         data:dict = dict(request.get_json())
         if data is None:
             Logger.warning("Missing or invalid JSON in request")
-            return jsonify(Communication.error_response(ErrorCode.INVALID_JSON_PAYLOAD_IN_REQUEST)), HttpCodes.BAD_REQUEST
+            return jsonify(Communication.error_response(error=None, error_code=ErrorCode.INVALID_JSON_PAYLOAD_IN_REQUEST)), HttpCodes.BAD_REQUEST
 
         # Extract required values.
         exercise_type:str = data.get("exercise_type", None)
         if exercise_type is None or (isinstance(exercise_type, bool) and exercise_type is False):
             Logger.warning("Missing 'exercise_type' in request")
-            return jsonify(Communication.error_response(ErrorCode.MISSING_EXERCISE_TYPE_IN_REQUEST)), HttpCodes.BAD_REQUEST
+            return jsonify(Communication.error_response(error=None, error_code=ErrorCode.MISSING_EXERCISE_TYPE_IN_REQUEST)), HttpCodes.BAD_REQUEST
 
         # Check received client information.
         client_info_result:Dict[str, str] | ErrorCode = self._prepare_client_info()
@@ -252,13 +255,13 @@ class FlaskServer:
         data:dict = dict(request.get_json())
         if data is None:
             Logger.warning("Missing or invalid JSON in request")
-            return jsonify(Communication.error_response(ErrorCode.INVALID_JSON_PAYLOAD_IN_REQUEST)), HttpCodes.BAD_REQUEST
+            return jsonify(Communication.error_response(error=None, error_code=ErrorCode.INVALID_JSON_PAYLOAD_IN_REQUEST)), HttpCodes.BAD_REQUEST
         
         # Extract required values.
         session_id:str = data.get("session_id", None)
         if session_id is None:
             Logger.warning("Missing 'session_id' in request")
-            return jsonify(Communication.error_response(ErrorCode.MISSING_SESSION_ID_IN_REQUEST)), HttpCodes.BAD_REQUEST
+            return jsonify(Communication.error_response(error=None, error_code=ErrorCode.MISSING_SESSION_ID_IN_REQUEST)), HttpCodes.BAD_REQUEST
         
         # Trying to unregister the session.
         unregister_session_result:ManagementResponse | ErrorResponse = self.session_manager.unregister_session(session_id)
@@ -290,16 +293,20 @@ class FlaskServer:
         data:dict = dict(request.get_json())
         if data is None:
             Logger.warning("Missing or invalid JSON in request")
-            return jsonify(Communication.error_response(ErrorCode.INVALID_JSON_PAYLOAD_IN_REQUEST)), HttpCodes.BAD_REQUEST
+            return jsonify(Communication.error_response(error=None, error_code=ErrorCode.INVALID_JSON_PAYLOAD_IN_REQUEST)), HttpCodes.BAD_REQUEST
 
         # Extract required values.
         session_id:str = data.get("session_id", None)
         if session_id is None:
             Logger.warning("Missing 'session_id' in request")
-            return jsonify(Communication.error_response(ErrorCode.MISSING_SESSION_ID_IN_REQUEST)), HttpCodes.SERVER_ERROR
+            return jsonify(Communication.error_response(error=None, error_code=ErrorCode.MISSING_SESSION_ID_IN_REQUEST)), HttpCodes.BAD_REQUEST
+        extended_evaluation:bool = data.get("extended_evaluation", None)
+        if extended_evaluation is None:
+            Logger.warning("Missing 'extended_evaluation' in request")
+            return jsonify(Communication.error_response(error=None, error_code=ErrorCode.INVALID_EXTENDED_EVALUATION_PARAM)), HttpCodes.BAD_REQUEST
         
         # Trying to start the session.
-        start_session_result:ManagementResponse | ErrorResponse = self.session_manager.start_session(session_id)
+        start_session_result:ManagementResponse | ErrorResponse = self.session_manager.start_session(session_id, extended_evaluation)
         if isinstance(start_session_result, ErrorResponse):
             return jsonify(Communication.error_response(start_session_result)), HttpCodes.BAD_REQUEST
         else: # If the session started successfully.
@@ -328,13 +335,13 @@ class FlaskServer:
         data:dict = dict(request.get_json())
         if data is None:
             Logger.warning("Missing or invalid JSON in request")
-            return jsonify(Communication.error_response(ErrorCode.INVALID_JSON_PAYLOAD_IN_REQUEST)), HttpCodes.BAD_REQUEST
+            return jsonify(Communication.error_response(error=None, error_code=ErrorCode.INVALID_JSON_PAYLOAD_IN_REQUEST)), HttpCodes.BAD_REQUEST
 
         # Extract required values.
         session_id:str = data.get("session_id", None)
         if session_id is None:
             Logger.warning("Missing 'session_id' in request")
-            return jsonify(Communication.error_response(ErrorCode.MISSING_SESSION_ID_IN_REQUEST)), HttpCodes.BAD_REQUEST
+            return jsonify(Communication.error_response(error=None, error_code=ErrorCode.MISSING_SESSION_ID_IN_REQUEST)), HttpCodes.BAD_REQUEST
         
         # Trying to pause the session.
         pause_session_result:ManagementResponse | ErrorResponse = self.session_manager.pause_session(session_id)
@@ -366,13 +373,13 @@ class FlaskServer:
         data:dict = dict(request.get_json())
         if data is None:
             Logger.warning("Missing or invalid JSON in request")
-            return jsonify(Communication.error_response(ErrorCode.INVALID_JSON_PAYLOAD_IN_REQUEST)), HttpCodes.BAD_REQUEST
+            return jsonify(Communication.error_response(error=None, error_code=ErrorCode.INVALID_JSON_PAYLOAD_IN_REQUEST)), HttpCodes.BAD_REQUEST
 
         # Extract required values.
         session_id:str = data.get("session_id", None)
         if session_id is None:
             Logger.warning("Missing 'session_id' in request")
-            return jsonify(Communication.error_response(ErrorCode.MISSING_SESSION_ID_IN_REQUEST)), HttpCodes.BAD_REQUEST
+            return jsonify(Communication.error_response(error=None, error_code=ErrorCode.MISSING_SESSION_ID_IN_REQUEST)), HttpCodes.BAD_REQUEST
         
         # Trying to resume the session.
         resume_session_result:ManagementResponse | ErrorResponse = self.session_manager.resume_session(session_id)
@@ -404,13 +411,13 @@ class FlaskServer:
         data:dict = dict(request.get_json())
         if data is None:
             Logger.warning("Missing or invalid JSON in request")
-            return jsonify(Communication.error_response(ErrorCode.INVALID_JSON_PAYLOAD_IN_REQUEST)), HttpCodes.BAD_REQUEST
+            return jsonify(Communication.error_response(error=None, error_code=ErrorCode.INVALID_JSON_PAYLOAD_IN_REQUEST)), HttpCodes.BAD_REQUEST
 
         # Extract required values.
         session_id:str = data.get("session_id", None)
         if session_id is None:
             Logger.warning("Missing 'session_id' in request")
-            return jsonify(Communication.error_response(ErrorCode.MISSING_SESSION_ID_IN_REQUEST)), HttpCodes.BAD_REQUEST
+            return jsonify(Communication.error_response(error=None, error_code=ErrorCode.MISSING_SESSION_ID_IN_REQUEST)), HttpCodes.BAD_REQUEST
         
         # Trying to end the session.
         end_session_result:ManagementResponse | ErrorResponse = self.session_manager.end_session(session_id)
@@ -448,7 +455,7 @@ class FlaskServer:
         data:dict = dict(request.get_json())
         if not data:
             Logger.warning("Missing or invalid JSON in analyze_pose request")
-            return jsonify(Communication.error_response(ErrorCode.INVALID_JSON_PAYLOAD_IN_REQUEST)), HttpCodes.BAD_REQUEST
+            return jsonify(Communication.error_response(error=None, error_code=ErrorCode.INVALID_JSON_PAYLOAD_IN_REQUEST)), HttpCodes.BAD_REQUEST
 
         # Extract required fields.
         session_id:str  = data.get("session_id", None)
@@ -457,7 +464,7 @@ class FlaskServer:
 
         if session_id is None or frame_id is None or content_b64 is None:
             Logger.warning("Missing fields in analyze_pose request")
-            return jsonify(Communication.error_response(ErrorCode.MISSING_FRAME_DATA_IN_REQUEST)), HttpCodes.BAD_REQUEST
+            return jsonify(Communication.error_response(error=None, error_code=ErrorCode.MISSING_FRAME_DATA_IN_REQUEST)), HttpCodes.BAD_REQUEST
 
         # Decode base64 to np.ndarray.
         try:
@@ -466,7 +473,7 @@ class FlaskServer:
             frame_content:np.ndarray = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)  # BGR frame
         except Exception as e:
             Logger.error(f"Frame decoding failed: {e}")
-            return jsonify(Communication.error_response(ErrorCode.FRAME_DECODING_FAILED)), HttpCodes.BAD_REQUEST
+            return jsonify(Communication.error_response(error=None, error_code=ErrorCode.FRAME_DECODING_FAILED)), HttpCodes.BAD_REQUEST
 
         # Call SessionManager to analyze.
         analysis_result:CalibrationResponse | FeedbackResponse | ErrorResponse = \
@@ -503,13 +510,13 @@ class FlaskServer:
         data:dict = dict(request.get_json())
         if not data:
             Logger.warning("Missing or invalid JSON in analyze_pose request")
-            return jsonify(Communication.error_response(ErrorCode.INVALID_JSON_PAYLOAD_IN_REQUEST)), HttpCodes.BAD_REQUEST
+            return jsonify(Communication.error_response(error=None, error_code=ErrorCode.INVALID_JSON_PAYLOAD_IN_REQUEST)), HttpCodes.BAD_REQUEST
 
         # Extract required fields.
         session_id:str = data.get("session_id", None)
         if session_id is None:
             Logger.warning("Missing fields in analyze_pose request")
-            return jsonify(Communication.error_response(ErrorCode.MISSING_FRAME_DATA_IN_REQUEST)), HttpCodes.BAD_REQUEST
+            return jsonify(Communication.error_response(error=None, error_code=ErrorCode.MISSING_FRAME_DATA_IN_REQUEST)), HttpCodes.BAD_REQUEST
         
         # Get the status.
         session_status_icd:ManagementResponse | ErrorResponse = self.session_manager.get_session_status(session_id)

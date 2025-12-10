@@ -30,11 +30,12 @@ class ConfigLoader:
     - The configuration file path is written hard coded in the class constructor.
     """
     _instance = None # Singleton instance.
+    _config_path = "Server/Files/Config/ServerConfiguration.JSON"
 
     #########################
     ### CLASS CONSTRUCTOR ###
     #########################
-    def __init__(self, config_path:str = "Server/Files/Config/ServerConfiguration.JSON") -> 'ConfigLoader':
+    def __init__(self):
         """
         ### Brief:
         The `__init__` method initializes the `ConfigLoader` object. 
@@ -49,8 +50,28 @@ class ConfigLoader:
         - `JSONDecodeError`: In case the data being deserialized is not a valid JSON document.
         - `UnicodeDecodeError`: In case the data being deserialized does not contain UTF-8, UTF-16 or UTF-32 encoded data
         """
-        self._config_data = self._get_json_data(file_path=config_path)
-        
+        self.refresh()
+
+    ###############
+    ### REFRESH ###
+    ###############
+    @classmethod
+    def refresh(cls) -> None:
+        """
+        ### Brief:
+        The `refresh` method reloads the configuration data from the configuration file.
+
+        ### Notes:
+        - This method can be called to update the configuration data at runtime if the configuration file changes.
+        """
+        try:
+            cls._config_data = cls._get_json_data(cls._config_path)
+        except FileNotFoundError:
+            print("[ERROR]: Configuration file does not exist.")
+            exit(1)
+        except Exception as e:
+            print("[ERROR]: An error occurred while loading the configuration file.")
+            exit(1)
 
     ####################
     ### GET INSTANCE ###
@@ -77,13 +98,20 @@ class ConfigLoader:
         """
         if cls._instance is None:
             try:
-                cls._instance = ConfigLoader(main_config_file_path)
+                if main_config_file_path is not None: cls._instance = ConfigLoader(main_config_file_path)
+                else:                                 cls._instance = ConfigLoader()
             except FileNotFoundError:
-                ErrorHandler.imidiate_abort(error=ErrorCode.CONFIGURATION_FILE_DOES_NOT_EXIST, origin=inspect.currentframe())
+                print("[FATAL]: Configuration file does not exist.")
+                exit(1)
+                # ErrorHandler.imidiate_abort(error=ErrorCode.CONFIGURATION_FILE_DOES_NOT_EXIST, origin=inspect.currentframe())
             except JSONDecodeError as e:
-                ErrorHandler.imidiate_abort(error=ErrorCode.JSON_FILE_DECODE_ERROR, origin=inspect.currentframe())
+                print("[FATAL]: Configuration file is not a valid JSON document.")
+                exit(1)
+                # ErrorHandler.imidiate_abort(error=ErrorCode.JSON_FILE_DECODE_ERROR, origin=inspect.currentframe())
             except UnicodeDecodeError as e:
-                ErrorHandler.imidiate_abort(error=ErrorCode.JSON_FILE_UNICODE_ERROR, origin=inspect.currentframe())
+                print("[FATAL]: Configuration file contains invalid unicode data.")
+                exit(1)
+                # ErrorHandler.imidiate_abort(error=ErrorCode.JSON_FILE_UNICODE_ERROR, origin=inspect.currentframe())
 
         return cls._instance
 
@@ -119,13 +147,13 @@ class ConfigLoader:
             1. `different_file` is `None` (was not sent as a parameter): Read the server config regular file.
             2. `different_file` is not `None`: Read this path's content and search the key inside it.
         """
+        config_loader = cls.get_instance()
         try:
-            config_loader = cls.get_instance()
             if not read_all and (not (isinstance(key, list) or not all(isinstance(k, ConfigParameters) for k in key))):
                 ErrorHandler.handle(error=ErrorCode.CONFIGURATION_KEY_IS_INVALID, origin=inspect.currentframe())
 
             # Deciding which file should be searched for key-value pair.
-            if different_file is None: result = config_loader._config_data
+            if different_file is None: result = cls._config_data
             else:                      result = cls._get_json_data(different_file)
 
             # If read_all is True, we don't need to look for a specific key.
@@ -139,11 +167,17 @@ class ConfigLoader:
         # If an error occured (for exmaple: the key does not exist in the dictionary).
         except KeyError as e:
             if critical_value: # If True - will abort system.
-                ErrorHandler.handle(error=ErrorCode.CRITICAL_CONFIG_PARAM_DOES_NOT_EXIST, origin=inspect.currentframe())
-                # ErrorCode.CRITICAL_CONFIG_PARAM_DOES_NOT_EXIST will yield a system abort.
+                ErrorHandler.handle(
+                    error=ErrorCode.CRITICAL_CONFIG_PARAM_DOES_NOT_EXIST,
+                    origin=inspect.currentframe(),
+                    extra_info={ "key": key }
+                )
             else:
-                ErrorHandler.handle(error=ErrorCode.CONFIG_PARAM_DOES_NOT_EXIST, origin=inspect.currentframe())
-                # ErrorCode.CONFIG_PARAM_DOES_NOT_EXIST will not yield a system abort.
+                ErrorHandler.handle(
+                    error=ErrorCode.CONFIG_PARAM_DOES_NOT_EXIST,
+                    origin=inspect.currentframe(),
+                    extra_info={ "key": key }
+                )
                 return None
     
     #####################
@@ -176,11 +210,11 @@ class ConfigLoader:
     ### INITIALIZE ###
     ##################
     @classmethod
-    def initialize(cls, main_config_file_path:str = None) -> None:
+    def initialize(cls) -> None:
         """
         ### Brief:
         The `initialize` method is the `ConfigLoader` signleton access method.
         It is called once and initializes the instance.
         """
-        cls.get_instance(main_config_file_path)
+        cls.get_instance()
         print("[INFO]: ConfigLoader is initialized.")

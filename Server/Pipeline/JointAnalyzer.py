@@ -47,7 +47,7 @@ class JointAnalyzer:
         self.retrieve_configurations()
 
         # Initialized.
-        Logger.info("JointAnalyzer: Initialized successfully.")
+        Logger.info("Initialized successfully.")
 
     ########################
     ### VALIDATE NDARRAY ###
@@ -331,7 +331,7 @@ class JointAnalyzer:
     ########################
     ### CALCULATE JOINTS ###
     ########################
-    def calculate_joints(seld, session_data:SessionData, landmarks:PoseLandmarksArray) -> Dict[str, Any] | ErrorCode:
+    def calculate_joints(self, session_data:SessionData, landmarks:PoseLandmarksArray) -> Dict[str, Any] | ErrorCode:
         """
         ### Brief:
         The `calculate_joints` method calculates the relevant joint angles for the given exercise.

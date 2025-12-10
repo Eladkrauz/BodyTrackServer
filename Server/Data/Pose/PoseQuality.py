@@ -32,7 +32,7 @@ class PoseQuality(enum):
     #############################
     ### CONVERT TO ERROR CODE ###
     #############################
-    def convert_to_error_code(self, pose_quality:'PoseQuality'):
+    def convert_to_error_code(pose_quality:'PoseQuality'):
         from Server.Utilities.Error.ErrorCode import ErrorCode
         if   pose_quality is PoseQuality.NO_PERSON:      return ErrorCode.NO_PERSON_DETECTED_IN_FRAME
         elif pose_quality is PoseQuality.LOW_VISIBILITY: return ErrorCode.LOW_VISIBILITY_IN_FRAME

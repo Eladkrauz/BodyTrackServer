@@ -51,6 +51,7 @@ class ErrorCode(enum):
     MISSING_FRAME_DATA_IN_REQUEST               = (11, "The request does not contain session id, frame id and content.",                    None, False)
     CLIENT_IP_IS_INVALID                        = (12, "The provided IP is invalid.",                                                       None, False)
     CLIENT_AGENT_IS_INVALID                     = (13, "The provided client agent is invalid.",                                             None, False)
+    JSON_CONFIG_FILE_ERROR                      = (14, "Error with the JSON configuration file.",                                           None, True)
 
     # Flask and database management.
     CANT_ADD_URL_RULE_TO_FLASK_SERVER           = (100, "URL rule could not be added.",                                                     None, True)

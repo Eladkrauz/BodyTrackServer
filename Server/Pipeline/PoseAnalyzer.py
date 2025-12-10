@@ -39,7 +39,7 @@ class PoseAnalyzer:
     #########################
     ### CLASS CONSTRUCTOR ###
     #########################
-    def __init__(self) -> 'PoseAnalyzer':
+    def __init__(self):
         """
         ### Brief:
         The `__init__` method initializes the `PoseAnalyzer` class.
@@ -69,7 +69,7 @@ class PoseAnalyzer:
             # Works together with mp_drawing to render pose annotations consistently.
             self.mp_drawing_styles = mp.solutions.drawing_styles
 
-            Logger.info("PoseAnalyzer: Initialized successfully.")
+            Logger.info("Initialized successfully.")
         except ValueError as e:
             ErrorHandler.handle(
                 error=ErrorCode.ERROR_INITIALIZING_POSE,
@@ -168,12 +168,45 @@ class PoseAnalyzer:
 
         # If all checks passed.
         return None
+    
+    ################################
+    ### RESIZE WITH ASPECT RATIO ###
+    ################################
+    def _resize_with_aspect_ratio(frame_content:np.ndarray, target_width:int, target_height:int) -> np.ndarray:
+        """
+        ### Brief:
+        The `_resize_with_aspect_ratio` method resizes the input frame to fit within the target dimensions
+        while preserving the original aspect ratio.
+
+        ### Arguments:
+        - `frame_content` (np.ndarray): Input image frame to resize.
+        - `target_width` (int): Desired width after resizing.
+        - `target_height` (int): Desired height after resizing.
+
+        ### Returns:
+        - `np.ndarray`: The resized frame with preserved aspect ratio .
+        """
+        original_height, original_width = frame_content.shape[:2]
+        original_ratio = original_width / original_height
+        target_ratio = target_width / target_height
+
+        # Calculate new dimensions while preserving aspect ratio.
+        if original_ratio > target_ratio:
+            new_width = target_width
+            new_height = int(new_width / original_ratio)
+        else:
+            new_height = target_height
+            new_width = int(new_height * original_ratio)
+
+        # Resize the frame.
+        resized_frame = cv2.resize(frame_content, (new_width, new_height))
+        return resized_frame
+
 
     ########################
     ### PREPROCESS FRAME ###
     ########################
-    @classmethod
-    def _preprocess_frame(cls, frame_content:np.ndarray) -> np.ndarray | ErrorCode:
+    def _preprocess_frame(self, frame_content:np.ndarray) -> np.ndarray | ErrorCode:
         """
         ### Brief:
         The `_preprocess_frame` static method preprocesses an input frame before sending it to the MediaPipe Pose model.
@@ -191,7 +224,7 @@ class PoseAnalyzer:
         """
         # Resize the frame.
         try:
-            frame_content = cv2.resize(frame_content, (cls.frame_width, cls.frame_height))
+            frame_content = self._resize_with_aspect_ratio(frame_content, self.frame_width, self.frame_height)
         except cv2.error as e:
             ErrorHandler.handle(
                 error=ErrorCode.FRAME_PREPROCESSING_ERROR,
@@ -232,6 +265,7 @@ class PoseAnalyzer:
             return ErrorCode.FRAME_PREPROCESSING_ERROR
         
         return frame_content
+    
 
     #####################
     ### ANALYZE FRAME ###
