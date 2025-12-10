@@ -9,7 +9,7 @@
     "height": 480
   },
   "session": {
-    "supported_exercises":           ["squat", "bicep_curl", "shoulder_raise"],
+    "supported_exercises":           ["squat", "biceps_curl", "lateral_raise"],
     "maximum_clients":               10,
     "num_of_min_init_ok_frames":     10,
     "num_of_min_init_correct_phase": 10

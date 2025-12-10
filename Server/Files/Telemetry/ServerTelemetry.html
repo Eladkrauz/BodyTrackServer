@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>BodyTrack Telemetry</title>
+
+    <style>
+        body {
+            background: #0d1117;
+            color: #eee;
+            font-family: Arial, sans-serif;
+            padding: 25px;
+        }
+
+        h1 {
+            color: #49a6ff;
+            margin-bottom: 20px;
+        }
+
+        .grid {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .card {
+            background: #1b1f28;
+            padding: 15px 20px;
+            border-radius: 8px;
+            min-width: 220px;
+            flex-grow: 1;
+        }
+
+        .card-title {
+            color: #88ccff;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .value {
+            font-size: 22px;
+            font-weight: bold;
+            color: #a7e3ff;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #1b1f28;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        th,
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #333;
+        }
+
+        th {
+            background: #141821;
+            text-align: left;
+        }
+
+        .status {
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .ACTIVE {
+            background: #4caf50;
+        }
+
+        .PAUSED {
+            background: #d9a300;
+        }
+
+        .REGISTERED {
+            background: #2196f3;
+        }
+
+        .ENDED {
+            background: #d14444;
+        }
+
+        .UNKNOWN {
+            background: #888;
+        }
+
+        .timestamp {
+            text-align: right;
+            margin-top: 15px;
+            font-size: 13px;
+            color: #bbb;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>BodyTrack Server Telemetry</h1>
+
+    <div class="grid">
+
+        <div class="card">
+            <div class="card-title">Supported Exercises</div>
+            <div id="supported"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Max Clients</div>
+            <div class="value" id="maxClients"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Active Sessions</div>
+            <div class="value" id="active"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Total Sessions Created</div>
+            <div class="value" id="total"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Memory (MB)</div>
+            <div class="value" id="memory"></div>
+        </div>
+
+    </div>
+
+    <h2 style="margin-top:30px;color:#49a6ff;">Sessions</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Session ID</th>
+                <th>IP</th>
+                <th>Exercise</th>
+                <th>Status</th>
+                <th>Last Activity</th>
+            </tr>
+        </thead>
+        <tbody id="sessions"></tbody>
+    </table>
+
+    <div class="timestamp" id="ts"></div>
+
+    <script>
+        function statusBadge(s) {
+            if (!s) return `<span class="status UNKNOWN">UNKNOWN</span>`;
+            return `<span class="status ${s}">${s}</span>`;
+        }
+        function renderSessions(data) {
+            const tbody = document.getElementById("sessions-body");
+            tbody.innerHTML = "";
+
+            const sessions = data.sessions || {};
+
+            Object.entries(sessions).forEach(([sessionId, s]) => {
+                const tr = document.createElement("tr");
+
+                tr.innerHTML = `
+            <td>${sessionId}</td>
+            <td>${s.status}</td>
+            <td>${s.exercise_type}</td>
+            <td>${s.last_activity || "-"}</td>
+        `;
+
+                tbody.appendChild(tr);
+            });
+        }
+
+
+        function refresh() {
+            fetch("http://localhost:8080/internal/debug/session-manager")
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById("supported").innerHTML =
+                        data.supported_exercises.join(", ");
+
+                    document.getElementById("maxClients").textContent = data.maximum_clients;
+                    document.getElementById("active").textContent = data.current_active_sessions;
+                    document.getElementById("total").textContent = data.total_sessions;
+                    document.getElementById("memory").textContent = data.memory_mb.toFixed(1);
+
+                    document.getElementById("ts").textContent = "Timestamp: " + data.timestamp;
+
+                    // Sessions table
+                    renderSessions(data);
+                });
+        }
+
+        setInterval(refresh, 1000);
+        refresh();
+    </script>
+
+</body>
+
+</html>

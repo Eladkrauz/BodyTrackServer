@@ -30,7 +30,7 @@
         "initial_phase": "TOP",
         "transition_order": ["TOP", "DOWN", "HOLD", "UP", "TOP"]
     },
-    "bicep_curl": {
+    "biceps_curl": {
         "rules": {
             "REST": {
                 "left_elbow_angle":  { "min": 150, "max": 185 },
@@ -52,7 +52,7 @@
         "initial_phase": "REST",
         "transition_order": ["REST", "LIFTING", "HOLD", "LOWERING", "REST"]
     },
-    "shoulder_raise": {
+    "lateral_raise": {
         "rules": {
             "REST": {
                 "left_shoulder_abduction_angle":  { "min":   0, "max":  20 },
