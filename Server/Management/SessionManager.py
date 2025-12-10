@@ -8,7 +8,7 @@
 ### IMPORTS ###
 ###############
 # Python libraries.
-import inspect, threading, time
+import inspect, threading, time, psutil, os
 import numpy   as np
 from threading import RLock
 from datetime  import datetime
@@ -785,3 +785,55 @@ class SessionManager:
 
         # Run PipelineProcessor configuration retrieval.
         self.pipeline_processor.retrieve_configurations()
+
+    ##############################################
+    ### DEBUG / TELEMETRY EXPOSURE (SAFE) ########
+    ##############################################
+    def get_debug_state(self) -> dict:
+        """
+        Returns a safe representation of SessionManager internal state,
+        used only for debugging and runtime monitoring.
+        """
+        with self.sessions_lock, self.ip_map_lock:
+
+            session_summaries = {}
+            for sid, session in self.sessions.items():
+                session_summaries[sid.id] = {
+                    "status": session.get_session_status().name,
+                    "exercise_type": session.get_exercise_type().name,
+                    "extended_evaluation": session.get_extended_evaluation(),
+                    "analyzing_state": session.get_analyzing_state().name,
+                    "last_activity": session.time.get("last_activity"),
+                    "paused_at": session.time.get("paused"),
+                    "ended_at": session.time.get("ended"),
+                }
+
+            return {
+                # configuration
+                "supported_exercises": list(self.supported_exercises),
+                "maximum_clients": self.maximum_clients,
+
+                # realtime counters
+                "current_active_sessions": self.current_active_sessions,
+                "total_sessions": len(self.sessions),
+
+                # ip mapping
+                "ip_map": {
+                    ip: sid.id for ip, sid in self.ip_map.items()
+                },
+
+                # session details
+                "sessions": session_summaries,
+
+                # tasks configuration
+                "cleanup_interval_minutes": getattr(self, "cleanup_interval_minutes", None),
+                "max_registration_minutes": getattr(self, "max_registration_minutes", None),
+                "max_inactive_minutes": getattr(self, "max_inactive_minutes", None),
+                "max_pause_minutes": getattr(self, "max_pause_minutes", None),
+                "max_ended_retention": getattr(self, "max_ended_retention", None),
+
+                "memory_mb": psutil.Process(os.getpid()).memory_info().rss/1024/1024,
+
+                # debug timestamp
+                "timestamp": datetime.now().isoformat()
+            }

@@ -76,11 +76,7 @@ class PhaseType:
         - `PhaseType`: Corresponding phase enum class.
         - `ErrorCode.EXERCISE_TYPE_DOES_NOT_EXIST` if the exercise type is not recognized.
         """
-        if exercise_type == ExerciseType.SQUAT:           return PhaseType.Squat.NONE
-        elif exercise_type == ExerciseType.BICEPS_CURL:   return PhaseType.BicepsCurl.NONE
-        elif exercise_type == ExerciseType.LATERAL_RAISE: return PhaseType.LateralRaise.NONE
-        else:
-            from Server.Utilities.Error.ErrorHandler import ErrorHandler
-            import inspect
-            ErrorHandler.handle(error=ErrorCode.EXERCISE_TYPE_DOES_NOT_EXIST, origin=inspect.currentframe())
-            return ErrorCode.EXERCISE_TYPE_DOES_NOT_EXIST
+        if   exercise_type == ExerciseType.SQUAT:         return PhaseType.Squat
+        elif exercise_type == ExerciseType.BICEPS_CURL:   return PhaseType.BicepsCurl
+        elif exercise_type == ExerciseType.LATERAL_RAISE: return PhaseType.LateralRaise
+        else:                                             raise ValueError(f"Unsupported exercise: {exercise_type}")

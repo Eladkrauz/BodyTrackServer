@@ -8,11 +8,14 @@
 ### IMPORTS ###
 ###############
 from flask import Flask, request, jsonify, Response
+from flask_cors import CORS
 from threading import Thread
 from typing import Dict
 import inspect, ipaddress
 import base64, cv2
 import numpy as np
+from threading import Thread
+import os
 
 from Server.Communication.HttpCodes           import HttpCodes
 from Server.Management.SessionManager         import SessionManager
@@ -59,6 +62,7 @@ class FlaskServer:
         self.host = host
         self.port = port
         self.app = Flask(__name__)  # Create a Flask app instance.
+        CORS(self.app)          # Enable CORS for all routes.
 
         # Bind routes to handler functions.
         try:
@@ -71,6 +75,8 @@ class FlaskServer:
             self.app.add_url_rule("/end/session",          view_func=self._end_session,          methods=["POST"])
             self.app.add_url_rule("/analyze",              view_func=self._analyze_pose,         methods=["POST"])
             self.app.add_url_rule("/session/status",       view_func=self._session_status,       methods=["POST"])
+            self.app.add_url_rule("/internal/debug/session-manager", view_func=self.debug_session_manager, methods=["GET"])
+            self.app.add_url_rule("/terminate/server", view_func=self._terminate_server, methods=["GET"])
         except Exception as e:
             ErrorHandler.handle(
                 error=ErrorCode.CANT_ADD_URL_RULE_TO_FLASK_SERVER,
@@ -524,3 +530,23 @@ class FlaskServer:
             return jsonify(Communication.error_response(session_status_icd)), HttpCodes.SERVER_ERROR
         else:
             return jsonify(Communication.construct_response(session_status_icd)), HttpCodes.OK
+        
+    def debug_session_manager(self):
+        return jsonify(self.session_manager.get_debug_state()), HttpCodes.OK
+
+    def _terminate_server(self) -> None:
+        """
+        ### Brief:
+        The `_terminate_server` method stops the Flask server and exits the system.
+
+        ### Use:
+        Used for debugging purposes to gracefully shut down the server.
+        """
+        Logger.info("###################################")
+        Logger.info("##### SERVER IS SHUTTING DOWN #####")
+        Logger.info("###################################")
+        response = jsonify({"message": "Server is shutting down..."}), HttpCodes.OK
+
+        # Use a background thread to exit the system after the response is sent.
+        def exit_system(): os._exit(0)
+        Thread(target=exit_system).start(); return response

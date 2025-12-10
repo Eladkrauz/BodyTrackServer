@@ -36,6 +36,9 @@ class ServerManager:
         Logger.info("##### SERVER IS INITIALIZED SUCCESSFULLY #####")
         Logger.info("##############################################")
 
+        while True: time.sleep(5)
+
+        return
         def show(result):
             import json
             time.sleep(5)
