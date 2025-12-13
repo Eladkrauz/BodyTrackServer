@@ -38,7 +38,7 @@ class SessionData:
     ###########################
     ### SESSION DATA FIELDS ###
     ###########################
-    history_data:HistoryData            = field(init=False)
+    history:HistoryData                 = field(init=False)
     session_id:SessionId                = field()
     client_info:Dict[str, Any]          = field()
     exercise_type:ExerciseType          = field()
@@ -63,7 +63,7 @@ class SessionData:
         The `__post_init__` method initializes the `HistoryData` instance after all other fields are set.
         """
         try:
-            self.history_data = HistoryData()
+            self.history = HistoryData()
         except Exception as e:
             from Server.Utilities.Error.ErrorHandler import ErrorHandler
             from Server.Utilities.Error.ErrorCode import ErrorCode
@@ -115,69 +115,135 @@ class SessionData:
     ### GET SESSION ID ###
     ######################
     def get_session_id(self) -> SessionId:
+        """
+        ### Brief:
+        The `get_session_id` method retrieves the unique session identifier.
+
+        ### Returns:
+        - `SessionId`: The unique session identifier.
+        """
         return self.session_id
 
     #######################
     ### GET CLIENT INFO ###
     #######################
     def get_client_info(self) -> Dict[str, Any]:
+        """
+        ### Brief:
+        The `get_client_info` method retrieves the client information associated with the session.
+
+        ### Returns:
+        - `Dict[str, Any]`: The client information dictionary.
+        """
         return self.client_info
 
     #########################
     ### GET EXERCISE TYPE ###
     #########################
     def get_exercise_type(self) -> ExerciseType:
+        """
+        ### Brief:
+        The `get_exercise_type` method retrieves the `ExerciseType` of the session.
+
+        ### Returns:
+        - `ExerciseType`: The type of exercise for the session.
+        """
         return self.exercise_type
     
     ###############################
     ### GET EXTENDED EVALUATION ###
     ###############################
     def get_extended_evaluation(self) -> bool:
+        """
+        ### Brief:
+        The `get_extended_evaluation` method retrieves whether extended evaluation
+        is enabled for the session.
+
+        ### Returns:
+        - `bool`: True if extended evaluation is enabled, False otherwise.
+        """
         return self.extended_evaluation
 
     ###########################
     ### GET ANALYZING STATE ###
     ###########################
     def get_analyzing_state(self) -> AnalyzingState:
+        """
+        ### Brief:
+        The `get_analyzing_state` method retrieves the current `AnalyzingState` of the session.
+        
+        ### Returns:
+        - `AnalyzingState`: The current analyzing state of the session.
+        """
         return self.analyzing_state
     
     ##########################
     ### GET SESSION STATUS ###
     ##########################
     def get_session_status(self) -> SessionStatus:
+        """
+        ### Brief:
+        The `get_session_status` method retrieves the current `SessionStatus` of the session.
+
+        ### Returns:
+        - `SessionStatus`: The current status of the session.
+        """
         return self.session_status
+    
+    ###################
+    ### GET HISTORY ###
+    ###################
+    def get_history(self) -> HistoryData:
+        """
+        ### Brief:
+        The `get_history` method retrieves the `HistoryData` associated with the session.
+
+        ### Returns:
+        - `HistoryData`: The history data of the session.
+        """
+        return self.history
 
     #####################################################################
     ############################## SETTERS ##############################
     #####################################################################
 
-    #######################
-    ### SET CLIENT INFO ###
-    #######################
-    def set_client_info(self, client_info:Dict[str, Any]) -> None:
-        self.client_info = client_info
-    
-    #########################
-    ### SET EXERCISE TYPE ###
-    #########################
-    def set_exercise_type(self, exercise_type:ExerciseType) -> None:
-        self.exercise_type = exercise_type
-
     ###############################
     ### SET EXTENDED EVALUATION ###
     ###############################
     def set_extended_evaluation(self, extended_evaluation:bool) -> None:
+        """
+        ### Brief:
+        The `set_extended_evaluation` method sets whether extended evaluation
+        is enabled for the session.
+
+        ### Arguments:
+        - `extended_evaluation` (bool): `True` to enable extended evaluation, `False` to disable.
+        """
         self.extended_evaluation = extended_evaluation
 
     ###########################
     ### SET ANALYZING STATE ###
     ###########################
     def set_analyzing_state(self, analyzing_state:AnalyzingState) -> None:
+        """
+        ### Brief:
+        The `set_analyzing_state` method sets the current `AnalyzingState` of the session.
+
+        ### Arguments:
+        - `analyzing_state` (AnalyzingState): The new analyzing state to set.
+        """
         self.analyzing_state = analyzing_state
 
     ##########################
     ### SET SESSION STATUS ###
     ##########################
     def set_session_status(self, session_status:SessionStatus) -> None:
+        """
+        ### Brief:
+        The `set_session_status` method sets the current `SessionStatus` of the session.
+
+        ### Arguments:
+        - `session_status` (SessionStatus): The new session status to set.
+        """
         self.session_status = session_status
         self.update_time_stamp(session_status)

@@ -7,28 +7,44 @@
 ###############
 ### IMPORTS ###
 ###############
-from typing import Dict, Any
+from typing import Dict, Any, List
 import inspect
 
-
-from Server.Utilities.Error.ErrorCode import ErrorCode
+from Server.Utilities.Error.ErrorCode    import ErrorCode
 from Server.Utilities.Error.ErrorHandler import ErrorHandler
-from Server.Utilities.Logger          import Logger
+from Server.Utilities.Logger             import Logger
 
-from Server.Data.Session.ExerciseType import ExerciseType
-from Server.Data.Session.SessionData  import SessionData
-from Server.Data.Phase.PhaseType      import PhaseType
-from Server.Data.Phase.PhaseDictKey   import PhaseDictKey
-from Server.Data.Joints.JointAngle    import JointAngle
+from Server.Data.Session.ExerciseType    import ExerciseType
+from Server.Data.Session.SessionData     import SessionData
+from Server.Data.Phase.PhaseType         import PhaseType
+from Server.Data.Phase.PhaseDictKey      import PhaseDictKey
+from Server.Data.Joints.JointAngle       import JointAngle
+from Server.Data.History.HistoryDictKey  import HistoryDictKey
+from Server.Data.History.HistoryData     import HistoryData
 
 ############################
 ### PHASE DETECTOR CLASS ###
 ############################
 class PhaseDetector:
+    """
+    ### Description:
+    The `PhaseDetector` class is responsible for determining the current phase of an exercise
+    based on joint angle data and predefined rules.
+
+    The class utilizes configurations loaded from a JSON file to define the rules for each exercise type.
+
+    It provides methods to:
+        1. Determine the current phase based on joint angles.
+        2. Ensure the initial phase is correct according to the exercise type.
+    """
     #########################
     ### CLASS CONSTRUCTOR ###
     #########################
     def __init__(self):
+        """
+        ### Brief:
+        The `__init__` method initializes the PhaseDetector class by retrieving configurations.
+        """
         self.retrieve_configurations()
 
         Logger.info("Initialized successfully.")
@@ -37,8 +53,60 @@ class PhaseDetector:
     ### DETERMINE PHASE ###
     #######################
     def determine_phase(self, session_data:SessionData) -> PhaseType | ErrorCode:
-        pass
+        """
+        ### Brief:
+        The `determine_phase` method determines the current phase of the exercise
+        based on the latest joint angle data and predefined rules.
 
+        ### Arguments:
+        - `session_data` (SessionData): The session data containing relevant information.
+
+        ### Returns:
+        - `PhaseType` representing the determined phase.
+        - `ErrorCode` in case of an error.
+        """
+        history:HistoryData = session_data.get_history()
+        # Ensure session state is stable.
+        if not history.is_state_ok():
+            ErrorHandler.handle(
+                error=ErrorCode.TRIED_TO_DETECT_FRAME_FOR_UNSTABLE_STATE,
+                origin=inspect.currentframe()
+            )
+            return ErrorCode.TRIED_TO_DETECT_FRAME_FOR_UNSTABLE_STATE
+        
+        # Ensure there is valid frame data to analyze.
+        if not history.is_last_frame_actually_valid():
+            return history.get_phase_state()
+
+        # Load configuration for this exercise.
+        exercise_configuration:Dict[str, Any] = self._get_exercise_config(session_data)
+        if isinstance(exercise_configuration, ErrorCode): return exercise_configuration
+
+        # Get the rules of the exercise, from the configuration.
+        rules = exercise_configuration.get(PhaseDictKey.RULES, None)
+        if rules is None: return ErrorCode.PHASE_THRESHOLDS_CONFIG_FILE_ERROR
+
+        # Retrieve the latest joints from history.
+        last_valid_frame:Dict[str, Any] = session_data.get_history().get_last_valid_frame()
+        last_valid_joints:Dict[str, Any] = last_valid_frame[HistoryDictKey.Frame.JOINTS]
+        if last_valid_joints is None or len(last_valid_joints) == 0:
+            return ErrorCode.NO_VALID_FRAME_DATA_IN_SESSION
+
+        # Check which phases match all joint rules.
+        phase_enum = PhaseType.get_phase_enum(session_data.get_exercise_type())
+        candidates: list[str] = []
+
+        for phase in phase_enum:
+            # Ignoring the NONE type.
+            if phase.name == "NONE": continue
+
+            # Adding candidate if rules match.
+            if self._phase_matches_rules(phase.name, rules, last_valid_joints):
+                candidates.append(phase.name)
+
+        # Resolve final selected phase.
+        return self._select_phase_from_candidates(candidates, session_data)
+    
     ####################################
     ### ENSURE INITIAL PHASE CORRECT ###
     ####################################
@@ -57,42 +125,184 @@ class PhaseDetector:
         - `False` if incorrect.
         - `ErrorCode` in case of an error.
         """
+        # Retrieve exercise configuration.
+        exercise_config = self._get_exercise_config(session_data)
+        if isinstance(exercise_config, ErrorCode): return exercise_config
+
+        # Extract initial phase name.
+        initial_phase_name:str = exercise_config.get(PhaseDictKey.INITIAL_PHASE)
+        if not initial_phase_name:
+            ErrorHandler.handle(
+                error=ErrorCode.PHASE_THRESHOLDS_CONFIG_FILE_ERROR,
+                origin=inspect.currentframe(),
+                extra_info={"Missing initial_phase for exercise": session_data.get_exercise_type().value}
+            )
+            return ErrorCode.PHASE_THRESHOLDS_CONFIG_FILE_ERROR
+
+        # Extract phase rules.
+        rules:Dict[str, Any] = exercise_config.get(PhaseDictKey.RULES)
+        if rules is None or initial_phase_name not in rules:
+            ErrorHandler.handle(
+                error=ErrorCode.PHASE_THRESHOLDS_CONFIG_FILE_ERROR,
+                origin=inspect.currentframe(),
+                extra_info={"Missing rules for initial phase": initial_phase_name}
+            )
+            return ErrorCode.PHASE_THRESHOLDS_CONFIG_FILE_ERROR
+
+        # Validate joints against initial phase rules.
+        is_match:bool = self._phase_matches_rules(
+            phase_type=PhaseType.get_phase_enum(session_data.get_exercise_type())[initial_phase_name],
+            rules=rules,
+            joints=joints
+        )
+
+        return is_match
+        
+    #####################################################################
+    ############################## HELPERS ##############################
+    #####################################################################
+    
+    ###########################
+    ### GET EXERCISE CONFIG ###
+    ###########################
+    def _get_exercise_config(self, session_data:SessionData) -> Dict[str, Any] | ErrorCode:
+        """
+        ### Brief:
+        The `_get_exercise_config` method retrieves the exercise-specific configuration.
+        
+        ### Arguments:
+        - `session_data` (SessionData): The session data containing relevant information.
+
+        ### Returns:
+        - `Dict[str, Any]` containing the exercise configuration.
+        - `ErrorCode` in case of an error.
+        """
         try:
             exercise_type:ExerciseType = session_data.get_exercise_type()
-            exercise_thresholds:Dict[str, Any] = self.thresholds.get(exercise_type.value, {})
+            exercise_thresholds:Dict[str, Any] = self.thresholds.get(exercise_type.value, None)
+            # If the threshols configuration file does not contain the exercise type.
             if exercise_thresholds is None:
                 ErrorHandler.handle(
                     error=ErrorCode.PHASE_THRESHOLDS_CONFIG_FILE_ERROR,
                     origin=inspect.currentframe(),
-                    extra_info={
-                        "Missing exercise type:": exercise_type.value
-                    }
-                ); return ErrorCode.INTERNAL_SERVER_ERROR
-            
-            correct_initial_phase:PhaseType = exercise_thresholds.get(PhaseDictKey.INITIAL_PHASE, None)
-            if correct_initial_phase is None:
-                ErrorHandler.handle(
-                    error=ErrorCode.PHASE_THRESHOLDS_CONFIG_FILE_ERROR,
-                    origin=inspect.currentframe(),
-                    extra_info={
-                        "Missing initial phase for exercise type:": exercise_type.value
-                    }
-                ); return ErrorCode.INTERNAL_SERVER_ERROR
+                    extra_info={"Missing exercise config": exercise_type.value}
+                )
+                return ErrorCode.PHASE_THRESHOLDS_CONFIG_FILE_ERROR
+            return exercise_thresholds
+        except Exception as e:
+            ErrorHandler.handle(
+                error=ErrorCode.INTERNAL_SERVER_ERROR,
+                origin=inspect.currentframe(),
+                extra_info={"Exception": str(e)}
+            )
+            return ErrorCode.INTERNAL_SERVER_ERROR
+        
+    ###########################
+    ### PHASE MATCHES RULES ###
+    ###########################
+    def _phase_matches_rules(self, phase_type:PhaseType, rules:Dict[str, Any], joints:Dict[str, float]) -> bool:
+        """
+        ### Brief:
+        The `_phase_matches_rules` method checks if the given joint angles match
+        the rules defined for a specific phase.
 
+        ### Arguments:
+        - `phase_type` (PhaseType): The phase type to check.
+        - `rules` (Dict[str, Any]): The rules defining joint angle limits for phases.
+        - `joints` (Dict[str, float]): The current joint angles.
 
-            # Example criteria check (to be replaced with actual logic):
-            initial_phase = session_data.get_current_phase()
-            if initial_phase == PhaseType.START and joints.get("SpineBase", {}).get("y", 0) < self.thresholds.get("InitialPhaseHeightThreshold", 0):
-                Logger.info("Initial phase verified as correct.")
-                return True
-            else:
-                Logger.info("Initial phase verification failed.")
+        ### Returns:
+        - `True` if the joint angles match the phase rules.
+        - `False` otherwise.
+        """
+        phase_rules = rules.get(phase_type.name, None)
+        if phase_rules is None:
+            return False
+
+        for joint_name, joint_range in phase_rules.items():
+            if joint_name not in joints:
+                # Missing joint: cannot match this phase.
                 return False
 
-        except Exception as e:
-            Logger.error(f"Error in {inspect.currentframe().f_code.co_name}: {str(e)}")
-            return ErrorCode.PHASE_DETECTION_ERROR
+            angle = joints[joint_name]
+            min_allowed = joint_range.get(PhaseDictKey.MIN)
+            max_allowed = joint_range.get(PhaseDictKey.MAX)
 
+            if angle < min_allowed or angle > max_allowed:
+                return False
+
+        return True
+    
+    ####################################
+    ### SELECT PHASE FROM CANDIDATES ###
+    ####################################
+    ####################################
+    def _select_phase_from_candidates(self, candidates:List[str], session_data:SessionData) -> PhaseType | ErrorCode:
+        """
+        ### Brief:
+        The `_select_phase_from_candidates` method selects the most appropriate phase
+        from a list of candidate phases based on defined rules.
+
+        ### Arguments:
+        - `candidates` (List[str]): The list of candidate phase names.
+        - `session_data` (SessionData): The session data containing relevant information.
+
+        ### Returns:
+        - `PhaseType` representing the selected phase.
+        - `ErrorCode` in case of an error.
+        """
+
+        # No candidates at all, cannot determine phase.
+        if len(candidates) == 0: return ErrorCode.PHASE_UNDETERMINED_IN_FRAME
+
+        # Get phase enum for this exercise.
+        phase_enum:PhaseType = PhaseType.get_phase_enum(session_data.get_exercise_type())
+
+        ### Option 1: CANDIDATES LENGTH IS ONE (TRIVIAL CASE)
+        # If exactly one candidate, this is the trivial case and we return it.
+        if len(candidates) == 1: return phase_enum[candidates[0]]
+
+        ### Option 2: MULTIPLE CANDIDATES (NEED RESOLUTION)
+        # Retrieve last known phase from history.
+        last_phase:PhaseType | None = session_data.get_history().get_phase_state()
+
+        # If the previous phase is still valid: stay in the same phase.
+        if last_phase is not None and last_phase.name in candidates:
+            return last_phase
+
+        # Prefer the next phase in the configured transition order.
+        exercise_configuration:Dict[str, Any] | ErrorCode = self._get_exercise_config(session_data)
+        if isinstance(exercise_configuration, ErrorCode): return exercise_configuration
+
+        # Get transition order.
+        transition_order:List[str] = exercise_configuration.get(PhaseDictKey.TRANSITION_ORDER, [])
+        if not transition_order: return ErrorCode.PHASE_THRESHOLDS_CONFIG_FILE_ERROR
+
+        # Look for the next expected phase after the last known phase.
+        if last_phase is not None:
+            try:
+                # Find index of last phase in transition order.
+                idx = transition_order.index(last_phase.name)
+                # Get next expected phase.
+                next_expected = transition_order[(idx + 1) % len(transition_order)]
+                # If next expected phase is a candidate, return it.
+                if next_expected in candidates:
+                    return phase_enum[next_expected]
+            except ValueError:
+                # If last_phase not found in transition order, ignore.
+                pass
+        
+        # Option 3: RECOVER FROM LOST TRACKING
+        for phase_name in transition_order:
+            if phase_name in candidates:
+                return phase_enum[phase_name]
+
+        # Should never happen if config is valid, but safe guard
+        return ErrorCode.PHASE_UNDETERMINED_IN_FRAME
+
+    ###########################################################################
+    ############################## CONFIGURATION ##############################
+    ###########################################################################
 
     ###############################
     ### RETRIEVE CONFIGURATIONS ###

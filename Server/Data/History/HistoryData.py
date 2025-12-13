@@ -28,9 +28,8 @@ class HistoryData:
     The `HistoryData` maintains all session-level temporal and state information needed by:
     - `PhaseDetector` (state machine)
     - `ErrorDetector`
-    - `FeedbackManager`
-    - `RepCounter`
-    - Final summary statistics / analytics
+    - `FeedbackFormatter`
+    - `SessionSummaryManager`
 
     ### Stored Elements:
 
@@ -42,7 +41,6 @@ class HistoryData:
         `HistoryDictKey.ERROR_STRIKES`:                 A `dict` containing consecutive counters for detected errors.
 
         `HistoryDictKey.PHASE_STATE`:                   The current exercise phase (`PhaseType` enum element)
-        'HistoryDictKey.PHASE_START_TIME`:              The time when the phase started
         `HistoryDictKey.PHASE_TRANSITIONS`:             A `dict` for historical context of phase changes
         `HistoryDictKey.PHASE_DURATIONS`:               A `dict` for historical context of phase durations
         `HistoryDictKey.INITIAL_PHASE_COUNTER`:         An `int` which holds the number of consecutive frames with initial exercise phase
@@ -55,9 +53,13 @@ class HistoryData:
         `HistoryDictKey.REP_COUNT`:                     A counter for tracking amount of repetitions
         `HistoryDictKey.REPETITIONS`:                   A `list` that stores finished repetitions
         `HistoryDictKey.CURRENT_REP`:                   A `dict` which stores current repetition info
+        `HistoryDictKey.CURRENT_TRANSITION_INDEX`:      An `int` which stores the current transition index in the exercise phase sequence
 
         `HistoryDictKey.EXERCISE_START_TIME`:           The time when the session started
         `HistoryDictKey.EXERCISE_END_TIME`:             The time when the session ended
+        `HistoryDictKey.EXERCISE_FINAL_DURATION`:       The total duration of the session
+        `HistoryDictKey.PAUSE_SESSION_TIMESTAMP`:       The time when the session was paused
+        `HistoryDictKey.PAUSES_DURATIONS`:              A counter for tracking total pause durations
 
         `HistoryDictKey.FRAMES_SINCE_LAST_FEEDBACK`:    A counter for tracking frames arrived since last feedback sent
         
@@ -88,7 +90,6 @@ class HistoryData:
     - Used by:
         - `PhaseDetector` → compares angles across frames
         - `ErrorDetector` → continuity-based checks
-        - `RepCounter` → angle trend-based detection
 
     ### Consecutive Ok Frames (`int`):
     - Stores the amount of consecutive ok (valid) frames (where no bad frames arrived).
@@ -104,11 +105,7 @@ class HistoryData:
     - Only `PhaseDetector` updates this.
     - Used by:
         - `ErrorDetector` → errors depend on the phase
-        - `RepCounter` → phase transitions mark rep boundaries
-        - `FeedbackManager` → phase-specific coaching
-
-    ### Phase Start Time (`datetime`):
-    - Tracks the current phase start time.
+        - `FeedbackFormatter` → phase-specific coaching
 
     ### Phase Transitions (`dict[str, Any]`):
     - A `dict` for historical context of phase changes.
@@ -157,7 +154,6 @@ class HistoryData:
     }
 
     ### Rep Count (`int`):
-    - Updated by `RepCounter` when a repetition is completed.
     - Used by:
         - Real-time feedback
         - Session summary
@@ -188,6 +184,9 @@ class HistoryData:
         `HistoryDictKey.CurrentRep.ERRORS`: `list[str]`
     }
 
+    ### Current Transition Index (`int`):
+    - An `int` which stores the current transition index in the exercise phase sequence.
+
     ### Exercise Start Time (`datetime`):
     - Set when session starts.
     - Used for total duration and pacing analysis.
@@ -195,6 +194,15 @@ class HistoryData:
     ### Exercise End Time (`datetime`):
     - Set when session ends.
     - Used for calculating total exercise time.
+
+    ### Exercise Final Duration (`float`):
+    - The total duration of the session in seconds.
+
+    ### Pause Session Timestamp (`datetime`):
+    - The time when the session was paused.
+
+    ### Pauses Durations (`float`):
+    - A counter for tracking total pause durations.
 
     ### Frames Since Last Feedback (`int`):
     - A counter for tracking frames arrived since last feedback sent.
@@ -218,7 +226,6 @@ class HistoryData:
             HistoryDictKey.ERROR_STREAKS:               {},
 
             HistoryDictKey.PHASE_STATE:                 None,
-            HistoryDictKey.PHASE_START_TIME:            None,
             HistoryDictKey.PHASE_TRANSITIONS:           [],
             HistoryDictKey.PHASE_DURATIONS:             [],
             HistoryDictKey.INITIAL_PHASE_COUNTER:       0,
@@ -231,9 +238,13 @@ class HistoryData:
             HistoryDictKey.REP_COUNT:                   0,
             HistoryDictKey.REPETITIONS:                 [],
             HistoryDictKey.CURRENT_REP:                 None,
+            HistoryDictKey.CURRENT_TRANSITION_INDEX:    0,
 
             HistoryDictKey.EXERCISE_START_TIME:         None,
             HistoryDictKey.EXERCISE_END_TIME:           None,
+            HistoryDictKey.EXERCISE_FINAL_DURATION:     None,
+            HistoryDictKey.PAUSE_SESSION_TIMESTAMP:     None,
+            HistoryDictKey.PAUSES_DURATIONS:            0.0,
 
             HistoryDictKey.FRAMES_SINCE_LAST_FEEDBACK:  0,
 
@@ -353,7 +364,7 @@ class HistoryData:
         ### Returns:
         - A `PhaseType` element of the previous phase type.
 
-        ### NoteS:
+        ### Notes:
         - If `self.history[HistoryDictKey.PHASE_TRANSITIONS]` is `None`,
         meaning no transition has been made so far, returning `None`.
         """
@@ -533,27 +544,55 @@ class HistoryData:
         """
         return self.history[HistoryDictKey.FRAMES_SINCE_LAST_FEEDBACK]
 
-    ###################
-    ### GET SUMMARY ###
-    ###################
-    def get_summary(self) -> Dict[str, Any]:
+    #############################
+    ### GET EXERCISE DURATION ###
+    #############################
+    def get_exercise_duration(self) -> Optional[float]:
         """
         ### Brief:
-        The `get_summary` method returns a compact summary of the entire session.
-        Useful for final exercise reporting.
+        The `get_exercise_duration` method returns the total exercise duration.
 
         ### Returns:
-        A `dict` containing a summary of the entire session
+        A `float` indicating the total exercise duration in seconds.
         """
-        start_time:datetime = self.history[HistoryDictKey.EXERCISE_START_TIME]
-        end_time:datetime   = self.history[HistoryDictKey.EXERCISE_END_TIME]
+        return self.history[HistoryDictKey.EXERCISE_FINAL_DURATION]
+    
+    ###############################
+    ### PAUSE SESSION TIMESTAMP ###
+    ###############################
+    def get_pause_session_timestamp(self) -> Optional[datetime]:
+        """
+        ### Brief:
+        The `get_pause_session_timestamp` method returns the pause session timestamp.
 
-        # Calculating entire session time.
-        if start_time and end_time: total_time = (end_time - start_time).total_seconds()
-        else:                       total_time = None
+        ### Returns:
+        A `datetime` indicating the pause session timestamp.
+        """
+        return self.history[HistoryDictKey.PAUSE_SESSION_TIMESTAMP]
+    
+    ############################
+    ### GET PAUSES DURATIONS ###
+    ############################
+    def get_pauses_durations(self) -> float:
+        """
+        ### Brief:
+        The `get_pauses_durations` method returns the total pauses durations.
 
-        return {
-            HistoryDictKey.Summary.TOTAL_DURATION:  total_time,
-            HistoryDictKey.Summary.TOTAL_REP_COUNT: self.history[HistoryDictKey.REP_COUNT],
-            HistoryDictKey.Summary.REPS_HISTORY:    self.history[HistoryDictKey.REPETITIONS]
-        }
+        ### Returns:
+        A `float` indicating the total pauses durations in seconds.
+        """
+        return self.history[HistoryDictKey.PAUSES_DURATIONS]
+    
+    ####################################
+    ### GET CURRENT TRANSITION INDEX ###
+    ####################################
+    def get_current_transition_index(self) -> int:
+        """
+        ### Brief:
+        The `get_current_transition_index` method returns the current transition
+        index in the exercise phase sequence.
+
+        ### Returns:
+        An `int` indicating the current transition index.
+        """
+        return self.history[HistoryDictKey.CURRENT_TRANSITION_INDEX]

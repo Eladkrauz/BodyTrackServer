@@ -33,6 +33,7 @@ class ConfigParameters:
         JOINTS                                  = "joints"
         ERROR                                   = "error"
         PHASE                                   = "phase"
+        FEEDBACK                                = "feedback"
         
     class Minor(enum):
         """
@@ -92,3 +93,8 @@ class ConfigParameters:
 
         # Phase.
         PHASE_DETECTOR_CONFIG_FILE              = "phase_thresholds_config_file"
+
+        # Feedback.
+        POSE_QUALITY_FEEDBACK_THRESHOLD         = "pose_quality_feedback_threshold"
+        BIO_FEEDBACK_THRESHOLD                  = "biomechanical_feedback_threshold"
+        FEEDBACK_COOLDOWN_FRAMES                = "feedback_cooldown_frames"

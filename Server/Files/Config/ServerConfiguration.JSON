@@ -1,56 +1,61 @@
 {
-  "communication": {
-    "port":            8080,
-    "host":            "0.0.0.0",
-    "timeout_seconds": 30
-  },
-  "frame": {
-    "width":  640,
-    "height": 480
-  },
-  "session": {
-    "supported_exercises":           ["squat", "biceps_curl", "lateral_raise"],
-    "maximum_clients":               10,
-    "num_of_min_init_ok_frames":     10,
-    "num_of_min_init_correct_phase": 10
-  },
-  "history": {
-    "frames_rolling_window_size":           50,
-    "bad_frame_log_size":                   200,
-    "recovery_ok_threshold":                4,
-    "bad_stability_limit":                  30,
-    "max_consecutive_invalid_before_abort": 60
-  },
-  "tasks": {
-    "cleanup_interval_minutes":       10,
-    "max_registration_minutes":       10,
-    "max_inactive_minutes":           3,
-    "max_pause_minutes":              10,
-    "max_ended_retention":            30,
-    "retrieve_configuration_minutes": 10   
-  },
-  "log": {
-    "logger_path":      "Server/Files/Logs/ServerLogger.log",
-    "logger_name":      "BodyTrackLogger",
-    "archive_dir_name": "Archive",
-    "log_level":        "DEBUG"
-  },
-  "pose": {
-    "stability_threshold":     0.1,
-    "bbox_too_far":            0.1,
-    "bbox_too_close":          0.8,
-    "mean_vis_threshold":      0.3,
-    "partial_count_threshold": 10,
-    "minimum_bbox_area":       1e-6
-  },
-  "joints": {
-    "visibility_threshold":  0.5,
-    "min_valid_joint_ratio": 0.7
-  },
-  "error": {
-    "error_thresholds_config_file": "Server/Files/Config/ErrorThresholds.JSON"
-  },
-  "phase": {
-    "phase_thresholds_config_file": "Server/Files/Config/PhaseThresholds.JSON"
-  }
+    "communication": {
+      "port":                                 8080,
+      "host":                                 "0.0.0.0",
+      "timeout_seconds":                      30
+    },
+    "frame": {
+      "width":                                640,
+      "height":                               480
+    },
+    "session": {
+      "supported_exercises":                  ["squat", "biceps_curl", "lateral_raise"],
+      "maximum_clients":                      10,
+      "num_of_min_init_ok_frames":            10,
+      "num_of_min_init_correct_phase":        10
+    },
+    "history": {
+      "frames_rolling_window_size":           50,
+      "bad_frame_log_size":                   200,
+      "recovery_ok_threshold":                4,
+      "bad_stability_limit":                  30,
+      "max_consecutive_invalid_before_abort": 60
+    },
+    "tasks": {
+      "cleanup_interval_minutes":             10,
+      "max_registration_minutes":             10,
+      "max_inactive_minutes":                 3,
+      "max_pause_minutes":                    10,
+      "max_ended_retention":                  30,
+      "retrieve_configuration_minutes":       10   
+    },
+    "log": {
+      "logger_path":                          "Server/Files/Logs/ServerLogger.log",
+      "logger_name":                          "BodyTrackLogger",
+      "archive_dir_name":                     "Archive",
+      "log_level":                            "DEBUG"
+    },
+    "pose": {
+      "stability_threshold":                  0.1,
+      "bbox_too_far":                         0.1,
+      "bbox_too_close":                       0.8,
+      "mean_vis_threshold":                   0.4,
+      "partial_count_threshold":              6,
+      "minimum_bbox_area":                    1e-6
+    },
+    "joints": {
+      "visibility_threshold":                 0.5,
+      "min_valid_joint_ratio":                0.7
+    },
+    "error": {
+      "error_thresholds_config_file":         "Server/Files/Config/ErrorThresholds.JSON"
+    },
+    "phase": {
+      "phase_thresholds_config_file":         "Server/Files/Config/PhaseThresholds.JSON"
+    },
+    "feedback": {
+      "pose_quality_feedback_threshold":      10,
+      "biomechanical_feedback_threshold":     10,
+      "feedback_cooldown_frames":             20
+    }
 }

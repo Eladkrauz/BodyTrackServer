@@ -101,7 +101,7 @@ class FlaskServer:
         The `run` method starts the `Flask` server in a blocking manner.
         """
         Logger.info(f"Starting server on {self.host}:{self.port}")
-        self.app.run(host=self.host, port=self.port)
+        self.app.run(host=self.host, port=self.port, debug=False, use_reloader=False)
 
     #################
     ### RUN ASYNC ###

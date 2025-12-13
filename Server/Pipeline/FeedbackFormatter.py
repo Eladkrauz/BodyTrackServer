@@ -1,28 +1,26 @@
 ####################################################################
 ################# BODY TRACK // SERVER // PIPELINE #################
 ####################################################################
-#################### CLASS: FeesbackFormatter ######################
+#################### CLASS: FeedbackFormatter ######################
 ####################################################################
 
 ###############
 ### IMPORTS ###
 ###############
-
 from __future__ import annotations
-from typing import Dict, TYPE_CHECKING
-import inspect
-from Server.Data.Session import SessionData
-from Server.Utilities.Config.ConfigLoader import ConfigLoader
+from typing     import TYPE_CHECKING, Dict
+
+from Server.Utilities.Config.ConfigLoader     import ConfigLoader
 from Server.Utilities.Config.ConfigParameters import ConfigParameters
-from Server.Utilities.Error.ErrorHandler import ErrorHandler
-from Server.Utilities.Error.ErrorCode import ErrorCode
-from Server.Data.Session.SessionData import SessionData
-from Server.Data.Error.DetectedErrorCode import DetectedErrorCode
-from Server.Data.Pose.PoseQuality import PoseQuality
-from Server.Data.Response.FeedbackResponse import FeedbackCode
+from Server.Utilities.Logger                  import Logger
+from Server.Data.Session.SessionData          import SessionData
+from Server.Data.Error.DetectedErrorCode      import DetectedErrorCode
+from Server.Data.Pose.PoseQuality             import PoseQuality
+from Server.Data.Response.FeedbackResponse    import FeedbackCode
+from Server.Data.Session                      import SessionData
+
 if TYPE_CHECKING:
     from Server.Data.History.HistoryData import HistoryData
-    from Server.Data.History.HistoryDictKey import HistoryDictKey
 
 ################################
 ### FEEDBACK FORMATTER CLASS ###
@@ -52,29 +50,26 @@ class FeedbackFormatter:
         Loads all feedback-related threshold values from the configuration.
 
         ### Thresholds Loaded:
-        - `PoseQualityFeedbackThreshold` :
+        - `pose_quality_feedback_threshold` :
             Minimum number of consecutive bad frames before pose-quality feedback is allowed.
 
-        - `biomechanicalFeedbackThreshold` :
+        - `biomechanical_feedback_threshold` :
             Minimum number of repetitions of a biomechanical error before feedback is allowed.
 
-        - `COOLDOWN_FRAMES` :
+        - `cooldown_frames` :
             Cooldown interval between feedback messages to prevent over-alerting the user.
         """
-        self.PoseQualityFeedbackThreshold:int = ConfigLoader().get([
-            ConfigParameters.Major.FEEDBACK, ConfigParameters.Minor.POSE_QUALITY_FEEDBACK_THRESHOLD])
-        self.biomechanicalFeedbackThreshold:int = ConfigLoader().get([
-            ConfigParameters.Major.FEEDBACK, ConfigParameters.Minor.BIO_FEEDBACK_THRESHOLD])
-        self.COOLDOWN_FRAMES:int = ConfigLoader().get([
-            ConfigParameters.Major.FEEDBACK, ConfigParameters.Minor.FEEDBACK_COOLDOWN_FRAMES])
+        self.retrieve_configurations()
+        Logger.info("Initialized successfully")
 
-    ####################################
-    ### SELECT FEEDBACK MESSAGE TYPE ###
-    ####################################
-    def select_feedback_message(self, session:SessionData) -> FeedbackCode:
+    ##########################
+    ### CONSTRUCT FEEDBACK ###
+    ##########################
+    def construct_feedback(self, session:SessionData) -> FeedbackCode:
         """
         ### Brief:
-        Determines which feedback message should be returned for the current frame.
+        The `construct_feedback` methoddetermines which feedback message
+        should be returned for the current frame.
 
         ### Decision Process:
         1. Check whether the pose state is valid (`is_state_ok()`):
@@ -93,24 +88,26 @@ class FeedbackFormatter:
         ### Returns:
         - `FeedbackCode`: A system, pose-quality, biomechanical, or silent feedback code.
         """
-        history:HistoryData = session.history_data
-        current_state_ok:bool = history.is_state_ok()   
-        #Check biomechanical issues
-        if current_state_ok :
+        history:HistoryData = session.get_history()
+        current_state_ok:bool = history.is_state_ok()  
+
+        # Check biomechanical issues.
+        if current_state_ok:
             biomechanical_feedback:FeedbackCode = self._select_biomechanical_feedback(history)
-            if biomechanical_feedback is FeedbackCode.SILENT or biomechanical_feedback is FeedbackCode.VALID:
+            if biomechanical_feedback is FeedbackCode.SILENT \
+                or biomechanical_feedback is FeedbackCode.VALID:
                 return biomechanical_feedback
             else:
                 if self._is_allowed_to_return_feedback(history): return biomechanical_feedback
-                else: return FeedbackCode.SILENT
-        else :
+                else:                                            return FeedbackCode.SILENT
+        else:
             pose_feedback:FeedbackCode = self._select_pose_quality_feedback(history)
-            if pose_feedback is FeedbackCode.SILENT :
+            if pose_feedback is FeedbackCode.SILENT:
                 return pose_feedback
             else:
-                # Allow biomechanical feedback only if cooldown passed
+                # Allow biomechanical feedback only if cooldown passed.
                 if self._is_allowed_to_return_feedback(history): return pose_feedback
-                else: return FeedbackCode.SILENT
+                else:                                            return FeedbackCode.SILENT
         
     ####################################
     ### SELECT POSE QUALITY FEEDBACK ###
@@ -118,7 +115,8 @@ class FeedbackFormatter:
     def _select_pose_quality_feedback(self, history:HistoryData) -> FeedbackCode:
         """
         ### Brief:
-        Determines whether pose-quality feedback should be issued.
+        The `_select_pose_quality_feedback` method determines whether pose-quality
+        feedback should be issued.
 
         ### Logic:
         - If the pose is currently OK return `None` (indicates biomechanical stage should run).
@@ -134,14 +132,15 @@ class FeedbackFormatter:
         ### Returns:
         - `FeedbackCode`: Pose-quality feedback or `SILENT`.
         """
-        if history.is_state_ok():
-            return None
+        if history.is_state_ok(): return None
+
         frames_since_last_valid:int = history.get_frames_since_last_valid()
-        if frames_since_last_valid < self.PoseQualityFeedbackThreshold:
+        if frames_since_last_valid < self.pose_quality_feedback_threshold:
             return FeedbackCode.SILENT
-        bad_frame_streak:dict[str, int] = history.get_bad_frame_streaks()
-        worst_quality:PoseQuality = max(bad_frame_streak, key=bad_frame_streak.get)
-        return FeedbackCode.from_pose_quality(worst_quality)        
+        else:
+            bad_frame_streak:Dict[str, int] = history.get_bad_frame_streaks()
+            worst_quality:PoseQuality = max(bad_frame_streak, key=bad_frame_streak.get)
+            return FeedbackCode.from_pose_quality(worst_quality)        
     
     #####################################
     ### SELECT BIOMECHANICAL FEEDBACK ###
@@ -149,7 +148,8 @@ class FeedbackFormatter:
     def _select_biomechanical_feedback(self, history:HistoryData) -> FeedbackCode:
         """
         ### Brief:
-        Determines whether biomechanical feedback should be issued.
+        The `_select_biomechanical_feedback` method determines whether
+        biomechanical feedback should be issued.
 
         ### Logic:
         - If the state is not OK (pose-quality error exists) → biomechanical feedback is irrelevant.
@@ -164,26 +164,25 @@ class FeedbackFormatter:
         ### Returns:
         - `FeedbackCode`: A biomechanical feedback code or `SILENT`.
         """
-        if not history.is_state_ok():
-            return None
-        biomechanical_streaks:dict[str, int] = history.get_error_streaks()
-        worst_error_streak = max(biomechanical_streaks, key=biomechanical_streaks.get)
+        if not history.is_state_ok(): return None
+        
+        biomechanical_streaks:Dict[str, int] = history.get_error_streaks()
+        worst_error_streak:str = max(biomechanical_streaks, key=biomechanical_streaks.get)
 
-        if biomechanical_streaks[worst_error_streak] < self.biomechanicalFeedbackThreshold:
+        if biomechanical_streaks[worst_error_streak] < self.biomechanical_feedback_threshold:
             return FeedbackCode.SILENT
-        detected_enum = DetectedErrorCode[worst_error_streak]
-        return FeedbackCode.from_detected_error(detected_enum)
+        else:
+            detected_enum = DetectedErrorCode[worst_error_streak]
+            return FeedbackCode.from_detected_error(detected_enum)
     
     #####################################
     ### IS ALLOWED TO RETURN FEEDBACK ###
     #####################################
-    def _is_allowed_to_return_feedback(self, history: HistoryData) -> bool:
+    def _is_allowed_to_return_feedback(self, history:HistoryData) -> bool:
         """
         ### Brief:
-        Evaluates whether the cooldown period since the last feedback has passed.
-
-        ### Logic:
-        Uses the history-managed counter `get_frames_since_last_feedback()`.
+        The `_is_allowed_to_return_feedback` method evaluates whether the
+        cooldown period since the last feedback has passed.
 
         ### Arguments:
         - `history` (HistoryData): Holds cooldown counters.
@@ -191,8 +190,29 @@ class FeedbackFormatter:
         ### Returns:
         - `bool`: `True` if cooldown passed, otherwise `False`.
         """
-        frames_since_last_feedback = history.get_frames_since_last_feedback()
-        if frames_since_last_feedback >= self.COOLDOWN_FRAMES:
-            return True
-        else:
-            return False
+        frames_since_last_feedback:int = history.get_frames_since_last_feedback()
+
+        if frames_since_last_feedback >= self.cooldown_frames: return True
+        else:                                                  return False
+    
+    ###############################
+    ### RETRIEVE CONFIGURATIONS ###
+    ###############################
+    def retrieve_configurations(self) -> None:
+        """
+        ### Brief:
+        The `retrieve_configurations` method loads all feedback-related
+        threshold values from the configuration file.
+        """
+        self.pose_quality_feedback_threshold:int = ConfigLoader().get([
+            ConfigParameters.Major.FEEDBACK,
+            ConfigParameters.Minor.POSE_QUALITY_FEEDBACK_THRESHOLD
+        ])
+        self.biomechanical_feedback_threshold:int = ConfigLoader().get([
+            ConfigParameters.Major.FEEDBACK,
+            ConfigParameters.Minor.BIO_FEEDBACK_THRESHOLD
+        ])
+        self.cooldown_frames:int = ConfigLoader().get([
+            ConfigParameters.Major.FEEDBACK,
+            ConfigParameters.Minor.FEEDBACK_COOLDOWN_FRAMES
+        ])

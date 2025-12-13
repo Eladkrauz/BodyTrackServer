@@ -79,7 +79,7 @@ class ErrorDetector:
         - `DetectedErrorCode`
         """
         # Ensure last frame is valid.
-        history:HistoryData = session.history_data
+        history:HistoryData = session.get_history()
         if not history.is_last_frame_actually_valid():
             return DetectedErrorCode.NOT_READY_FOR_ANALYSIS
         

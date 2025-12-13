@@ -37,6 +37,12 @@ from Server.Data.Response.CalibrationResponse import CalibrationCode, Calibratio
 ### SESSION MANAGER CLASS ###
 #############################
 class SessionManager:
+    """
+    ### Description:
+    The `SessionManager` class is responsible for managing client sessions in the Body Track server.
+    It handles session registration, starting, pausing, resuming, ending, and frame analysis.
+    It maintains session states and ensures thread-safe operations using locks.
+    """
     #########################
     ### CLASS CONSTRUCTOR ###
     #########################
@@ -52,24 +58,20 @@ class SessionManager:
         self.retrieve_configurations()
 
         # Sessions.
-        self.id_generator:SessionIdGenerator = SessionIdGenerator()
-        self.sessions: dict[SessionId, SessionData] = {}
-        self.sessions_lock: RLock = RLock()
-        self.current_active_sessions = 0
-        self.ip_map: dict[str, SessionId] = {}
-        self.ip_map_lock: RLock = RLock()
+        self.id_generator:SessionIdGenerator       = SessionIdGenerator()
+        self.sessions:dict[SessionId, SessionData] = {}
+        self.sessions_lock:RLock                   = RLock()
+        self.current_active_sessions:int           = 0
+        self.ip_map:dict[str, SessionId]           = {}
+        self.ip_map_lock:RLock                     = RLock()
 
         # Tasks.
-        self._cleanup_thread = threading.Thread(
-            target=self._cleanup_task,
-            daemon=True
-        )
-        self._config_retrieve_thread = threading.Thread(
-            target=self._retrieve_config_task,
-            daemon=True
-        )
+        self._cleanup_thread = threading.Thread(target=self._cleanup_task, daemon=True)
+        self._config_retrieve_thread = threading.Thread(target=self._retrieve_config_task, daemon=True)
         # self._cleanup_thread.start()
         # self._config_retrieve_thread.start()
+
+        # Done initializing.
         Logger.info("Initialized successfully")
 
     #################################################################################################
@@ -120,9 +122,14 @@ class SessionManager:
 
         # If client is already registered.
         if session_status is not SessionStatus.NOT_IN_SYSTEM:
-            error_code:ErrorCode = self._session_status_to_error(session_status)
-            ErrorHandler.handle(error=error_code, origin=inspect.currentframe())
-            return ErrorResponse(error_code)
+            with self.ip_map_lock:
+                error_code:ErrorCode = self._session_status_to_error(session_status)
+                print("ID:", self.ip_map.get(client_info['ip']).id)
+                ErrorHandler.handle(error=error_code, origin=inspect.currentframe())
+                return ErrorResponse(
+                    error_code=error_code,
+                    extra_info={ "session_id": self.ip_map.get(client_info['ip']).id }
+                )
         
         # If the session is not registered - registering it.
         session_id:SessionId = self.id_generator.generate_session_id()
@@ -252,7 +259,7 @@ class SessionManager:
 
                     # Marking exercise started in the history.
                     with session_data.lock:
-                        self.pipeline_processor.start(session_data.history_data)
+                        self.pipeline_processor.start(session_data.get_history())
 
                     return ManagementResponse(ManagementCode.CLIENT_SESSION_IS_ACTIVE)
 
@@ -293,6 +300,7 @@ class SessionManager:
                 session_data:SessionData = self.sessions[session_id]
                 session_data.set_session_status(SessionStatus.PAUSED)
                 self.current_active_sessions -= 1
+                self.pipeline_processor.pause(session_data.get_history())
                 return ManagementResponse(ManagementCode.CLIENT_SESSION_IS_PAUSED)
         # If the session is not active.
         else:
@@ -347,6 +355,7 @@ class SessionManager:
                     session_data:SessionData = self.sessions[session_id]
                     session_data.set_session_status(SessionStatus.ACTIVE)
                     self.current_active_sessions += 1
+                    self.pipeline_processor.resume(session_data.get_history())
                     return ManagementResponse(ManagementCode.CLIENT_SESSION_IS_RESUMED)
                 
         # If the session is not paused.
@@ -395,7 +404,7 @@ class SessionManager:
 
             # Marking exercise ended in the history.
             with session_data.lock:
-                self.pipeline_processor.end(session_data.history_data)
+                self.pipeline_processor.end(session_data.get_history())
                 session_data.set_analyzing_state(AnalyzingState.DONE)
             
             # TODO: Add summary creation here using the final HistoryData values.
@@ -470,45 +479,61 @@ class SessionManager:
             )
             ErrorResponse(error_code)
 
-        ### VALIDATING THE FRAME ###
-        frame_data:FrameData | ErrorCode = self.pipeline_processor.validate_frame(
-            session_id=session_id,
-            frame_id=frame_id,
-            content=frame_content
-        )
-        if isinstance(frame_data, ErrorCode): return ErrorResponse(frame_data)
-        
         # Retrieving the session data.
         with self.sessions_lock:
             session_data:SessionData = self.sessions.get(session_id)
         
-        # Updating the session's last activity time stamp.
+        ### STARTING ###
         with session_data.lock:
+            # Updating the session's last activity time stamp.
             if session_data.update_time_stamp() is not None: # Updating last activity.
                 error_code:ErrorCode = ErrorCode.SESSION_STATUS_IS_NOT_RECOGNIZED
                 ErrorHandler.handle(error=error_code, origin=inspect.currentframe())
                 return ErrorResponse(error_code)
-        
-            ### STARTING ###
+            
+            # Validating the frame.
+            frame_data:FrameData | ErrorCode = self.pipeline_processor.validate_frame(
+                session_id=session_id,
+                frame_id=frame_id,
+                content=frame_content
+            )
+            if isinstance(frame_data, ErrorCode): return ErrorResponse(frame_data)
+            
             # Routing the frame to analysis based on the session analysis state.
+            self.pipeline_processor.analyze_frame_in_ready_state(session_data, frame_data)
+            
             state:AnalyzingState = session_data.analyzing_state
             if state is AnalyzingState.INIT:
-                initial_analysis_result:CalibrationCode | ErrorCode = self.pipeline_processor.analyze_frame_in_init_state(session_data, frame_data)
-                if isinstance(initial_analysis_result, CalibrationCode): return CalibrationResponse(initial_analysis_result)
-                else:                                                    return ErrorResponse(initial_analysis_result)
+                initial_analysis_result:CalibrationCode | ErrorCode \
+                    = self.pipeline_processor.analyze_frame_in_init_state(session_data, frame_data)
+                if isinstance(initial_analysis_result, CalibrationCode):
+                    return CalibrationResponse(initial_analysis_result)
+                else:
+                    return ErrorResponse(initial_analysis_result)
 
             elif state is AnalyzingState.READY:
-                position_analysis_result:CalibrationCode | ErrorCode = self.pipeline_processor.analyze_frame_in_ready_state(session_data, frame_data)
-                if isinstance(position_analysis_result, CalibrationCode): return CalibrationResponse(position_analysis_result)
-                else:                                                     return ErrorResponse(position_analysis_result)
+                position_analysis_result:CalibrationCode | ErrorCode \
+                    = self.pipeline_processor.analyze_frame_in_ready_state(session_data, frame_data)
+                if isinstance(position_analysis_result, CalibrationCode):
+                    return CalibrationResponse(position_analysis_result)
+                else:
+                    return ErrorResponse(position_analysis_result)
 
             elif state is AnalyzingState.ACTIVE:
-                full_pipeline_result:FeedbackCode | ErrorCode  = self.pipeline_processor.analyze_frame_full_pipeline(session_data, frame_data)
-                if isinstance(full_pipeline_result, FeedbackCode): return FeedbackResponse(full_pipeline_result)
-                else:                                              return ErrorResponse(full_pipeline_result)
+                full_pipeline_result:FeedbackCode | ErrorCode  \
+                    = self.pipeline_processor.analyze_frame_full_pipeline(session_data, frame_data)
+                if isinstance(full_pipeline_result, FeedbackCode):
+                    return FeedbackResponse(full_pipeline_result)
+                else:
+                    return ErrorResponse(full_pipeline_result)
 
-            else: # AnalyzingState.DONE
+            elif state is AnalyzingState.DONE:
                 error_code:ErrorCode = ErrorCode.TRYING_TO_ANALYZE_FRAME_WHEN_DONE
+                ErrorHandler.handle(error=error_code, origin=inspect.currentframe())
+                return ErrorResponse(error_code)
+            
+            elif state is AnalyzingState.FAILURE:
+                error_code:ErrorCode = ErrorCode.TRYING_TO_ANALYZE_FRAME_WHEN_FAILED
                 ErrorHandler.handle(error=error_code, origin=inspect.currentframe())
                 return ErrorResponse(error_code)
     
