@@ -106,6 +106,8 @@ class FeedbackCode(enum):
         try:
             if detected_error.name is DetectedErrorCode.NO_BIOMECHANICAL_ERROR.name:
                 return FeedbackCode.VALID
+            if detected_error.name is DetectedErrorCode.NOT_READY_FOR_ANALYSIS.name:
+                return FeedbackCode.SILENT
             return FeedbackCode[detected_error.name]
         except KeyError:
             return FeedbackCode.SILENT

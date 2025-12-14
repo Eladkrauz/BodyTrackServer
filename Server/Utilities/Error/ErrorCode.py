@@ -136,7 +136,18 @@ class ErrorCode(enum):
 
     # PhaseDetector.
     PHASE_THRESHOLDS_CONFIG_FILE_ERROR          = (800, "Error with the phase thresholds configuration file.",                              None, True)
+
+    # FeedbackFormatter.
+    FEEDBACK_FORMATTER_INIT_ERROR               = (900, "Failed to initialize FeedbackFormatter",                                           None, True)
+    FEEDBACK_CONSTRUCTION_ERROR                 = (901, "Error during feedback constructor",                                                None, False)
+    POSE_QUALITY_FEEDBACK_SELECTION_ERROR       = (902, "Error during pose quality feedback selection",                                     None, False)
+
+    # SessionSummaryManager.
+    SUMMARY_MANAGER_INIT_ERROR                  = (1001, "Failed to initialize SessionSummaryManager",                                      None, True)
+    SUMMARY_MANAGER_CREATE_ERROR                = (1002, "Failed to create session summary",                                                None, False)
+    SUMMARY_MANAGER_INTERNAL_ERROR              = (1000, "Internal SessionSummaryManager error",                                            None, False) 
     
+
     def __new__(cls, code:int, description:str, extra_info:dict = None, critical:bool = False):
         obj = object.__new__(cls)
         obj._value_ = code
