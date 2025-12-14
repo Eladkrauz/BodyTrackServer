@@ -143,7 +143,17 @@ class ErrorCode(enum):
     NO_VALID_FRAME_DATA_IN_SESSION              = (801, "No valid frame data found in session for phase detection.",                        None, False)
     PHASE_UNDETERMINED_IN_FRAME                 = (802, "The phase could not be determined for the provided frame.",                        None, False)
     TRIED_TO_DETECT_FRAME_FOR_UNSTABLE_STATE    = (803, "Tried to detect phase for a frame when the session is in an unstable state.",      None, False)
-    
+
+    # FeedbackFormatter.
+    FEEDBACK_FORMATTER_INIT_ERROR               = (900, "Failed to initialize FeedbackFormatter",                                           None, True)
+    FEEDBACK_CONSTRUCTION_ERROR                 = (901, "Error during feedback constructor",                                                None, False)
+    POSE_QUALITY_FEEDBACK_SELECTION_ERROR       = (902, "Error during pose quality feedback selection",                                     None, False)
+
+    # SessionSummaryManager.
+    SUMMARY_MANAGER_INIT_ERROR                  = (1001, "Failed to initialize SessionSummaryManager",                                      None, True)
+    SUMMARY_MANAGER_CREATE_ERROR                = (1002, "Failed to create session summary",                                                None, False)
+    SUMMARY_MANAGER_INTERNAL_ERROR              = (1000, "Internal SessionSummaryManager error",                                            None, False) 
+
     def __new__(cls, code:int, description:str, extra_info:dict = None, critical:bool = False):
         obj = object.__new__(cls)
         obj._value_ = code

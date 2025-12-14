@@ -9,7 +9,10 @@
 ###############
 from __future__ import annotations
 from typing     import TYPE_CHECKING, Dict
+import inspect
 
+from Server.Utilities.Error.ErrorHandler      import ErrorHandler
+from Server.Utilities.Error.ErrorCode         import ErrorCode
 from Server.Utilities.Config.ConfigLoader     import ConfigLoader
 from Server.Utilities.Config.ConfigParameters import ConfigParameters
 from Server.Utilities.Logger                  import Logger
@@ -59,8 +62,18 @@ class FeedbackFormatter:
         - `cooldown_frames` :
             Cooldown interval between feedback messages to prevent over-alerting the user.
         """
-        self.retrieve_configurations()
-        Logger.info("Initialized successfully")
+        try:
+            self.retrieve_configurations()
+            Logger.info("FeedbackFormatter initialized successfully.")
+        except Exception as e:
+            ErrorHandler.handle(
+                error=ErrorCode.FEEDBACK_FORMATTER_INIT_ERROR,
+                origin=inspect.currentframe(),
+                extra_info={
+                    "Exception": type(e).__name__,
+                    "Reason": "Failed loading configuration thresholds."
+                }
+            )
 
     ##########################
     ### CONSTRUCT FEEDBACK ###
@@ -88,27 +101,38 @@ class FeedbackFormatter:
         ### Returns:
         - `FeedbackCode`: A system, pose-quality, biomechanical, or silent feedback code.
         """
-        history:HistoryData = session.get_history()
-        current_state_ok:bool = history.is_state_ok()  
+        try:
+            history:HistoryData = session.history_data
+            current_state_ok:bool = history.is_state_ok()  
 
-        # Check biomechanical issues.
-        if current_state_ok:
-            biomechanical_feedback:FeedbackCode = self._select_biomechanical_feedback(history)
-            if biomechanical_feedback is FeedbackCode.SILENT \
-                or biomechanical_feedback is FeedbackCode.VALID:
-                return biomechanical_feedback
+            # Check biomechanical issues.
+            if current_state_ok:
+                biomechanical_feedback:FeedbackCode = self._select_biomechanical_feedback(history)
+                if biomechanical_feedback is FeedbackCode.SILENT \
+                    or biomechanical_feedback is FeedbackCode.VALID:
+                    return biomechanical_feedback
+                else:
+                    if self._is_allowed_to_return_feedback(history): return biomechanical_feedback
+                    else:                                            return FeedbackCode.SILENT
             else:
-                if self._is_allowed_to_return_feedback(history): return biomechanical_feedback
-                else:                                            return FeedbackCode.SILENT
-        else:
-            pose_feedback:FeedbackCode = self._select_pose_quality_feedback(history)
-            if pose_feedback is FeedbackCode.SILENT:
-                return pose_feedback
-            else:
-                # Allow biomechanical feedback only if cooldown passed.
-                if self._is_allowed_to_return_feedback(history): return pose_feedback
-                else:                                            return FeedbackCode.SILENT
-        
+                pose_feedback:FeedbackCode = self._select_pose_quality_feedback(history)
+                if pose_feedback is FeedbackCode.SILENT:
+                    return pose_feedback
+                else:
+                    # Allow biomechanical feedback only if cooldown passed.
+                    if self._is_allowed_to_return_feedback(history): return pose_feedback
+                    else:                                            return FeedbackCode.SILENT
+        except Exception as e:
+            ErrorHandler.handle(
+                error=ErrorCode.FEEDBACK_CONSTRUCTION_ERROR,
+                origin=inspect.currentframe(),
+                extra_info={
+                    "Exception": type(e).__name__,
+                    "Reason": "Unexpected failure in construct_feedback()"
+                }
+            )
+            return FeedbackCode.SILENT
+
     ####################################
     ### SELECT POSE QUALITY FEEDBACK ###
     ####################################
@@ -132,16 +156,29 @@ class FeedbackFormatter:
         ### Returns:
         - `FeedbackCode`: Pose-quality feedback or `SILENT`.
         """
-        if history.is_state_ok(): return None
+        try:
+                
+            if history.is_state_ok(): return None
 
-        frames_since_last_valid:int = history.get_frames_since_last_valid()
-        if frames_since_last_valid < self.pose_quality_feedback_threshold:
-            return FeedbackCode.SILENT
-        else:
-            bad_frame_streak:Dict[str, int] = history.get_bad_frame_streaks()
-            worst_quality:PoseQuality = max(bad_frame_streak, key=bad_frame_streak.get)
-            return FeedbackCode.from_pose_quality(worst_quality)        
-    
+            frames_since_last_valid:int = history.get_frames_since_last_valid()
+            if frames_since_last_valid < self.pose_quality_feedback_threshold:
+                return FeedbackCode.SILENT
+            else:
+                bad_frame_streak:Dict[str, int] = history.get_bad_frame_streaks()
+                worst_quality:PoseQuality = max(bad_frame_streak, key=bad_frame_streak.get)
+                return FeedbackCode.from_pose_quality(worst_quality)        
+        except Exception as e:
+            ErrorHandler.handle(
+                error=ErrorCode.POSE_QUALITY_FEEDBACK_SELECTION_ERROR,
+                origin=inspect.currentframe(),
+                extra_info={
+                    "Method": "_select_pose_quality_feedback",
+                    "Exception": type(e).__name__,
+                    "Reason": "Unexpected failure during pose-quality feedback selection."
+                }
+            )
+            return FeedbackCode.SILENT    
+
     #####################################
     ### SELECT BIOMECHANICAL FEEDBACK ###
     #####################################
@@ -164,17 +201,30 @@ class FeedbackFormatter:
         ### Returns:
         - `FeedbackCode`: A biomechanical feedback code or `SILENT`.
         """
-        if not history.is_state_ok(): return None
-        
-        biomechanical_streaks:Dict[str, int] = history.get_error_streaks()
-        worst_error_streak:str = max(biomechanical_streaks, key=biomechanical_streaks.get)
+        try:
+                
+            if not history.is_state_ok(): return None
+            
+            biomechanical_streaks:Dict[str, int] = history.get_error_streaks()
+            worst_error_streak:str = max(biomechanical_streaks, key=biomechanical_streaks.get)
 
-        if biomechanical_streaks[worst_error_streak] < self.biomechanical_feedback_threshold:
-            return FeedbackCode.SILENT
-        else:
-            detected_enum = DetectedErrorCode[worst_error_streak]
-            return FeedbackCode.from_detected_error(detected_enum)
-    
+            if biomechanical_streaks[worst_error_streak] < self.biomechanical_feedback_threshold:
+                return FeedbackCode.SILENT
+            else:
+                detected_enum = DetectedErrorCode[worst_error_streak]
+                return FeedbackCode.from_detected_error(detected_enum)
+        except Exception as e:
+            ErrorHandler.handle(
+                error=ErrorCode.BIOMECHANICAL_FEEDBACK_SELECTION_ERROR,
+                origin=inspect.currentframe(),
+                extra_info={
+                    "Method": "_select_biomechanical_feedback",
+                    "Exception": type(e).__name__,
+                    "Reason": "Unexpected failure during biomechanical feedback selection."
+                }
+            )
+            return FeedbackCode.SILENT       
+
     #####################################
     ### IS ALLOWED TO RETURN FEEDBACK ###
     #####################################
@@ -204,15 +254,26 @@ class FeedbackFormatter:
         The `retrieve_configurations` method loads all feedback-related
         threshold values from the configuration file.
         """
-        self.pose_quality_feedback_threshold:int = ConfigLoader().get([
-            ConfigParameters.Major.FEEDBACK,
-            ConfigParameters.Minor.POSE_QUALITY_FEEDBACK_THRESHOLD
-        ])
-        self.biomechanical_feedback_threshold:int = ConfigLoader().get([
-            ConfigParameters.Major.FEEDBACK,
-            ConfigParameters.Minor.BIO_FEEDBACK_THRESHOLD
-        ])
-        self.cooldown_frames:int = ConfigLoader().get([
-            ConfigParameters.Major.FEEDBACK,
-            ConfigParameters.Minor.FEEDBACK_COOLDOWN_FRAMES
-        ])
+        try:
+                
+            self.pose_quality_feedback_threshold:int = ConfigLoader().get([
+                ConfigParameters.Major.FEEDBACK,
+                ConfigParameters.Minor.POSE_QUALITY_FEEDBACK_THRESHOLD
+            ])
+            self.biomechanical_feedback_threshold:int = ConfigLoader().get([
+                ConfigParameters.Major.FEEDBACK,
+                ConfigParameters.Minor.BIO_FEEDBACK_THRESHOLD
+            ])
+            self.cooldown_frames:int = ConfigLoader().get([
+                ConfigParameters.Major.FEEDBACK,
+                ConfigParameters.Minor.FEEDBACK_COOLDOWN_FRAMES
+            ])
+        except Exception as e:
+            ErrorHandler.handle(
+                error=ErrorCode.FEEDBACK_CONFIG_RETRIEVAL_ERROR,
+                origin=inspect.currentframe(),
+                extra_info={
+                    "Exception": type(e).__name__,
+                    "Reason": "Failed loading feedback configuration thresholds."
+                }
+            )
