@@ -25,7 +25,7 @@ from Server.Pipeline.JointAnalyzer            import JointAnalyzer
 from Server.Pipeline.PhaseDetector            import PhaseDetector
 from Server.Pipeline.HistoryManager           import HistoryManager
 from Server.Pipeline.ErrorDetector            import ErrorDetector
-# from Server.Pipeline.FeedbackFormatter        import FeedbackFormatter
+from Server.Pipeline.FeedbackFormatter        import FeedbackFormatter
 
 # Data.
 from Server.Data.Session.SessionData          import SessionData
@@ -38,6 +38,7 @@ from Server.Data.History.HistoryData          import HistoryData
 from Server.Data.Response.CalibrationResponse import CalibrationCode
 from Server.Data.Response.FeedbackResponse    import FeedbackCode
 from Server.Data.Error.DetectedErrorCode      import DetectedErrorCode
+from Server.Data.Phase.PhaseType              import PhaseType
 
 ################################
 ### PIPELINE PROCESSOR CLASS ###
@@ -85,7 +86,7 @@ class PipelineProcessor:
         self.history_manager      = HistoryManager()
         self.phase_detector       = PhaseDetector()
         self.error_detector       = ErrorDetector()
-        # self.feedback_formatter   = FeedbackFormatter()
+        self.feedback_formatter   = FeedbackFormatter()
 
         # For easy access to all pipeline modules.
         self.pipeline_modules = {
@@ -117,6 +118,32 @@ class PipelineProcessor:
         - `history_data` (HistoryData): The container storing all session-state.
         """
         self.history_manager.mark_exercise_start(history_data)
+
+    #############
+    ### PAUSE ###
+    #############
+    def pause(self, history_data:HistoryData) -> None:
+        """
+        ### Brief:
+        The `pause` method marks the pausing of an exercise session.
+
+        ### Arguments:
+        - `history_data` (HistoryData): The container storing all session-state.
+        """
+        self.history_manager.pause_session(history_data)
+
+    ##############
+    ### RESUME ###
+    ##############
+    def resume(self, history_data:HistoryData) -> None:
+        """
+        ### Brief:
+        The `resume` method marks the resuming of an exercise session.
+
+        ### Arguments:
+        - `history_data` (HistoryData): The container storing all session-state.
+        """
+        self.history_manager.resume_session(history_data)
 
     ###########
     ### END ###
@@ -186,7 +213,7 @@ class PipelineProcessor:
 
         ### Quality checking.
         quality:PoseQuality = pose_quality_result.quality
-        history:HistoryData = session_data.history_data
+        history:HistoryData = session_data.get_history()
         # If the frame recieved is not OK - we stay in the INIT state.
         if quality is not PoseQuality.OK:
             # Resetting the counter.
@@ -239,7 +266,7 @@ class PipelineProcessor:
 
         ### Quality checking.
         quality:PoseQuality = pose_quality_result.quality
-        history:HistoryData = session_data.history_data
+        history:HistoryData = session_data.get_history()
         # If the frame recieved is not OK.
         if quality is not PoseQuality.OK:
             # Resetting the initial phase counter.
@@ -261,7 +288,7 @@ class PipelineProcessor:
         if self._check_for_error(joint_analyzer_result): return joint_analyzer_result
         
         ### Checking Inital Phase --- using PhaseDetector.
-        phase_detector_result = self.phase_detector.ensure_initial_phase_correct(
+        phase_detector_result:bool = self.phase_detector.ensure_initial_phase_correct(
             session_data=session_data,
             joints=joint_analyzer_result
         )
@@ -306,16 +333,16 @@ class PipelineProcessor:
         - `FeedbackCode` once a feedback formatter is implemented.
         - `ErrorCode` for errors in pose analysis, quality evaluation, joint calculation, phase determination, or error detection.
         """
-        ### Analyzing Pose --- using PoseAnalyzer.
+        ### PIPELINE STEP >>> Analyzing Pose --- using PoseAnalyzer.
         pose_analyzer_result:PoseLandmarksArray | ErrorCode = self.pose_analyzer.analyze_frame(frame_data)
         if self._check_for_error(pose_analyzer_result): return pose_analyzer_result
         
-        ### Validating Frame Quality --- using PoseQualityManager.
+        ### PIPELINE STEP >>> Validating Frame Quality --- using PoseQualityManager.
         pose_quality_result:PoseQualityResult = self.pose_quality_manager.evaluate_landmarks(pose_analyzer_result)
         if self._check_for_error(pose_quality_result): return pose_quality_result
 
         # The HistoryData of the session.
-        history:HistoryData = session_data.history_data
+        history:HistoryData = session_data.get_history()
 
         ##############
         ### CASE 1 ### - The returned results are not OK. This means the frame is invalid (bad frame).
@@ -335,14 +362,16 @@ class PipelineProcessor:
                 frame_id=frame_data.frame_id,
                 invalid_reason=returned_quality
             )
-            # Going directly to FeedbackFormatter.
-            # feedback:FeedbackCode = self.feedback_formatter.construct_invalid_frame_feedback(...)
-            # return feedback
+            # Check if frame needs to get aborted.
+            if self.history_manager.should_abort_session(history):
+                return ErrorCode.SESSION_SHOULD_ABORT
+            else:
+                return self.feedback_formatter.construct_feedback(session_data)
 
         ##############
         ### CASE 2 ### - The returned results are OK. This means the frame is valid.
         ##############
-        ### Calculating Joints --- using JointAnalyzer.
+        ### PIPELINE STEP >>> Calculating Joints --- using JointAnalyzer.
         joint_analyzer_result:Dict[str, Any] | ErrorCode = self.joint_analyzer.calculate_joints(
             session_data=session_data,
             landmarks=pose_analyzer_result
@@ -356,23 +385,24 @@ class PipelineProcessor:
             joints=joint_analyzer_result
         )
 
-        # Determining the current phase --- using PhaseDetector.
-        phase_detector_result = self.phase_detector.determine_phase(session_data=session_data)
+        ### PIPELINE STEP >>> Determining the current phase --- using PhaseDetector.
+        phase_detector_result:PhaseType = self.phase_detector.determine_phase(session_data=session_data)
         if self._check_for_error(phase_detector_result): return phase_detector_result
         
         # Recording the phase.
         self.history_manager.record_phase_transition(
             history_data=history,
+            exercise_type=session_data.get_exercise_type(),
             new_phase=phase_detector_result,
             frame_id=frame_data.frame_id,
             joints=joint_analyzer_result
         )
 
-        # Detecting errors --- using ErrorDetector.
+        ### PIPELINE STEP >>> Detecting errors --- using ErrorDetector.
         error_detector_result:DetectedErrorCode = self.error_detector.detect_errors(session_data)
         if self._check_for_error(error_detector_result): return error_detector_result     
         
-        # Recording the error (also NO_BIOMECHANICAL_ERROR is recorded).   
+        # Recording the error (also NO_BIOMECHANICAL_ERROR and NOT_READY_FOR_ANALYSIS are recorded).   
         self.history_manager.add_frame_error(
             history_data=history,
             error_to_add=error_detector_result,
@@ -387,18 +417,8 @@ class PipelineProcessor:
                 error_to_add=error_detector_result
             )
 
-        # Combining feedback --- using FeedbackFormatter.
-        # feedback_formatter_result:FeedbackCode = self.feedback_formatter.select_feedback_message()
-        # if self._check_for_error(feedback_formatter_result): return feedback_formatter_result
-
-        # # Upating history according to the feedback result.
-        # if feedback_formatter_result in (FeedbackCode.SILENT, FeedbackCode.VALID):
-        #     self.history_manager.increment_frames_since_last_feedback(history)
-        # else:
-        #     self.history_manager.reset_frames_since_last_feedback(history)
-        
-        # # Returning the feedback result.
-        # return feedback_formatter_result
+        ### PIPELINE STEP >>> Combining feedback --- using FeedbackFormatter.
+        return self.feedback_formatter.construct_feedback(session_data)
 
     #####################################################################
     ############################## HELPERS ##############################
@@ -439,14 +459,14 @@ class PipelineProcessor:
             ConfigParameters.Major.SESSION,
             ConfigParameters.Minor.NUM_OF_MIN_INIT_OK_FRAMES
         ])
-        Logger.info(f"SessionManager: Num of min init ok frames: {self.num_of_min_init_ok_frames}")
+        Logger.info(f"Num of min init ok frames: {self.num_of_min_init_ok_frames}")
 
         # Number of active session initialization correct phase frames.
         self.num_of_min_correct_phase_frames = ConfigLoader.get([
             ConfigParameters.Major.SESSION,
             ConfigParameters.Minor.NUM_OF_MIN_INIT_CORRECT_PHASE
         ])
-        Logger.info(f"SessionManager: Num of min init correct phase: {self.num_of_min_correct_phase_frames}")
+        Logger.info(f"Num of min init correct phase: {self.num_of_min_correct_phase_frames}")
 
         # Calling each pipeline module's retrieve_configurations method.
         for pipeline_module in self.pipeline_modules:

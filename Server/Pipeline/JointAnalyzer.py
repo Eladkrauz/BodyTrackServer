@@ -12,15 +12,12 @@ import math, inspect
 import numpy as np
 from typing import Dict, Any
 
-# Utilities.
-from Server.Utilities.Logger import Logger
+from Server.Utilities.Logger             import Logger
 from Server.Utilities.Error.ErrorHandler import ErrorHandler
-from Server.Utilities.Error.ErrorCode import ErrorCode
-
-# Data.
-from Server.Data.Pose.PoseLandmarks import PoseLandmarksArray
-from Server.Data.Session.SessionData import SessionData
-from Server.Data.Joints.JointAngle import JointAngle, Joint
+from Server.Utilities.Error.ErrorCode    import ErrorCode
+from Server.Data.Pose.PoseLandmarks      import PoseLandmarksArray
+from Server.Data.Session.SessionData     import SessionData
+from Server.Data.Joints.JointAngle       import JointAngle, Joint
 
 ############################
 ### JOINT ANALYZER CLASS ###

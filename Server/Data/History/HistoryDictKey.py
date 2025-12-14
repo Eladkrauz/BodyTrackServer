@@ -16,7 +16,6 @@ class HistoryDictKey:
     ERROR_STREAKS               = "error_streaks"
     # Phase.
     PHASE_STATE                 = "phase_state"
-    PHASE_START_TIME            = "phase_start_time"
     PHASE_TRANSITIONS           = "phase_transitions"
     PHASE_DURATIONS             = "phase_durations"
     INITIAL_PHASE_COUNTER       = "initial_phase_counter"
@@ -29,9 +28,13 @@ class HistoryDictKey:
     REP_COUNT                   = "rep_count    "
     REPETITIONS                 = "repetitions"
     CURRENT_REP                 = "current_rep"
+    CURRENT_TRANSITION_INDEX    = "current_transition_index"
     # Timestamps.
     EXERCISE_START_TIME         = "exercise_start_time"
     EXERCISE_END_TIME           = "exercise_end_time"
+    EXERCISE_FINAL_DURATION     = "exercise_final_duration"
+    PAUSE_SESSION_TIMESTAMP     = "pause_session_timestamp"
+    PAUSES_DURATIONS            = "pauses_durations"
     # Feedback  .
     FRAMES_SINCE_LAST_FEEDBACK  = "frames_since_last_feedback"
     # Oth   ers.

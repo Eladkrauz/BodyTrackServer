@@ -38,13 +38,13 @@ class ServerManager:
 
         while True: time.sleep(5)
 
-        return
+        # return
         def show(result):
             import json
-            time.sleep(5)
+            time.sleep(2)
             res = json.dumps(result, indent=4)
             print(res)
-            time.sleep(2)
+            # time.sleep(2)
 
         result = requests.post("http://localhost:8080/register/new/session", json={'exercise_type': 'squat'}).json()
         show(result)
@@ -53,7 +53,7 @@ class ServerManager:
         show(requests.post("http://localhost:8080/start/session", json={'session_id': session_id, 'extended_evaluation': False}).json())
 
         import base64
-        with open("/Users/eladkrauz/Desktop/try3.jpeg", "rb") as image:
+        with open("/Users/eladkrauz/Desktop/try2.webp", "rb") as image:
             image_bytes = image.read()
 
         image_b64 = base64.b64encode(image_bytes).decode('utf-8')

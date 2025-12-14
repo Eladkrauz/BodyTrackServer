@@ -24,7 +24,7 @@ class ErrorCode(enum):
     ### Description:
     An enum class representing error codes.
     """
-    # Configuration.
+    # Configuration and management.
     CANT_CONFIGURE_LOG                          = (1, "Logger can't get configured.",                                                       None, True)
     CONFIGURATION_FILE_DOES_NOT_EXIST           = (2, "Configuration file does not exist.",
                                                     {
@@ -52,6 +52,7 @@ class ErrorCode(enum):
     CLIENT_IP_IS_INVALID                        = (12, "The provided IP is invalid.",                                                       None, False)
     CLIENT_AGENT_IS_INVALID                     = (13, "The provided client agent is invalid.",                                             None, False)
     JSON_CONFIG_FILE_ERROR                      = (14, "Error with the JSON configuration file.",                                           None, True)
+    INTERNAL_SERVER_ERROR                       = (15, "An internal server error has occurred.",                                            None, True)
 
     # Flask and database management.
     CANT_ADD_URL_RULE_TO_FLASK_SERVER           = (100, "URL rule could not be added.",                                                     None, True)
@@ -69,6 +70,7 @@ class ErrorCode(enum):
     USER_IS_NOT_LOGGED_IN                       = (112, "The user with the given credentials is not logged in.",                            None, False)
     USER_NOT_FOUND                              = (113, "The user with the given user id is not found in the system.",                      None, False)
     FRAME_DECODING_FAILED                       = (114, "The recieved frame failed to be decoded.",                                         None, False)
+    TERMINATION_INCORRECT_PASSWORD              = (115, "The provided password for termination is incorrect.",                              None, True)
     
     # Session Manager.  
     EXERCISE_TYPE_DOES_NOT_EXIST                = (200, "The provided exercise type is not supported in the system",                        None, False)
@@ -89,7 +91,9 @@ class ErrorCode(enum):
     FRAME_INITIAL_VALIDATION_FAILED             = (215, "The initial validation process of the frame failed.",                              None, False)
     INVALID_EXTENDED_EVALUATION_PARAM           = (216, "The parameter of extended evaluation is not valid.",                               None, False)
     TRYING_TO_ANALYZE_FRAME_WHEN_DONE           = (217, "Recieved a frame for analysis when the session is already done.",                  None, False)
+    TRYING_TO_ANALYZE_FRAME_WHEN_FAILED         = (218, "Recieved a frame for analysis when the session has already failed.",                None, False)
     ERROR_CREATING_SESSION_DATA                 = (218, "Error while creating a session data instance",                                     None, False)
+    SESSION_SHOULD_ABORT                        = (219, "The session should be aborted due to reaching maximum number of bad frames.",      None, False)
 
     # PoseAnalyzer.
     ERROR_INITIALIZING_POSE                     = (300, "Error initializing PoseAnalyzer",                                                  None, False)
@@ -136,6 +140,9 @@ class ErrorCode(enum):
 
     # PhaseDetector.
     PHASE_THRESHOLDS_CONFIG_FILE_ERROR          = (800, "Error with the phase thresholds configuration file.",                              None, True)
+    NO_VALID_FRAME_DATA_IN_SESSION              = (801, "No valid frame data found in session for phase detection.",                        None, False)
+    PHASE_UNDETERMINED_IN_FRAME                 = (802, "The phase could not be determined for the provided frame.",                        None, False)
+    TRIED_TO_DETECT_FRAME_FOR_UNSTABLE_STATE    = (803, "Tried to detect phase for a frame when the session is in an unstable state.",      None, False)
 
     # FeedbackFormatter.
     FEEDBACK_FORMATTER_INIT_ERROR               = (900, "Failed to initialize FeedbackFormatter",                                           None, True)
@@ -146,7 +153,6 @@ class ErrorCode(enum):
     SUMMARY_MANAGER_INIT_ERROR                  = (1001, "Failed to initialize SessionSummaryManager",                                      None, True)
     SUMMARY_MANAGER_CREATE_ERROR                = (1002, "Failed to create session summary",                                                None, False)
     SUMMARY_MANAGER_INTERNAL_ERROR              = (1000, "Internal SessionSummaryManager error",                                            None, False) 
-    
 
     def __new__(cls, code:int, description:str, extra_info:dict = None, critical:bool = False):
         obj = object.__new__(cls)
@@ -173,5 +179,5 @@ class ErrorResponse:
             "code":        self.error_code.value,
             "description": self.error_code.description
         }
-        if self.extra_info: return_dict["extra_info"] = return_dict
+        if self.extra_info: return_dict["extra_info"] = self.extra_info
         return return_dict

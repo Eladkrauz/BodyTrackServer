@@ -37,6 +37,12 @@ from Server.Data.Response.CalibrationResponse import CalibrationCode, Calibratio
 ### SESSION MANAGER CLASS ###
 #############################
 class SessionManager:
+    """
+    ### Description:
+    The `SessionManager` class is responsible for managing client sessions in the Body Track server.
+    It handles session registration, starting, pausing, resuming, ending, and frame analysis.
+    It maintains session states and ensures thread-safe operations using locks.
+    """
     #########################
     ### CLASS CONSTRUCTOR ###
     #########################
@@ -52,24 +58,20 @@ class SessionManager:
         self.retrieve_configurations()
 
         # Sessions.
-        self.id_generator:SessionIdGenerator = SessionIdGenerator()
-        self.sessions: dict[SessionId, SessionData] = {}
-        self.sessions_lock: RLock = RLock()
-        self.current_active_sessions = 0
-        self.ip_map: dict[str, SessionId] = {}
-        self.ip_map_lock: RLock = RLock()
+        self.id_generator:SessionIdGenerator       = SessionIdGenerator()
+        self.sessions:dict[SessionId, SessionData] = {}
+        self.sessions_lock:RLock                   = RLock()
+        self.current_active_sessions:int           = 0
+        self.ip_map:dict[str, SessionId]           = {}
+        self.ip_map_lock:RLock                     = RLock()
 
         # Tasks.
-        self._cleanup_thread = threading.Thread(
-            target=self._cleanup_task,
-            daemon=True
-        )
-        self._config_retrieve_thread = threading.Thread(
-            target=self._retrieve_config_task,
-            daemon=True
-        )
+        self._cleanup_thread = threading.Thread(target=self._cleanup_task, daemon=True)
+        self._config_retrieve_thread = threading.Thread(target=self._retrieve_config_task, daemon=True)
         # self._cleanup_thread.start()
         # self._config_retrieve_thread.start()
+
+        # Done initializing.
         Logger.info("Initialized successfully")
 
     #################################################################################################
@@ -120,9 +122,14 @@ class SessionManager:
 
         # If client is already registered.
         if session_status is not SessionStatus.NOT_IN_SYSTEM:
-            error_code:ErrorCode = self._session_status_to_error(session_status)
-            ErrorHandler.handle(error=error_code, origin=inspect.currentframe())
-            return ErrorResponse(error_code)
+            with self.ip_map_lock:
+                error_code:ErrorCode = self._session_status_to_error(session_status)
+                print("ID:", self.ip_map.get(client_info['ip']).id)
+                ErrorHandler.handle(error=error_code, origin=inspect.currentframe())
+                return ErrorResponse(
+                    error_code=error_code,
+                    extra_info={ "session_id": self.ip_map.get(client_info['ip']).id }
+                )
         
         # If the session is not registered - registering it.
         session_id:SessionId = self.id_generator.generate_session_id()
@@ -252,7 +259,7 @@ class SessionManager:
 
                     # Marking exercise started in the history.
                     with session_data.lock:
-                        self.pipeline_processor.start(session_data.history_data)
+                        self.pipeline_processor.start(session_data.get_history())
 
                     return ManagementResponse(ManagementCode.CLIENT_SESSION_IS_ACTIVE)
 
@@ -293,6 +300,7 @@ class SessionManager:
                 session_data:SessionData = self.sessions[session_id]
                 session_data.set_session_status(SessionStatus.PAUSED)
                 self.current_active_sessions -= 1
+                self.pipeline_processor.pause(session_data.get_history())
                 return ManagementResponse(ManagementCode.CLIENT_SESSION_IS_PAUSED)
         # If the session is not active.
         else:
@@ -347,6 +355,7 @@ class SessionManager:
                     session_data:SessionData = self.sessions[session_id]
                     session_data.set_session_status(SessionStatus.ACTIVE)
                     self.current_active_sessions += 1
+                    self.pipeline_processor.resume(session_data.get_history())
                     return ManagementResponse(ManagementCode.CLIENT_SESSION_IS_RESUMED)
                 
         # If the session is not paused.
@@ -395,7 +404,7 @@ class SessionManager:
 
             # Marking exercise ended in the history.
             with session_data.lock:
-                self.pipeline_processor.end(session_data.history_data)
+                self.pipeline_processor.end(session_data.get_history())
                 session_data.set_analyzing_state(AnalyzingState.DONE)
             
             # TODO: Add summary creation here using the final HistoryData values.
@@ -470,45 +479,61 @@ class SessionManager:
             )
             ErrorResponse(error_code)
 
-        ### VALIDATING THE FRAME ###
-        frame_data:FrameData | ErrorCode = self.pipeline_processor.validate_frame(
-            session_id=session_id,
-            frame_id=frame_id,
-            content=frame_content
-        )
-        if isinstance(frame_data, ErrorCode): return ErrorResponse(frame_data)
-        
         # Retrieving the session data.
         with self.sessions_lock:
             session_data:SessionData = self.sessions.get(session_id)
         
-        # Updating the session's last activity time stamp.
+        ### STARTING ###
         with session_data.lock:
+            # Updating the session's last activity time stamp.
             if session_data.update_time_stamp() is not None: # Updating last activity.
                 error_code:ErrorCode = ErrorCode.SESSION_STATUS_IS_NOT_RECOGNIZED
                 ErrorHandler.handle(error=error_code, origin=inspect.currentframe())
                 return ErrorResponse(error_code)
-        
-            ### STARTING ###
+            
+            # Validating the frame.
+            frame_data:FrameData | ErrorCode = self.pipeline_processor.validate_frame(
+                session_id=session_id,
+                frame_id=frame_id,
+                content=frame_content
+            )
+            if isinstance(frame_data, ErrorCode): return ErrorResponse(frame_data)
+            
             # Routing the frame to analysis based on the session analysis state.
+            self.pipeline_processor.analyze_frame_in_ready_state(session_data, frame_data)
+            
             state:AnalyzingState = session_data.analyzing_state
             if state is AnalyzingState.INIT:
-                initial_analysis_result:CalibrationCode | ErrorCode = self.pipeline_processor.analyze_frame_in_init_state(session_data, frame_data)
-                if isinstance(initial_analysis_result, CalibrationCode): return CalibrationResponse(initial_analysis_result)
-                else:                                                    return ErrorResponse(initial_analysis_result)
+                initial_analysis_result:CalibrationCode | ErrorCode \
+                    = self.pipeline_processor.analyze_frame_in_init_state(session_data, frame_data)
+                if isinstance(initial_analysis_result, CalibrationCode):
+                    return CalibrationResponse(initial_analysis_result)
+                else:
+                    return ErrorResponse(initial_analysis_result)
 
             elif state is AnalyzingState.READY:
-                position_analysis_result:CalibrationCode | ErrorCode = self.pipeline_processor.analyze_frame_in_ready_state(session_data, frame_data)
-                if isinstance(position_analysis_result, CalibrationCode): return CalibrationResponse(position_analysis_result)
-                else:                                                     return ErrorResponse(position_analysis_result)
+                position_analysis_result:CalibrationCode | ErrorCode \
+                    = self.pipeline_processor.analyze_frame_in_ready_state(session_data, frame_data)
+                if isinstance(position_analysis_result, CalibrationCode):
+                    return CalibrationResponse(position_analysis_result)
+                else:
+                    return ErrorResponse(position_analysis_result)
 
             elif state is AnalyzingState.ACTIVE:
-                full_pipeline_result:FeedbackCode | ErrorCode  = self.pipeline_processor.analyze_frame_full_pipeline(session_data, frame_data)
-                if isinstance(full_pipeline_result, FeedbackCode): return FeedbackResponse(full_pipeline_result)
-                else:                                              return ErrorResponse(full_pipeline_result)
+                full_pipeline_result:FeedbackCode | ErrorCode  \
+                    = self.pipeline_processor.analyze_frame_full_pipeline(session_data, frame_data)
+                if isinstance(full_pipeline_result, FeedbackCode):
+                    return FeedbackResponse(full_pipeline_result)
+                else:
+                    return ErrorResponse(full_pipeline_result)
 
-            else: # AnalyzingState.DONE
+            elif state is AnalyzingState.DONE:
                 error_code:ErrorCode = ErrorCode.TRYING_TO_ANALYZE_FRAME_WHEN_DONE
+                ErrorHandler.handle(error=error_code, origin=inspect.currentframe())
+                return ErrorResponse(error_code)
+            
+            elif state is AnalyzingState.FAILURE:
+                error_code:ErrorCode = ErrorCode.TRYING_TO_ANALYZE_FRAME_WHEN_FAILED
                 ErrorHandler.handle(error=error_code, origin=inspect.currentframe())
                 return ErrorResponse(error_code)
     
@@ -795,6 +820,10 @@ class SessionManager:
         used only for debugging and runtime monitoring.
         """
         with self.sessions_lock, self.ip_map_lock:
+            registered_counter = 0
+            active_counter     = 0
+            paused_counter     = 0
+            ended_counter      = 0
 
             session_summaries = {}
             for sid, session in self.sessions.items():
@@ -803,37 +832,47 @@ class SessionManager:
                     "exercise_type": session.get_exercise_type().name,
                     "extended_evaluation": session.get_extended_evaluation(),
                     "analyzing_state": session.get_analyzing_state().name,
-                    "last_activity": session.time.get("last_activity"),
-                    "paused_at": session.time.get("paused"),
-                    "ended_at": session.time.get("ended"),
+                    "last_activity": session.time.get("last_activity")
                 }
+                if session.get_session_status() is SessionStatus.REGISTERED:
+                    registered_counter += 1
+                elif session.get_session_status() is SessionStatus.ACTIVE:
+                    active_counter += 1
+                elif session.get_session_status() is SessionStatus.PAUSED:
+                    paused_counter += 1
+                elif session.get_session_status() is SessionStatus.ENDED:
+                    ended_counter += 1
 
             return {
-                # configuration
+                # General information.
                 "supported_exercises": list(self.supported_exercises),
                 "maximum_clients": self.maximum_clients,
-
-                # realtime counters
-                "current_active_sessions": self.current_active_sessions,
+                "counters": {
+                    "registered_sessions": registered_counter,
+                    "active_sessions": active_counter,
+                    "paused_sessions": paused_counter,
+                    "ended_sessions": ended_counter
+                },
                 "total_sessions": len(self.sessions),
 
-                # ip mapping
+                # IP mapping.
                 "ip_map": {
                     ip: sid.id for ip, sid in self.ip_map.items()
                 },
 
-                # session details
+                # Session details.
                 "sessions": session_summaries,
 
-                # tasks configuration
-                "cleanup_interval_minutes": getattr(self, "cleanup_interval_minutes", None),
-                "max_registration_minutes": getattr(self, "max_registration_minutes", None),
-                "max_inactive_minutes": getattr(self, "max_inactive_minutes", None),
-                "max_pause_minutes": getattr(self, "max_pause_minutes", None),
-                "max_ended_retention": getattr(self, "max_ended_retention", None),
+                # Tasks configuration
+                "cleanup_interval_minutes": self.cleanup_interval_minutes,
+                "max_registration_minutes": self.max_registration_minutes,
+                "max_inactive_minutes": self.max_inactive_minutes,
+                "max_pause_minutes": self.max_pause_minutes,
+                "max_ended_retention": self.max_ended_retention,
 
+                # Memory.
                 "memory_mb": psutil.Process(os.getpid()).memory_info().rss/1024/1024,
 
-                # debug timestamp
+                # Timestamp.
                 "timestamp": datetime.now().isoformat()
             }

@@ -28,7 +28,7 @@
             background: #1b1f28;
             padding: 15px 20px;
             border-radius: 8px;
-            min-width: 220px;
+            min-width: 200px;
             flex-grow: 1;
         }
 
@@ -96,6 +96,54 @@
             font-size: 13px;
             color: #bbb;
         }
+
+        #terminateBtn {
+            padding: 12px 20px;
+            background: #d14444;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 50px;
+        }
+
+        #terminateModal,
+        #successModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.65);
+            justify-content: center;
+            align-items: center;
+        }
+
+        #modalContent {
+            background: #1b1f28;
+            padding: 25px;
+            border-radius: 8px;
+            width: 350px;
+        }
+
+        #modalButtons button {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+        }
+
+        #confirmTerminate {
+            background: #d14444;
+            margin-right: 10px;
+        }
+
+        #cancelTerminate {
+            background: #444;
+        }
     </style>
 </head>
 
@@ -104,35 +152,42 @@
     <h1>BodyTrack Server Telemetry</h1>
 
     <div class="grid">
-
         <div class="card">
             <div class="card-title">Supported Exercises</div>
             <div id="supported"></div>
         </div>
-
         <div class="card">
             <div class="card-title">Max Clients</div>
-            <div class="value" id="maxClients"></div>
+            <div class="value" id="maxClients">0</div>
         </div>
-
         <div class="card">
-            <div class="card-title">Active Sessions</div>
-            <div class="value" id="active"></div>
+            <div class="card-title">Registered</div>
+            <div class="value" id="regSessions">0</div>
         </div>
-
         <div class="card">
-            <div class="card-title">Total Sessions Created</div>
-            <div class="value" id="total"></div>
+            <div class="card-title">Active</div>
+            <div class="value" id="activeSessions">0</div>
         </div>
-
+        <div class="card">
+            <div class="card-title">Paused</div>
+            <div class="value" id="pausedSessions">0</div>
+        </div>
+        <div class="card">
+            <div class="card-title">Ended</div>
+            <div class="value" id="endedSessions">0</div>
+        </div>
+        <div class="card">
+            <div class="card-title">Total Sessions</div>
+            <div class="value" id="totalSessions">0</div>
+        </div>
         <div class="card">
             <div class="card-title">Memory (MB)</div>
-            <div class="value" id="memory"></div>
+            <div class="value" id="memory">0</div>
         </div>
-
     </div>
 
-    <h2 style="margin-top:30px;color:#49a6ff;">Sessions</h2>
+
+    <h2 style="margin-top:35px;color:#49a6ff;">Sessions</h2>
 
     <table>
         <thead>
@@ -141,6 +196,8 @@
                 <th>IP</th>
                 <th>Exercise</th>
                 <th>Status</th>
+                <th>Extended Evaluation</th>
+                <th>Analyzing State</th>
                 <th>Last Activity</th>
             </tr>
         </thead>
@@ -149,53 +206,147 @@
 
     <div class="timestamp" id="ts"></div>
 
+
+    <div style="text-align:center;">
+        <button id="terminateBtn">Terminate Server</button>
+    </div>
+
+
+    <!-- Terminate Modal -->
+    <div id="terminateModal">
+        <div id="modalContent">
+            <h3 style="margin-top:0;color:#ff6b6b;">Terminate Server</h3>
+            <p>This operation will terminate the entire session and stop the server immediately.</p>
+
+            <input type="password" id="terminatePassword" placeholder="Enter password..."
+                style="width:100%;padding:8px;margin-top:15px;border-radius:4px;border:1px solid #333;background:#0d1117;color:#eee;">
+
+            <p id="terminateError" style="color:#ff6b6b;margin-top:10px;display:none;"></p>
+
+            <div id="modalButtons" style="margin-top:20px;text-align:right;">
+                <button id="confirmTerminate">Terminate</button>
+                <button id="cancelTerminate">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Success Modal -->
+    <div id="successModal">
+        <div style="background:#1b1f28;padding:25px;border-radius:8px;width:350px;text-align:center;">
+            <h3 style="margin-top:0;color:#4caf50;">Success</h3>
+            <p>Server termination command accepted.</p>
+            <div style="font-size:50px;color:#4caf50;margin-top:10px;">&#10004;</div>
+        </div>
+    </div>
+
+
     <script>
+
+        function prettyName(s) {
+            if (!s) return "-";
+            return s.split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+        }
+
         function statusBadge(s) {
             if (!s) return `<span class="status UNKNOWN">UNKNOWN</span>`;
-            return `<span class="status ${s}">${s}</span>`;
+            return `<span class="status ${s}">${prettyName(s)}</span>`;
         }
+
         function renderSessions(data) {
-            const tbody = document.getElementById("sessions-body");
+            const tbody = document.getElementById("sessions");
             tbody.innerHTML = "";
 
             const sessions = data.sessions || {};
+            const ipMap = data.ip_map || {};
 
-            Object.entries(sessions).forEach(([sessionId, s]) => {
+            Object.entries(sessions).forEach(([id, s]) => {
+                const ip = Object.keys(ipMap).find(k => ipMap[k] === id) || "-";
                 const tr = document.createElement("tr");
-
                 tr.innerHTML = `
-            <td>${sessionId}</td>
-            <td>${s.status}</td>
-            <td>${s.exercise_type}</td>
-            <td>${s.last_activity || "-"}</td>
+            <td>${id}</td>
+            <td>${ip}</td>
+            <td>${prettyName(s.exercise_type)}</td>
+            <td>${statusBadge(s.status)}</td>
+            <td>${s.extended_evaluation}</td>
+            <td>${prettyName(s.analyzing_state)}</td>
+            <td>${s.last_activity}</td>
         `;
-
                 tbody.appendChild(tr);
             });
         }
 
-
         function refresh() {
-            fetch("http://localhost:8080/internal/debug/session-manager")
+            fetch("http://localhost:8080/internal/telemetry")
                 .then(r => r.json())
                 .then(data => {
-                    document.getElementById("supported").innerHTML =
-                        data.supported_exercises.join(", ");
+                    document.getElementById("supported").textContent =
+                        data.supported_exercises.map(prettyName).join(", ");
 
                     document.getElementById("maxClients").textContent = data.maximum_clients;
-                    document.getElementById("active").textContent = data.current_active_sessions;
-                    document.getElementById("total").textContent = data.total_sessions;
-                    document.getElementById("memory").textContent = data.memory_mb.toFixed(1);
 
+                    document.getElementById("regSessions").textContent = data.counters.registered_sessions;
+                    document.getElementById("activeSessions").textContent = data.counters.active_sessions;
+                    document.getElementById("pausedSessions").textContent = data.counters.paused_sessions;
+                    document.getElementById("endedSessions").textContent = data.counters.ended_sessions;
+                    document.getElementById("totalSessions").textContent = data.total_sessions;
+
+                    document.getElementById("memory").textContent = data.memory_mb.toFixed(1);
                     document.getElementById("ts").textContent = "Timestamp: " + data.timestamp;
 
-                    // Sessions table
                     renderSessions(data);
                 });
         }
 
+
+        document.getElementById("terminateBtn").onclick = () => {
+            document.getElementById("terminateModal").style.display = "flex";
+            document.getElementById("terminateError").style.display = "none";
+        };
+
+        document.getElementById("cancelTerminate").onclick = () => {
+            document.getElementById("terminateModal").style.display = "none";
+        };
+
+        document.getElementById("confirmTerminate").onclick = () => {
+            const pw = document.getElementById("terminatePassword").value;
+
+            fetch("http://localhost:8080/terminate/server", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ password: pw })
+            })
+                .then(r => r.json())
+                .then(res => {
+
+                    if (res.message_type === 3 && res.code === 115) {
+                        document.getElementById("terminateError").innerText = "Incorrect password.";
+                        document.getElementById("terminateError").style.display = "block";
+                        return;
+                    }
+
+                    if (res.message_type === 2 && res.response_type === 2 && res.code === 9) {
+                        document.getElementById("terminateModal").style.display = "none";
+                        document.getElementById("successModal").style.display = "flex";
+
+                        setTimeout(() => {
+                            document.getElementById("successModal").style.display = "none";
+
+                            // Navigate away
+                            window.location.href = "about:blank";
+
+                            // Attempt to close (will succeed if allowed)
+                            setTimeout(() => { window.close(); }, 200);
+
+                        }, 2000);
+                    }
+                });
+        };
+
+
         setInterval(refresh, 1000);
         refresh();
+
     </script>
 
 </body>

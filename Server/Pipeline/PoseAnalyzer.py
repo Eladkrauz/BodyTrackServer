@@ -14,11 +14,13 @@ import mediapipe.python.solutions.pose as Pose
 from mediapipe.framework.formats import landmark_pb2
 from typing import Optional
 
-from Server.Utilities.Error.ErrorHandler import ErrorHandler
-from Server.Utilities.Error.ErrorCode import ErrorCode
-from Server.Utilities.Logger import Logger
-from Server.Data.Session.FrameData import FrameData
-from Server.Data.Pose.PoseLandmarks import PoseLandmark, PoseLandmarksArray
+from Server.Utilities.Config.ConfigLoader     import ConfigLoader
+from Server.Utilities.Config.ConfigParameters import ConfigParameters
+from Server.Utilities.Error.ErrorHandler      import ErrorHandler
+from Server.Utilities.Error.ErrorCode         import ErrorCode
+from Server.Utilities.Logger                  import Logger
+from Server.Data.Session.FrameData            import FrameData
+from Server.Data.Pose.PoseLandmarks           import PoseLandmark, PoseLandmarksArray
 
 ###########################
 ### POSE ANALYZER CLASS ###
@@ -172,6 +174,7 @@ class PoseAnalyzer:
     ################################
     ### RESIZE WITH ASPECT RATIO ###
     ################################
+    @staticmethod
     def _resize_with_aspect_ratio(frame_content:np.ndarray, target_width:int, target_height:int) -> np.ndarray:
         """
         ### Brief:
@@ -444,9 +447,6 @@ class PoseAnalyzer:
         The `retrieve_configurations` method gets the updated configurations from the
         configuration file.
         """
-        from Server.Utilities.Config.ConfigLoader import ConfigLoader
-        from Server.Utilities.Config.ConfigParameters import ConfigParameters
-
         # Load frame dimensions from config (critical values: must exist, otherwise error is raised).
         # These values define the target width and height to which all incoming frames will be resized
         # before being passed to MediaPipe for analysis. Ensures consistent input shape for the model.

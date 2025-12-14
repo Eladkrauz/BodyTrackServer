@@ -103,15 +103,15 @@ class ConfigLoader:
             except FileNotFoundError:
                 print("[FATAL]: Configuration file does not exist.")
                 exit(1)
-                # ErrorHandler.imidiate_abort(error=ErrorCode.CONFIGURATION_FILE_DOES_NOT_EXIST, origin=inspect.currentframe())
             except JSONDecodeError as e:
                 print("[FATAL]: Configuration file is not a valid JSON document.")
                 exit(1)
-                # ErrorHandler.imidiate_abort(error=ErrorCode.JSON_FILE_DECODE_ERROR, origin=inspect.currentframe())
             except UnicodeDecodeError as e:
                 print("[FATAL]: Configuration file contains invalid unicode data.")
                 exit(1)
-                # ErrorHandler.imidiate_abort(error=ErrorCode.JSON_FILE_UNICODE_ERROR, origin=inspect.currentframe())
+            except Exception as e:
+                print("[FATAL]: Configuration internal error.")
+                exit(1)
 
         return cls._instance
 

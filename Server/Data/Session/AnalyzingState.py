@@ -13,7 +13,8 @@ from enum import Enum as enum
 ### ANALYZING STATE ###
 #######################
 class AnalyzingState(enum):
-    INIT   = 0
-    READY  = 1
-    ACTIVE = 2
-    DONE   = 3
+    INIT    = 0
+    READY   = 1
+    ACTIVE  = 2
+    DONE    = 3
+    FAILURE = 4

@@ -11,6 +11,8 @@ from __future__ import annotations
 from typing     import TYPE_CHECKING, Dict
 import inspect
 
+from Server.Utilities.Error.ErrorHandler      import ErrorHandler
+from Server.Utilities.Error.ErrorCode         import ErrorCode
 from Server.Utilities.Config.ConfigLoader     import ConfigLoader
 from Server.Utilities.Config.ConfigParameters import ConfigParameters
 from Server.Utilities.Logger                  import Logger
@@ -19,8 +21,6 @@ from Server.Data.Error.DetectedErrorCode      import DetectedErrorCode
 from Server.Data.Pose.PoseQuality             import PoseQuality
 from Server.Data.Response.FeedbackResponse    import FeedbackCode
 from Server.Data.Session                      import SessionData
-from Server.Utilities.Error.ErrorHandler      import ErrorHandler
-from Server.Utilities.Error.ErrorCode         import ErrorCode
 
 if TYPE_CHECKING:
     from Server.Data.History.HistoryData import HistoryData
@@ -132,6 +132,7 @@ class FeedbackFormatter:
                 }
             )
             return FeedbackCode.SILENT
+
     ####################################
     ### SELECT POSE QUALITY FEEDBACK ###
     ####################################
@@ -177,6 +178,7 @@ class FeedbackFormatter:
                 }
             )
             return FeedbackCode.SILENT    
+
     #####################################
     ### SELECT BIOMECHANICAL FEEDBACK ###
     #####################################
@@ -222,6 +224,7 @@ class FeedbackFormatter:
                 }
             )
             return FeedbackCode.SILENT       
+
     #####################################
     ### IS ALLOWED TO RETURN FEEDBACK ###
     #####################################
