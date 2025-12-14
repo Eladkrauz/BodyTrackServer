@@ -108,6 +108,18 @@
             margin-top: 50px;
         }
 
+        #refreshBtn {
+            padding: 12px 20px;
+            background: #2196f3;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 50px;
+            margin-right: 15px;
+        }
+
         #terminateModal,
         #successModal {
             display: none;
@@ -144,6 +156,19 @@
         #cancelTerminate {
             background: #444;
         }
+
+        #refreshSuccessModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.65);
+            justify-content: center;
+            align-items: center;
+        }
+
     </style>
 </head>
 
@@ -206,8 +231,8 @@
 
     <div class="timestamp" id="ts"></div>
 
-
     <div style="text-align:center;">
+        <button id="refreshBtn">Refresh Configurations</button>
         <button id="terminateBtn">Terminate Server</button>
     </div>
 
@@ -240,6 +265,13 @@
         </div>
     </div>
 
+    <div id="refreshSuccessModal">
+        <div style="background:#1b1f28;padding:25px;border-radius:8px;width:350px;text-align:center;">
+            <h3 style="margin-top:0;color:#2196f3;">Configurations Refreshed</h3>
+            <p>Server configurations were refreshed successfully.</p>
+            <div style="font-size:50px;color:#2196f3;margin-top:10px;">&#10004;</div>
+        </div>
+    </div>
 
     <script>
 
@@ -343,6 +375,28 @@
                 });
         };
 
+        document.getElementById("refreshBtn").onclick = () => {
+            fetch("http://localhost:8080/refresh/configurations", {
+                method: "GET"
+            })
+                .then(r => r.json())
+                .then(res => {
+                    if (
+                        res.message_type === 2 &&
+                        res.response_type === 2 &&
+                        res.code === 10
+                    ) {
+                        document.getElementById("refreshSuccessModal").style.display = "flex";
+
+                        setTimeout(() => {
+                            document.getElementById("refreshSuccessModal").style.display = "none";
+                        }, 2000);
+                    }
+                })
+                .catch(() => {
+                    // Optional: log or silently ignore
+                });
+        };
 
         setInterval(refresh, 1000);
         refresh();

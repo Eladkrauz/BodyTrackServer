@@ -34,6 +34,7 @@ class ConfigParameters:
         ERROR                                   = "error"
         PHASE                                   = "phase"
         FEEDBACK                                = "feedback"
+        SUMMARY                                 = "summary"
         
     class Minor(enum):
         """
@@ -98,3 +99,8 @@ class ConfigParameters:
         POSE_QUALITY_FEEDBACK_THRESHOLD         = "pose_quality_feedback_threshold"
         BIO_FEEDBACK_THRESHOLD                  = "biomechanical_feedback_threshold"
         FEEDBACK_COOLDOWN_FRAMES                = "feedback_cooldown_frames"
+
+        # Summary.
+        NUMBER_OF_TOP_ERRORS                    = "number_of_top_errors"
+        PENALTY_PER_ERROR                       = "penalty_per_error"
+        MAX_GRADE                               = "max_grade"

@@ -94,6 +94,7 @@ class ErrorCode(enum):
     TRYING_TO_ANALYZE_FRAME_WHEN_FAILED         = (218, "Recieved a frame for analysis when the session has already failed.",                None, False)
     ERROR_CREATING_SESSION_DATA                 = (218, "Error while creating a session data instance",                                     None, False)
     SESSION_SHOULD_ABORT                        = (219, "The session should be aborted due to reaching maximum number of bad frames.",      None, False)
+    CLIENT_NOT_IN_SYSTEM                        = (220, "The client is not registered in the system.",                                      None, False)
 
     # PoseAnalyzer.
     ERROR_INITIALIZING_POSE                     = (300, "Error initializing PoseAnalyzer",                                                  None, False)

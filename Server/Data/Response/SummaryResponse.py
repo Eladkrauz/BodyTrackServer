@@ -1,48 +1,61 @@
-###############################################################################
-######### BODY TRACK // SERVER // DATA // Response // SummaryResponse #########
-###############################################################################
-########################### CLASS: SummaryResponse ############################
-###############################################################################
+############################################################
+######### BODY TRACK // SERVER // DATA // RESPONSE #########
+############################################################
+################# CLASS: SummaryResponse ###################
+############################################################
 
+###############
+### IMPORTS ###
+###############
 from dataclasses import dataclass, field
 from typing import List, Dict, Any
 
 @dataclass
-#############################
-### SUMMARY SESSION CLASS ###
-#############################
+##############################
+### SUMMARY RESPONSE CLASS ###
+##############################
 class SummaryResponse:
     """
-    ### Session Summary Data Structure
+    ### Description:
+    The `SummaryResponse` class represents the final summary returned at the end of a training session.
 
-    Represents the final summary returned at the end of a training session.
-
-    Includes:
+    ### Includes:
     - High-level session metadata
     - Rep-by-rep biomechanical breakdown
     - Aggregated biomechanical errors
     - Overall grade
     - Generated recommendations
     """
-    #high-level session metadata
-    session_id: str
-    exercise_type: str
-    session_duration_seconds: float
-    number_of_reps: int
-    average_rep_duration_seconds: float
-    #performance grade
-    overall_grade: float
-    #rep-by-rep biomechanical breakdown
-    rep_breakdown: List[Dict[str, Any]] = field(default_factory=list)
-    #aggregated biomechanical errors
-    aggregated_errors: Dict[str, int] = field(default_factory=dict)
-    #generated recommendations
-    recommendations: List[str] = field(default_factory=list)
+    # High-level session metadata.
+    session_id:str
+    exercise_type:str
+    session_duration_seconds:float
+    number_of_reps:int
+    average_rep_duration_seconds:float
+
+    # Performance grade.
+    overall_grade:float
+
+    # Rep-by-rep biomechanical breakdown.
+    rep_breakdown:List[Dict[str, Any]] = field(default_factory=list)
+
+    # Aggregated biomechanical errors.
+    aggregated_errors:Dict[str, int] = field(default_factory=dict)
+
+    # Generated recommendations.
+    recommendations:List[str] = field(default_factory=list)
 
     ###############
     ### TO DICT ###
     ###############
     def to_dict(self) -> Dict[str, Any]:
+        """
+        ### Brief:
+        The `to_dict` method converts the `SummaryResponse` instance into a dictionary format.
+
+        ### Returns:
+        - Dict[str, Any]: A dictionary representation of the `SummaryResponse` instance.
+        """
         return {
             "session_id":                     self.session_id,
             "exercise_type":                  self.exercise_type,
@@ -54,4 +67,3 @@ class SummaryResponse:
             "aggregated_errors":              self.aggregated_errors,
             "recommendations":                self.recommendations
         }
-

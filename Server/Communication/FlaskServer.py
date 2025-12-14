@@ -23,9 +23,10 @@ from Server.Utilities.Logger                  import Logger
 from Server.Utilities.Error.ErrorHandler      import ErrorHandler
 from Server.Utilities.Error.ErrorCode         import ErrorCode, ErrorResponse
 from Server.Communication.Communication       import Communication
-from Server.Data.Response.ManagementResponse  import ManagementResponse
+from Server.Data.Response.ManagementResponse  import ManagementResponse, ManagementCode
 from Server.Data.Response.FeedbackResponse    import FeedbackResponse
 from Server.Data.Response.CalibrationResponse import CalibrationResponse
+from Server.Data.Response.SummaryResponse     import SummaryResponse
 
 ##########################
 ### FLASK SERVER CLASS ###
@@ -66,17 +67,19 @@ class FlaskServer:
 
         # Bind routes to handler functions.
         try:
-            self.app.add_url_rule("/ping",                 view_func=self.ping,                  methods=["GET"])
-            self.app.add_url_rule("/register/new/session", view_func=self._register_new_session, methods=["POST"])
-            self.app.add_url_rule("/unregister/session",   view_func=self._unregister_session,   methods=["POST"])
-            self.app.add_url_rule("/start/session",        view_func=self._start_session,        methods=["POST"])
-            self.app.add_url_rule("/pause/session",        view_func=self._pause_session,        methods=["POST"])
-            self.app.add_url_rule("/resume/session",       view_func=self._resume_session,       methods=["POST"])
-            self.app.add_url_rule("/end/session",          view_func=self._end_session,          methods=["POST"])
-            self.app.add_url_rule("/analyze",              view_func=self._analyze_pose,         methods=["POST"])
-            self.app.add_url_rule("/session/status",       view_func=self._session_status,       methods=["POST"])
-            self.app.add_url_rule("/internal/telemetry",   view_func=self._telemetry,             methods=["GET"])
-            self.app.add_url_rule("/terminate/server",     view_func=self._terminate_server,     methods=["POST"])
+            self.app.add_url_rule("/ping",                   view_func=self.ping,                    methods=["GET"])
+            self.app.add_url_rule("/register/new/session",   view_func=self._register_new_session,   methods=["POST"])
+            self.app.add_url_rule("/unregister/session",     view_func=self._unregister_session,     methods=["POST"])
+            self.app.add_url_rule("/start/session",          view_func=self._start_session,          methods=["POST"])
+            self.app.add_url_rule("/pause/session",          view_func=self._pause_session,          methods=["POST"])
+            self.app.add_url_rule("/resume/session",         view_func=self._resume_session,         methods=["POST"])
+            self.app.add_url_rule("/end/session",            view_func=self._end_session,            methods=["POST"])
+            self.app.add_url_rule("/analyze",                view_func=self._analyze_pose,           methods=["POST"])
+            self.app.add_url_rule("/session/status",         view_func=self._session_status,         methods=["POST"])
+            self.app.add_url_rule("/session/summary",        view_func=self._session_summary,        methods=["POST"])
+            self.app.add_url_rule("/internal/telemetry",     view_func=self._telemetry,              methods=["GET"])
+            self.app.add_url_rule("/terminate/server",       view_func=self._terminate_server,       methods=["POST"])
+            self.app.add_url_rule("/refresh/configurations", view_func=self._refresh_configurations, methods=["GET"])
         except Exception as e:
             ErrorHandler.handle(
                 error=ErrorCode.CANT_ADD_URL_RULE_TO_FLASK_SERVER,
@@ -530,6 +533,60 @@ class FlaskServer:
             return jsonify(Communication.error_response(session_status_icd)), HttpCodes.SERVER_ERROR
         else:
             return jsonify(Communication.construct_response(session_status_icd)), HttpCodes.OK
+    
+    #######################
+    ### SESSION SUMMARY ###
+    #######################
+    def _session_summary(self) -> tuple[Response, HttpCodes]:
+        """
+        ### Brief:
+        The `_session_summary` method receives a session id from the client, forwards it
+        to the SessionManager and returns the session summary, or an error code.
+
+        ### Returns:
+        - JSON containing session summary if exists.
+        - JSON with error info if does not exist.
+
+        ### Use:
+        Used by the client to retrieve the final summary of a session after it has ended.
+        """
+        # Get request's JSON data.
+        data:dict = dict(request.get_json())
+        if not data:
+            Logger.warning("Missing or invalid JSON in analyze_pose request")
+            return jsonify(Communication.error_response(error=None, error_code=ErrorCode.INVALID_JSON_PAYLOAD_IN_REQUEST)), HttpCodes.BAD_REQUEST
+
+        # Extract required fields.
+        session_id:str = data.get("session_id", None)
+        if session_id is None:
+            Logger.warning("Missing fields in analyze_pose request")
+            return jsonify(Communication.error_response(error=None, error_code=ErrorCode.MISSING_FRAME_DATA_IN_REQUEST)), HttpCodes.BAD_REQUEST
+        
+        # Get the summary.
+        session_summary_icd:SummaryResponse | ErrorResponse = self.session_manager.get_session_summary(session_id)
+        if isinstance(session_summary_icd, ErrorResponse):
+            return jsonify(Communication.error_response(session_summary_icd)), HttpCodes.SERVER_ERROR
+        else:
+            return jsonify(Communication.construct_response(session_summary_icd)), HttpCodes.OK
+    
+    ##############################
+    ### REFRESH CONFIGURATIONS ###
+    ##############################
+    def _refresh_configurations(self) -> tuple[Response, HttpCodes]:
+        """
+        ### Brief:
+        The `_refresh_configurations` method refreshes the server configurations.
+
+        ### Returns:
+        - JSON response indicating success or failure, along with the appropriate HTTP code.
+
+        ### Use:
+        Used to reload server configurations without restarting the server.
+        """
+        self.session_manager.retrieve_configurations()
+        return jsonify(Communication.construct_response(
+            ManagementResponse(management_code=ManagementCode.CONFIGURATION_UPDATED_SUCCESSFULLY)
+        )), HttpCodes.OK
     
     #################
     ### TELEMETRY ###

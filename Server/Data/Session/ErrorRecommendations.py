@@ -1,16 +1,18 @@
 ################################################################
-######## BODY TRACK // SERVER // DATA // RECOMMENDATION ########
+########### BODY TRACK // SERVER // DATA // SESSION ############
 ################################################################
-################# CLASS: RecomandationsMapping #################
+################# CLASS: ErrorRecommendations ##################
 ################################################################
 
+###############
+### IMPORTS ###
+###############
 from typing import Dict
 from Server.Data.Error.DetectedErrorCode import DetectedErrorCode
 
 #############################
 ### ERROR RECOMMENDATIONS ###
 #############################
-
 class ErrorRecommendations:
     """
     ### Description:
@@ -30,8 +32,8 @@ class ErrorRecommendations:
     - Used by `SessionSummaryManager` to produce final recommendations.
     - Can be used by future real-time feedback modules for instant corrective suggestions.
     """
-
-    _RECOMMENDATION_MAP: Dict[DetectedErrorCode, str] = {
+    _default_message = "Maintain controlled, stable movement and proper form."
+    _recommenations_map:Dict[DetectedErrorCode, str] = {
         ####################
         ### SQUAT ERRORS ###
         ####################
@@ -101,11 +103,11 @@ class ErrorRecommendations:
     ### GET RECOMMENDATION ###
     ##########################
     @classmethod
-    def get(cls, error_code: DetectedErrorCode) -> str:
+    def get_recommendation(cls, error_code:DetectedErrorCode) -> str:
         """
         ### Brief:
-        Retrieves a human-readable recommendation message associated with a specific
-        `DetectedErrorCode`.
+        The `get` method retrieves a human-readable recommendation
+        message associated with a specific `DetectedErrorCode`.
 
         ### Arguments:
         - `error_code` (DetectedErrorCode): The biomechanical error for which a
@@ -120,7 +122,4 @@ class ErrorRecommendations:
         - This method ensures the system remains robust even if new enum values
           are added before recommendations are written for them.
         """
-        return cls._RECOMMENDATION_MAP.get(
-            error_code,
-            "Maintain controlled, stable movement and proper form."
-        )
+        return cls._recommenations_map.get(error_code, cls._default_message)

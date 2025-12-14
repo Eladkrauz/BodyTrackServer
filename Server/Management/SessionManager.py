@@ -32,6 +32,10 @@ from Server.Data.Session.AnalyzingState       import AnalyzingState
 from Server.Data.Response.FeedbackResponse    import FeedbackCode, FeedbackResponse
 from Server.Data.Response.ManagementResponse  import ManagementCode, ManagementResponse
 from Server.Data.Response.CalibrationResponse import CalibrationCode, CalibrationResponse
+from Server.Data.Response.SummaryResponse     import SummaryResponse
+
+# Management.
+from Server.Management.SessionSummaryManager  import SessionSummaryManager
 
 #############################
 ### SESSION MANAGER CLASS ###
@@ -53,6 +57,9 @@ class SessionManager:
         """
         # The pipeline processor.
         self.pipeline_processor = PipelineProcessor()
+
+        # Session summary manager.
+        self.session_summary_manager = SessionSummaryManager()
 
         # Configurations.
         self.retrieve_configurations()
@@ -570,6 +577,36 @@ class SessionManager:
             else:                                  return ManagementResponse(ManagementCode.CLIENT_SESSION_IS_NOT_IN_SYSTEM)
         except Exception:
             return ErrorResponse(ErrorCode.SEARCH_TYPE_IS_NOT_SUPPORTED)
+    
+    ###########################
+    ### GET SESSION SUMMARY ###
+    ###########################
+    def get_session_summary(self, session_id:str) -> SummaryResponse | ErrorResponse:
+        """
+        ### Brief:
+        The `get_session_summary` method retrieves the summary of a session.
+
+        ### Arguments:
+        - `session_id` (str): The session ID as a string.
+
+        ### Returns:
+        - `SummaryResponse` containing the session summary if successful.
+        - `ErrorResponse` if the session ID is invalid or the session does not exist.
+        """
+        # Checking if the session id is valid and packing it.
+        session_id:SessionId = self.id_generator.pack_string_to_session_id(session_id) 
+        if session_id is None:
+            return ErrorResponse(ErrorCode.INVALID_SESSION_ID)
+        
+        # Retrieving the session data.
+        with self.sessions_lock:
+            session_data:SessionData = self.sessions.pop(session_id, None)
+            if session_data is None:
+                return ErrorResponse(ErrorCode.CLIENT_NOT_IN_SYSTEM)
+        
+        # Generating the summary using SessionSummaryManager.
+        summary_data:SummaryResponse = self.session_summary_manager.create_session_summary(session_data)
+        return summary_data
 
     ###############################################
     #################### TASKS ####################

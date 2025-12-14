@@ -57,5 +57,10 @@
       "pose_quality_feedback_threshold":      10,
       "biomechanical_feedback_threshold":     10,
       "feedback_cooldown_frames":             20
+    },
+    "summary": {
+      "number_of_top_errors":                 4,
+      "penalty_per_error":                    1.5,
+      "max_grade":                            100
     }
 }
