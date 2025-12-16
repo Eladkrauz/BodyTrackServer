@@ -152,7 +152,7 @@ class SessionSummaryManager():
             ErrorHandler.handle(
                 error=ErrorCode.SUMMARY_MANAGER_INTERNAL_ERROR,
                 origin=inspect.currentframe(),
-                extra_info={"Method": "session_duration_seconds", "Reason": str(e)}
+                extra_info={"Exception": type(e), "Reason": str(e)}
             )
             return None
     
@@ -181,7 +181,7 @@ class SessionSummaryManager():
             ErrorHandler.handle(
                 error=ErrorCode.SUMMARY_MANAGER_INTERNAL_ERROR,
                 origin=inspect.currentframe(),
-                extra_info={"Method": "average_rep_duration_seconds", "Reason": str(e)}
+                extra_info={"Exception": type(e), "Reason": str(e)}
             )
             return 0.0
 
@@ -219,7 +219,7 @@ class SessionSummaryManager():
             ErrorHandler.handle(
                 error=ErrorCode.SUMMARY_MANAGER_INTERNAL_ERROR,
                 origin=inspect.currentframe(),
-                extra_info={"Method": "overall_grade", "Reason": str(e)}
+                extra_info={"Exception": type(e), "Reason": str(e)}
             )
             return 0.0
         
@@ -245,18 +245,23 @@ class SessionSummaryManager():
         """
         from Server.Data.History.HistoryDictKey import HistoryDictKey
         try:
-            rep_history:Dict[str, Any] = history.get_rep_history()
-            for rep_index, rep_data in rep_history.items():
+            rep_history:List[Dict[str, Any]] = history.get_rep_history()
+            for rep_data in rep_history:
                 start_time:datetime = rep_data[HistoryDictKey.Repetition.START_TIME]
                 end_time:datetime = rep_data[HistoryDictKey.Repetition.END_TIME]
 
-                rep_history[rep_index][HistoryDictKey.Repetition.START_TIME] = start_time.strftime("%H:%M:%S")
-                rep_history[rep_index][HistoryDictKey.Repetition.END_TIME] = end_time.strftime("%H:%M:%S")
+                rep_history[HistoryDictKey.Repetition.START_TIME] = start_time.strftime("%H:%M:%S")
+                rep_history[HistoryDictKey.Repetition.END_TIME] = end_time.strftime("%H:%M:%S")
+
+                if rep_history[HistoryDictKey.Repetition.IS_CORRECT] is True:
+                    rep_history[HistoryDictKey.Repetition.ERRORS] = []
+                
+                return rep_history
         except Exception as e:
             ErrorHandler.handle(
                 error=ErrorCode.SUMMARY_MANAGER_INTERNAL_ERROR,
                 origin=inspect.currentframe(),
-                extra_info={"Method": "rep_breakdown", "Reason": str(e)}
+                extra_info={"Exception": type(e), "Reason": str(e)}
             )
             return []
         
@@ -281,7 +286,7 @@ class SessionSummaryManager():
             ErrorHandler.handle(
                 error=ErrorCode.SUMMARY_MANAGER_INTERNAL_ERROR,
                 origin=inspect.currentframe(),
-                extra_info={"Method": "aggregated_errors", "Reason": str(e)}
+                extra_info={"Exception": type(e), "Reason": str(e)}
             )
             return {}
     
@@ -330,6 +335,6 @@ class SessionSummaryManager():
             ErrorHandler.handle(
                 error=ErrorCode.SUMMARY_MANAGER_INTERNAL_ERROR,
                 origin=inspect.currentframe(),
-                extra_info={"Method": "recommendations", "Reason": str(e)}
+                extra_info={"Exception": type(e), "Reason": str(e)}
             )
             return []

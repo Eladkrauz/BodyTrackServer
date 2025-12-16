@@ -149,6 +149,7 @@ class ErrorCode(enum):
     FEEDBACK_FORMATTER_INIT_ERROR               = (900, "Failed to initialize FeedbackFormatter",                                           None, True)
     FEEDBACK_CONSTRUCTION_ERROR                 = (901, "Error during feedback constructor",                                                None, False)
     POSE_QUALITY_FEEDBACK_SELECTION_ERROR       = (902, "Error during pose quality feedback selection",                                     None, False)
+    BIOMECHANICAL_FEEDBACK_SELECTION_ERROR      = (903, "Error during biomechanical feedback selection",                                    None, False)
 
     # SessionSummaryManager.
     SUMMARY_MANAGER_INIT_ERROR                  = (1001, "Failed to initialize SessionSummaryManager",                                      None, True)
