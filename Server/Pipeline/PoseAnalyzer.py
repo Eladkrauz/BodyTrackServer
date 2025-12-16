@@ -7,7 +7,7 @@
 ###############
 ### IMPORTS ###
 ###############
-import cv2, inspect
+import cv2, inspect, os
 import numpy as np
 import mediapipe as mp
 import mediapipe.python.solutions.pose as Pose
@@ -71,6 +71,10 @@ class PoseAnalyzer:
             # Works together with mp_drawing to render pose annotations consistently.
             self.mp_drawing_styles = mp.solutions.drawing_styles
 
+            self.enable_visualization = True
+            self.debug_output_dir = "/Users/eladkrauz/Desktop/OUTPUT"
+            os.makedirs(self.debug_output_dir, exist_ok=True)
+
             Logger.info("Initialized successfully.")
         except ValueError as e:
             ErrorHandler.handle(
@@ -117,6 +121,23 @@ class PoseAnalyzer:
                     "Reason": "Unexpected error while initializing Mediapipe Pose."
                 }
             )
+
+    #################
+    ### DRAW POSE ###
+    #################
+    def _draw_pose(self, frame_bgr: np.ndarray, pose_landmarks) -> None:
+        """
+        Draws pose landmarks and connections on the given BGR frame (in-place).
+        """
+        if pose_landmarks is None:
+            return
+
+        self.mp_drawing.draw_landmarks(
+            image=frame_bgr,
+            landmark_list=pose_landmarks,
+            connections=self.mp_pose.POSE_CONNECTIONS,
+            landmark_drawing_spec=self.mp_drawing_styles.get_default_pose_landmarks_style()
+        )
 
     ######################
     ### VALIDATE FRAME ###
@@ -308,8 +329,26 @@ class PoseAnalyzer:
             Logger.info(f"Frame {frame_data.frame_id} of session {frame_data.session_id} - preprocessed successfully.")
         
         try:
+            import os
             # Run MediaPipe Pose.
             result = self.pose.process(preprocessing_result)
+            # Optional visualization
+            if self.enable_visualization and result.pose_landmarks is not None:
+                try:
+                    vis_frame = frame_data.content.copy()   # original BGR frame
+                    self._draw_pose(vis_frame, result.pose_landmarks)
+
+                    output_path = os.path.join(
+                        self.debug_output_dir,
+                        f"session_{frame_data.session_id}_frame_{frame_data.frame_id}.jpg"
+                    )
+
+                    cv2.imwrite(output_path, vis_frame)
+
+                except Exception as e:
+                    Logger.warning(
+                        f"Failed to save debug frame {frame_data.frame_id}: {type(e).__name__}"
+                    )
 
             # Convert results to NormalizedLandmarkList.
             pose_landmarks:Optional[landmark_pb2.NormalizedLandmarkList] = getattr(result, "pose_landmarks", None)
@@ -432,7 +471,7 @@ class PoseAnalyzer:
                 error=ErrorCode.FRAME_ANALYSIS_ERROR,
                 origin=inspect.currentframe(),
                 extra_info={
-                    "Exception type": type(e).__name__,
+                    "Exception type": type(e),
                     "Reason": "Unexpected error during pose analysis."
                 }
             )

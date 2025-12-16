@@ -106,8 +106,8 @@ class SessionSummaryManager():
             history = session_data.get_history()
 
             session_summary = SummaryResponse(
-                session_id=                     session_data.session_id,
-                exercise_type=                  session_data.exercise_type,
+                session_id=                     session_data.session_id.id,
+                exercise_type=                  session_data.exercise_type.value,
                 session_duration_seconds=       self._session_duration_seconds(history),
                 number_of_reps=                 history.get_rep_count(),
                 average_rep_duration_seconds=   self._average_rep_duration_seconds(history),
@@ -118,6 +118,8 @@ class SessionSummaryManager():
             )
 
             Logger.info(f"Session summary created for session: {session_data.session_id}")
+            print("RETURNING")
+            print(session_summary)
             return session_summary
 
         except Exception as e:
@@ -250,11 +252,11 @@ class SessionSummaryManager():
                 start_time:datetime = rep_data[HistoryDictKey.Repetition.START_TIME]
                 end_time:datetime = rep_data[HistoryDictKey.Repetition.END_TIME]
 
-                rep_history[HistoryDictKey.Repetition.START_TIME] = start_time.strftime("%H:%M:%S")
-                rep_history[HistoryDictKey.Repetition.END_TIME] = end_time.strftime("%H:%M:%S")
+                rep_data[HistoryDictKey.Repetition.START_TIME] = start_time.strftime("%H:%M:%S")
+                rep_data[HistoryDictKey.Repetition.END_TIME] = end_time.strftime("%H:%M:%S")
 
-                if rep_history[HistoryDictKey.Repetition.IS_CORRECT] is True:
-                    rep_history[HistoryDictKey.Repetition.ERRORS] = []
+                if rep_data[HistoryDictKey.Repetition.IS_CORRECT] is True:
+                    rep_data[HistoryDictKey.Repetition.ERRORS] = []
                 
                 return rep_history
         except Exception as e:

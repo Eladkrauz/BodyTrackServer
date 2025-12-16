@@ -314,20 +314,29 @@ class HistoryManager:
         if current_index + 1 < len(transition_order): next_phase:PhaseType = transition_order[current_index + 1]
         else:                                         next_phase:PhaseType = None
         
+        print("old_phase >>>", old_phase)
+        print("new_phase >>>", new_phase)
+        print("next_phase >>>", next_phase)
+        print("initial_phase >>>", initial_phase)
+        print("transition_order >>>", transition_order)
+        print("current_index >>>", current_index)
         ##############
         ### Case 1 ### - Correct progression in transition order.
         ##############
-        if new_phase == next_phase:
-            history_raw_dict[HistoryDictKey.CURRENT_TRANSITION_INDEX] += 1
-
+        if new_phase == next_phase and new_phase != initial_phase:
             # Starting a new rep: leaving initial phase.
             if current_index == 0:
+                Logger.info("#\n#\n#\n#\n#\nStarting a new repetition.\n#\n#\n#\n#\n#")
                 self.start_a_new_rep(history_data)
+            
+            # Progressing in the transition order.
+            history_raw_dict[HistoryDictKey.CURRENT_TRANSITION_INDEX] += 1
 
         ##############
         ### Case 2 ### - Cycle completed - end rep.
         ##############
-        elif new_phase == initial_phase and next_phase == initial_phase:
+        elif new_phase == initial_phase and current_index != 0:
+            Logger.info("#\n#\n#\n#\n#\nEnding the repetition.\n#\n#\n#\n#\n#")
             self.end_current_rep(history_data)
             history_raw_dict[HistoryDictKey.CURRENT_TRANSITION_INDEX] = 0
 
