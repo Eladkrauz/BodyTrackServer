@@ -14,6 +14,7 @@ class HistoryDictKey:
     CONSECUTIVE_OK_FRAMES       = "consecutive_ok_frames"
     ERROR_COUNTERS              = "error_counters"
     ERROR_STREAKS               = "error_streaks"
+    LOW_MOTION_STREAK           = "low_motion_streak"
     # Phase.
     PHASE_STATE                 = "phase_state"
     PHASE_TRANSITIONS           = "phase_transitions"

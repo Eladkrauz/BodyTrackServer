@@ -22,7 +22,7 @@
       "left_ankle_angle":   { "min": 150, "max": 170 },
       "right_ankle_angle":  { "min": 150, "max": 170 }
     },
-    "BOTTOM": {
+    "HOLD": {
       "trunk_tilt_angle":   { "min": 45,  "max": 65 },
       "hip_line_angle":     { "min": 0,   "max": 10 },
       "left_hip_angle":     { "min": 80,  "max": 120 },
@@ -47,7 +47,7 @@
   },
 
   "biceps_curl": {
-    "BOTTOM": {
+    "REST": {
       "left_elbow_angle":            { "min": 160, "max": 180 },
       "right_elbow_angle":           { "min": 160, "max": 180 },
       "left_shoulder_flexion_angle": { "min": 160, "max": 190 },
@@ -57,7 +57,7 @@
       "left_wrist_angle":            { "min": 160, "max": 200 },
       "right_wrist_angle":           { "min": 160, "max": 200 }
     },
-    "UP": {
+    "LIFTING": {
       "left_elbow_angle":            { "min": 90,  "max": 140 },
       "right_elbow_angle":           { "min": 90,  "max": 140 },
       "left_shoulder_flexion_angle": { "min": 160, "max": 200 },
@@ -67,7 +67,7 @@
       "left_wrist_angle":            { "min": 160, "max": 200 },
       "right_wrist_angle":           { "min": 160, "max": 200 }
     },
-    "TOP": {
+    "HOLD": {
       "left_elbow_angle":            { "min": 40,  "max": 90 },
       "right_elbow_angle":           { "min": 40,  "max": 90 },
       "left_shoulder_flexion_angle": { "min": 160, "max": 210 },
@@ -77,7 +77,7 @@
       "left_wrist_angle":            { "min": 160, "max": 200 },
       "right_wrist_angle":           { "min": 160, "max": 200 }
     },
-    "DOWN": {
+    "LOWERING": {
       "left_elbow_angle":            { "min": 90,  "max": 160 },
       "right_elbow_angle":           { "min": 90,  "max": 160 },
       "left_shoulder_flexion_angle": { "min": 160, "max": 200 },

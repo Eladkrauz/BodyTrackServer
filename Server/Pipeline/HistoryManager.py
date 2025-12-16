@@ -90,6 +90,13 @@ class HistoryManager:
             # keep info about the previous bad frames.
             if not self._is_valid_frame_in_threshold(history_data): return
 
+            # At this point - the frame is valid and stable.
+            # Calculating deltas.
+            self._update_low_motion_streak(
+                history_data=history_data,
+                joints=new_frame[HistoryDictKey.Frame.JOINTS]
+            )
+
             # Updating last valid frame.
             history_raw_dict[HistoryDictKey.LAST_VALID_FRAME] = new_frame
 
@@ -216,6 +223,33 @@ class HistoryManager:
     ############################## PHASE STATE ##############################
     #########################################################################
 
+    #########################
+    ### SET INITIAL PHASE ###
+    #########################
+    def set_initial_phase(self, history_data:HistoryData, exercise_type:ExerciseType) -> None:
+        """
+        ### Brief:
+        The `set_initial_phase` method sets the initial phase for the exercise session.
+
+        ### Arguments:
+        - `history_data` (HistoryData): The `HistoryData` instance to work with.
+        - `exercise_type` (ExerciseType): The type of exercise being performed.
+        """
+        history_raw_dict:Dict[str, Any] = self._get_raw_history_data(history_data)
+
+        initial_phase:PhaseType = self.initial_phase_per_exercise.get(exercise_type, None)
+        if initial_phase is None:
+            from Server.Utilities.Error.ErrorHandler import ErrorHandler
+            from Server.Utilities.Error.ErrorCode import ErrorCode
+            ErrorHandler.handle(
+                error=ErrorCode.HISTORY_MANAGER_INTERNAL_ERROR,
+                origin=inspect.currentframe(),
+                extra_info={ "Exercise Type": exercise_type }
+            )
+            return
+        
+        history_raw_dict[HistoryDictKey.PHASE_STATE] = initial_phase
+        
     ###############################
     ### RECOED PHASE TRANSITION ###
     ###############################
@@ -813,6 +847,53 @@ class HistoryManager:
         - `Dict[str, Any] - The raw history data dictionary.
         """
         return history_data.history
+    
+    ################################
+    ### UPDATE LOW MOTION STREAK ###
+    ################################
+    def _update_low_motion_streak(self, history_data:HistoryData, joints:Dict[str, float]) -> None:
+        """
+        ### Brief:
+        The `_update_low_motion_streak` method updates the low motion streak counter
+        based on the provided joint angles.
+
+        ### Arguments:
+        - `history_data` (HistoryData): The `HistoryData` instance to work with.
+        - `joints` (Dict[str, float]): The current joint angles.
+        """
+        history_raw_dict:Dict[str, Any] = self._get_raw_history_data(history_data)
+
+        # Get the last valid frame.
+        last_valid_frame:Dict[str, Any] = history_data.get_last_valid_frame()
+        if last_valid_frame is None or joints is None:
+            history_raw_dict[HistoryDictKey.LOW_MOTION_STREAK] = 0
+            return
+
+        # Get the previous joints.
+        prev_joints = last_valid_frame[HistoryDictKey.Frame.JOINTS]
+        if prev_joints is None:
+            history_raw_dict[HistoryDictKey.LOW_MOTION_STREAK] = 0
+            return
+
+        # Calculating angle deltas.
+        deltas = []
+        for name in joints:
+            if name in joints and name in prev_joints:
+                if joints[name] is None or prev_joints[name] is None:
+                    continue
+                deltas.append(abs(float(joints[name]) - float(prev_joints[name])))
+        # If no deltas - reset streak.
+        if not deltas:
+            history_raw_dict[HistoryDictKey.LOW_MOTION_STREAK] = 0
+            return
+
+        # Calculate average motion score.
+        motion_score = sum(deltas) / len(deltas)
+        # Update streak if below threshold.
+        if motion_score <= self.low_motion_angle_degrees_threshold:
+            history_raw_dict[HistoryDictKey.LOW_MOTION_STREAK] += 1
+        else:
+            history_raw_dict[HistoryDictKey.LOW_MOTION_STREAK] = 0
 
     ###############################
     ### RETRIEVE CONFIGURATIONS ###
@@ -893,6 +974,19 @@ class HistoryManager:
                 extra_info={ "Max consecutive invalid frames before abort": "Not found in the configuration file" }
             )
             self.max_consecutive_invalid_before_abort = 60
+
+        # Reading low motion angle degrees threshold.
+        self.low_motion_angle_degrees_threshold:float = ConfigLoader.get([
+            ConfigParameters.Major.HISTORY,
+            ConfigParameters.Minor.LOW_MOTION_ANGLE_DEGREES_THRESHOLD
+        ])
+        if self.low_motion_angle_degrees_threshold is None:
+            ErrorHandler.handle(
+                error=ErrorCode.HISTORY_MANAGER_INIT_ERROR,
+                origin=inspect.currentframe(),
+                extra_info={ "Low motion angle degrees threshold": "Not found in the configuration file" }
+            )
+            self.low_motion_angle_degrees_threshold = 3.0
 
         # Reading transition orders of each exercise.
         config_file_path:str = ConfigLoader.get(

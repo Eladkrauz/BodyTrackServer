@@ -20,10 +20,8 @@ from Server.Utilities.Logger                import Logger
 from Server.Data.Session.SessionData        import SessionData
 from Server.Data.Error.ErrorMappings        import ErrorMappings
 from Server.Data.Error.DetectedErrorCode    import DetectedErrorCode
-
-if TYPE_CHECKING:
-    from Server.Data.History.HistoryData    import HistoryData
-    from Server.Data.History.HistoryDictKey import HistoryDictKey
+from Server.Data.History.HistoryData        import HistoryData
+from Server.Data.History.HistoryDictKey     import HistoryDictKey
     
 ############################
 ### ERROR DETECTOR CLASS ###
@@ -118,7 +116,7 @@ class ErrorDetector:
 
             # Below MINIMUM.
             if value < rules["min"]:
-                mapped = self._map_angle_to_error_low(exercise_name, angle_name)
+                mapped = self._map_angle_to_error_low(exercise_type, angle_name)
                 if mapped is None:
                     # Mapping missing for valid angle.
                     ErrorHandler.handle(
@@ -130,8 +128,9 @@ class ErrorDetector:
 
             # Above MAXIMUM.
             if value > rules["max"]:
-                mapped = self._map_angle_to_error_high(exercise_name, angle_name)
+                mapped = self._map_angle_to_error_high(exercise_type, angle_name)
                 if mapped is None:
+                    Logger.debug(f"HIGH MAP: {ErrorMappings.SQUAT_ERROR_MAP_HIGH}")
                     ErrorHandler.handle(
                         error=ErrorCode.ERROR_DETECTOR_MAPPING_NOT_FOUND,
                         origin=inspect.currentframe(),
@@ -145,13 +144,13 @@ class ErrorDetector:
     ##############################
     ### MAP ANGLE TO ERROR LOW ###
     ##############################
-    def _map_angle_to_error_low(self, exercise: str, angle_name: str) -> DetectedErrorCode | None:
+    def _map_angle_to_error_low(self, exercise:ExerciseType, angle_name:str) -> DetectedErrorCode | None:
         """
         ### Brief:
         The `_map_angle_to_error_low` method maps an angle (below minimum range) to a biomechanical DetectedErrorCode.
 
         ### Arguments:
-        - `exercise` (str): The exercise being performed.
+        - `exercise` (ExerciseType): The exercise being performed.
         - `angle_name` (str): The name of the joint angle.
 
         ### Returns:
@@ -166,13 +165,13 @@ class ErrorDetector:
     ###############################
     ### MAP ANGLE TO ERROR HIGH ###
     ###############################
-    def _map_angle_to_error_high(self, exercise: str, angle_name: str) -> DetectedErrorCode | None:
+    def _map_angle_to_error_high(self, exercise:ExerciseType, angle_name:str) -> DetectedErrorCode | None:
         """
         ### Brief:
         The `_map_angle_to_error_high` method maps an angle (above maximum range) to a biomechanical DetectedErrorCode.
 
         ### Arguments:
-        - `exercise` (str): The exercise being performed.
+        - `exercise` (ExerciseType): The exercise being performed.
         - `angle_name` (str): The name of the joint angle.
 
         ### Returns:

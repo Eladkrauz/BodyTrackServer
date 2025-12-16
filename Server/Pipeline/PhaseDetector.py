@@ -101,9 +101,13 @@ class PhaseDetector:
             if phase.name == "NONE": continue
 
             # Adding candidate if rules match.
-            if self._phase_matches_rules(phase.name, rules, last_valid_joints):
+            Logger.debug(f"########## Checking phase '{phase.name}' against rules.")
+            for joint_name, angle in last_valid_joints.items():
+                Logger.debug(f"Joint '{joint_name}': angle = {angle}")
+            if self._phase_matches_rules(phase, rules, last_valid_joints):
                 candidates.append(phase.name)
 
+        print(candidates)
         # Resolve final selected phase.
         return self._select_phase_from_candidates(candidates, session_data)
     
@@ -156,11 +160,42 @@ class PhaseDetector:
             joints=joints
         )
 
+        Logger.info(f"Initial phase '{initial_phase_name}' match status: {is_match}")
         return is_match
         
     #####################################################################
     ############################## HELPERS ##############################
     #####################################################################
+
+    def _is_motion_small(self, history:HistoryData, joints:Dict[str, float]) -> bool:
+        """
+        ### Brief:
+        The `_is_motion_small` method checks if the motion between the last valid frame
+        and the current joints is within a small threshold.
+
+        ### Arguments:
+        - `history` (HistoryData): The history data containing past frames.
+        - `joints` (Dict[str, float]): The current joint angles.
+
+        ### Returns:
+        - `True` if the motion is small.
+        - `False` otherwise.
+        """
+        last_frame = history.get_last_valid_frame()
+        if not last_frame: return False
+
+        prev_joints = last_frame.get(HistoryDictKey.Frame.JOINTS, {})
+        if not prev_joints: return False
+
+        for joint, value in joints.items():
+            prev_value = prev_joints.get(joint)
+            if prev_value is None:
+                continue
+            if abs(value - prev_value) > self.phase_low_motion_threshold:
+                return False
+
+        return True
+
     
     ###########################
     ### GET EXERCISE CONFIG ###
@@ -217,14 +252,19 @@ class PhaseDetector:
         """
         phase_rules = rules.get(phase_type.name, None)
         if phase_rules is None:
+            Logger.error(f"Phase rules not found for phase '{phase_type.name}'.")
             return False
 
+        Logger.debug(f"Checking phase '{phase_type.name}' with rules: {phase_rules}")
+        Logger.info("")
         for joint_name, joint_range in phase_rules.items():
             if joint_name not in joints:
                 # Missing joint: cannot match this phase.
+                Logger.debug(f"Phase '{phase_type.name}': Missing joint '{joint_name}' in provided joints.")
                 return False
 
             angle = joints[joint_name]
+            Logger.debug(f"Phase '{phase_type.name}': Checking joint '{joint_name}' with angle {angle} against limits {joint_range}.")
             min_allowed = joint_range.get(PhaseDictKey.MIN)
             max_allowed = joint_range.get(PhaseDictKey.MAX)
 
@@ -240,64 +280,164 @@ class PhaseDetector:
     def _select_phase_from_candidates(self, candidates:List[str], session_data:SessionData) -> PhaseType | ErrorCode:
         """
         ### Brief:
-        The `_select_phase_from_candidates` method selects the most appropriate phase
-        from a list of candidate phases based on defined rules.
+        The `_select_phase_from_candidates` selects the best phase out of a list of
+        candidate phases that matched thresholds for this frame.
 
         ### Arguments:
-        - `candidates` (List[str]): The list of candidate phase names.
-        - `session_data` (SessionData): The session data containing relevant information.
+        - `candidates` (List[str]): A `list` of phase names (strings) whose rule blocks
+                                    matched the current joints.
+        - `session_data` (SessionData): provides exercise type + history, including last selected phase.
 
         ### Returns:
-        - `PhaseType` representing the selected phase.
-        - `ErrorCode` in case of an error.
+        - The selected `PhaseType` enum element for this frame, or `ErrorCode` on configuration failures.
+
+        ### Idea:
+        This method implements a *robust real-time phase selection* strategy:
+        1) Never “drop” to an undefined phase if we can keep continuity.
+        2) Prefer stable behavior (hysteresis) over flickering between phases.
+        3) Prefer the next expected phase according to the configured transition order.
+        4) Support special “low motion” phases (like HOLD) by gating them until motion is actually small.
         """
+        ##############
+        ### CASE 1 ### - No candidates matched the rules for this frame.
+        ##############
+        # In real-time systems, “no match” is usually caused by noise:
+        # - skeleton jitter
+        # - borderline angles around thresholds
+        # - one joint temporarily failing
+        #
+        # Returning "PHASE_UNDETERMINED" in this case is harmful because it blocks feedback.
+        # Therefore: prefer continuity (last phase) or a safe initial default.
+        if len(candidates) == 0:
+            Logger.info("CASE NUMBER 1")
+            # If we have a last known phase, keep it (hysteresis / continuity).
+            last_phase = session_data.get_history().get_phase_state()
+            if last_phase is not None:
+                Logger.info("Returning last known phase for continuity.")
+                return last_phase
 
-        # No candidates at all, cannot determine phase.
-        if len(candidates) == 0: return ErrorCode.PHASE_UNDETERMINED_IN_FRAME
+            # If we have no last phase (for example - start of session), fallback to initial phase from config.
+            exercise_configuration:Dict[str, Any] = self._get_exercise_config(session_data)
+            if isinstance(exercise_configuration, ErrorCode):
+                # If config failed, we cannot decide.
+                return ErrorCode.PHASE_UNDETERMINED_IN_FRAME
 
-        # Get phase enum for this exercise.
-        phase_enum:PhaseType = PhaseType.get_phase_enum(session_data.get_exercise_type())
+            initial:str = exercise_configuration.get(PhaseDictKey.INITIAL_PHASE)
+            phase_enum:PhaseType = PhaseType.get_phase_enum(session_data.get_exercise_type())
 
-        ### Option 1: CANDIDATES LENGTH IS ONE (TRIVIAL CASE)
-        # If exactly one candidate, this is the trivial case and we return it.
-        if len(candidates) == 1: return phase_enum[candidates[0]]
+            # Config validation should ensure 'initial' exists, but we keep this safe-guard anyway.
+            if initial in phase_enum:
+                Logger.info("Returning initial phase from configuration.")
+                return phase_enum[initial]
 
-        ### Option 2: MULTIPLE CANDIDATES (NEED RESOLUTION)
-        # Retrieve last known phase from history.
+            # If we cannot determine a safe phase, return undetermined.
+            return ErrorCode.PHASE_UNDETERMINED_IN_FRAME
+
+        ##############
+        ### CASE 2 ### - Exactly one candidate, a trivial selection.
+        ##############
+        # At least one candidate exists.
+        # Load phase enum for this exercise once so we can return PhaseType elements.
+        phase_enum: PhaseType = PhaseType.get_phase_enum(session_data.get_exercise_type())
+
+        # If only one phase matches rules, that is the phase.
+        if len(candidates) == 1:
+            Logger.info("CASE NUMBER 2")
+            Logger.info(f"Only one candidate phase '{candidates[0]}' matched rules. Selecting it.")
+            return phase_enum[candidates[0]]
+
+        ##############
+        ### CASE 3 ### - Multiple candidates, we need resolution logic.
+        ##############
+        Logger.info("CASE NUMBER 3")
+        Logger.info(f"Candidates: {candidates}")
+        # Common cause: overlapping thresholds.
         last_phase:PhaseType | None = session_data.get_history().get_phase_state()
 
-        # If the previous phase is still valid: stay in the same phase.
+        # If the last phase is still a valid candidate this frame, keep it.
+        # This is standard hysteresis to prevent flickering when multiple phases match.
         if last_phase is not None and last_phase.name in candidates:
+            Logger.info(f"Last phase '{last_phase.name}' is still a valid candidate. Keeping it for stability.")
             return last_phase
 
-        # Prefer the next phase in the configured transition order.
+        # Otherwise, load config for transition order and low-motion behavior.
         exercise_configuration:Dict[str, Any] | ErrorCode = self._get_exercise_config(session_data)
+        # If config retrieval failed, we cannot decide.
         if isinstance(exercise_configuration, ErrorCode): return exercise_configuration
 
-        # Get transition order.
+        # Transition order defines the natural cycle of phases for this exercise.
         transition_order:List[str] = exercise_configuration.get(PhaseDictKey.TRANSITION_ORDER, [])
+        # If transition order is missing, we cannot decide.
         if not transition_order: return ErrorCode.PHASE_THRESHOLDS_CONFIG_FILE_ERROR
 
-        # Look for the next expected phase after the last known phase.
+        # Low-motion phases are phases we only want to allow when motion is actually small.
+        # Example: HOLD at the top of a curl or bottom of a squat.
+        # IMPORTANT: This list may legitimately be empty for some exercises.
+        low_motion_phases:List[str] = exercise_configuration.get(PhaseDictKey.LOW_MOTION_PHASES, [])
+        low_motion_streak:int = session_data.get_history().get_low_motion_streak()
+
+        # Gate low-motion phases by requiring a streak of “low motion” frames.
+        is_low_motion_ready:bool = low_motion_streak >= self.phase_low_motion_threshold
+
+        #######################
+        ### PRIORITY RULE 1 ### - Prefer the "next expected" phase in transition order.
+        #######################
+        # If we know the last phase, the most natural choice is the next phase in the configured cycle.
+        # This enforces correct phase progression rather than allowing random jumps.
         if last_phase is not None:
             try:
-                # Find index of last phase in transition order.
-                idx = transition_order.index(last_phase.name)
-                # Get next expected phase.
-                next_expected = transition_order[(idx + 1) % len(transition_order)]
-                # If next expected phase is a candidate, return it.
+                idx:int = transition_order.index(last_phase.name)
+                next_expected:str = transition_order[(idx + 1) % len(transition_order)]
+
+                # If the next expected phase is “low motion” but we are not in low motion, we do NOT go there.
+                # Instead, keep last phase to avoid falsely entering HOLD (or similar).
+                # Note: last_phase may not be in candidates here, but we accept hysteresis for stability.
+                if (next_expected in low_motion_phases) and (not is_low_motion_ready):
+                    Logger.info(f"Next expected phase '{next_expected}' is low-motion but not ready. Keeping last phase '{last_phase.name}'.")
+                    return last_phase
+
+                # If the next expected phase is one of the candidates, choose it.
                 if next_expected in candidates:
+                    Logger.info(f"Selecting next expected phase '{next_expected}' from candidates for natural progression.")
                     return phase_enum[next_expected]
+
             except ValueError:
-                # If last_phase not found in transition order, ignore.
+                # If last_phase is not found in transition_order (should not happen if config is consistent),
+                # we simply skip this “next expected” logic and move to recovery logic.
                 pass
         
-        # Option 3: RECOVER FROM LOST TRACKING
-        for phase_name in transition_order:
+        #######################
+        ### PRIORITY RULE 2 ### - Recovery from lost tracking.
+        #######################
+        # If the "next expected" phase isn't a candidate (or we can't use it),
+        # choose the first candidate that appears in a sensible order.
+        # We bias the search forward from last_phase to preserve directionality.
+        if last_phase is not None:
+            try:
+                start_idx:int = transition_order.index(last_phase.name)
+                ordered:list[str] = transition_order[start_idx + 1:] + transition_order[:start_idx + 1]
+            except ValueError:
+                # If last_phase isn't in transition order, fall back to the transition order as-is.
+                ordered = transition_order
+        else:
+            ordered:list[str] = transition_order
+
+        for phase_name in ordered:
             if phase_name in candidates:
+                # If this candidate is a low-motion phase but we are not yet “low-motion ready”, skip it.
+                if (phase_name in low_motion_phases) and (not is_low_motion_ready):
+                    continue
+                Logger.info(f"Selecting candidate phase '{phase_name}' based on recovery order.")
                 return phase_enum[phase_name]
 
-        # Should never happen if config is valid, but safe guard
+        # If we got here, candidates exist but none were selectable under gating rules.
+        # This can happen if candidates only include low-motion phases but motion isn't low yet.
+        # In that case, prefer continuity.
+        if last_phase is not None:
+            Logger.info("No candidates selectable under gating rules. Keeping last phase for continuity.")
+            return last_phase
+
+        # Otherwise, safe-guard.
         return ErrorCode.PHASE_UNDETERMINED_IN_FRAME
 
     ###########################################################################
@@ -315,6 +455,14 @@ class PhaseDetector:
         """
         from Server.Utilities.Config.ConfigLoader import ConfigLoader
         from Server.Utilities.Config.ConfigParameters import ConfigParameters
+
+        # Load phase low motion threshold.
+        self.phase_low_motion_threshold:int = ConfigLoader.get(
+            key=[
+                ConfigParameters.Major.PHASE,
+                ConfigParameters.Minor.PHASE_LOW_MOTION_THRESHOLD
+            ]
+        )
 
         # Load configuration file path.
         self.config_file_path:str = ConfigLoader.get(
@@ -388,6 +536,7 @@ class PhaseDetector:
 
             rules      = config[PhaseDictKey.RULES]
             initial    = config[PhaseDictKey.INITIAL_PHASE]
+            low_motion = config[PhaseDictKey.LOW_MOTION_PHASES]
             transition = config[PhaseDictKey.TRANSITION_ORDER]
 
             # Check rules contain all phase names.
@@ -471,6 +620,21 @@ class PhaseDetector:
                     origin=inspect.currentframe(),
                     extra_info={ f"Invalid initial_phase for exercise {exercise_name}": initial }
                 ); return False
+            
+            # Low_motion phases must be list of valid phases.
+            if not isinstance(low_motion, list):
+                ErrorHandler.handle(
+                    error=ErrorCode.PHASE_THRESHOLDS_CONFIG_FILE_ERROR,
+                    origin=inspect.currentframe(),
+                    extra_info={ f"Low motion phases is not a list for exercise {exercise_name}": low_motion }
+                ); return False
+            for phase in low_motion:
+                if phase not in phase_names:
+                    ErrorHandler.handle(
+                        error=ErrorCode.PHASE_THRESHOLDS_CONFIG_FILE_ERROR,
+                        origin=inspect.currentframe(),
+                        extra_info={ f"Invalid phase in low_motion_phases for exercise {exercise_name}": phase }
+                    ); return False
 
             # Transition_order must be list of valid phases.
             if not isinstance(transition, list):

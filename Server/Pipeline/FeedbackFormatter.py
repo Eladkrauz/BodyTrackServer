@@ -102,7 +102,7 @@ class FeedbackFormatter:
         - `FeedbackCode`: A system, pose-quality, biomechanical, or silent feedback code.
         """
         try:
-            history:HistoryData = session.history_data
+            history:HistoryData = session.get_history()
             current_state_ok:bool = history.is_state_ok()  
 
             # Check biomechanical issues.
@@ -128,7 +128,7 @@ class FeedbackFormatter:
                 origin=inspect.currentframe(),
                 extra_info={
                     "Exception": type(e).__name__,
-                    "Reason": "Unexpected failure in construct_feedback()"
+                    "Reason": str(e)
                 }
             )
             return FeedbackCode.SILENT
