@@ -1,126 +1,126 @@
 {
   "squat": {
     "TOP": {
-      "trunk_tilt_angle":   { "min": 65,  "max": 90 },
-      "hip_line_angle":     { "min": 0,   "max": 10 },
-      "left_hip_angle":     { "min": 165, "max": 180 },
-      "right_hip_angle":    { "min": 165, "max": 180 },
-      "left_knee_angle":    { "min": 170, "max": 180 },
-      "right_knee_angle":   { "min": 170, "max": 180 },
-      "knee_valgus_angle":  { "min": 170, "max": 180 },
-      "left_ankle_angle":   { "min": 165, "max": 180 },
-      "right_ankle_angle":  { "min": 165, "max": 180 }
+      "trunk_tilt_angle":   { "min": 75,  "max": 100 },
+      "hip_line_angle":     { "min": 0,   "max": 15 },
+      "left_hip_angle":     { "min": 145, "max": 180 },
+      "right_hip_angle":    { "min": 145, "max": 180 },
+      "left_knee_angle":    { "min": 155, "max": 180 },
+      "right_knee_angle":   { "min": 155, "max": 180 },
+      "knee_valgus_angle":  { "min": 150, "max": 180 },
+      "left_ankle_angle":   { "min": 150, "max": 180 },
+      "right_ankle_angle":  { "min": 150, "max": 180 }
     },
     "DOWN": {
-      "trunk_tilt_angle":   { "min": 50,  "max": 75 },
-      "hip_line_angle":     { "min": 0,   "max": 10 },
-      "left_hip_angle":     { "min": 120, "max": 150 },
-      "right_hip_angle":    { "min": 120, "max": 150 },
-      "left_knee_angle":    { "min": 130, "max": 160 },
-      "right_knee_angle":   { "min": 130, "max": 160 },
-      "knee_valgus_angle":  { "min": 170, "max": 180 },
-      "left_ankle_angle":   { "min": 150, "max": 170 },
-      "right_ankle_angle":  { "min": 150, "max": 170 }
-    },
-    "BOTTOM": {
-      "trunk_tilt_angle":   { "min": 45,  "max": 65 },
-      "hip_line_angle":     { "min": 0,   "max": 10 },
-      "left_hip_angle":     { "min": 80,  "max": 120 },
-      "right_hip_angle":    { "min": 80,  "max": 120 },
-      "left_knee_angle":    { "min": 60,  "max": 110 },
-      "right_knee_angle":   { "min": 60,  "max": 110 },
-      "knee_valgus_angle":  { "min": 165, "max": 180 },
+      "trunk_tilt_angle":   { "min": 65,  "max": 95 },
+      "hip_line_angle":     { "min": 0,   "max": 15 },
+      "left_hip_angle":     { "min": 115, "max": 150 },
+      "right_hip_angle":    { "min": 115, "max": 150 },
+      "left_knee_angle":    { "min": 120, "max": 155 },
+      "right_knee_angle":   { "min": 120, "max": 155 },
+      "knee_valgus_angle":  { "min": 145, "max": 180 },
       "left_ankle_angle":   { "min": 140, "max": 170 },
       "right_ankle_angle":  { "min": 140, "max": 170 }
     },
-    "UP": {
+    "BOTTOM": {
       "trunk_tilt_angle":   { "min": 55,  "max": 85 },
-      "hip_line_angle":     { "min": 0,   "max": 10 },
-      "left_hip_angle":     { "min": 110, "max": 170 },
-      "right_hip_angle":    { "min": 110, "max": 170 },
-      "left_knee_angle":    { "min": 110, "max": 170 },
-      "right_knee_angle":   { "min": 110, "max": 170 },
-      "knee_valgus_angle":  { "min": 170, "max": 180 },
-      "left_ankle_angle":   { "min": 150, "max": 180 },
-      "right_ankle_angle":  { "min": 150, "max": 180 }
+      "hip_line_angle":     { "min": 0,   "max": 15 },
+      "left_hip_angle":     { "min": 75,  "max": 120 },
+      "right_hip_angle":    { "min": 75,  "max": 120 },
+      "left_knee_angle":    { "min": 60,  "max": 115 },
+      "right_knee_angle":   { "min": 60,  "max": 115 },
+      "knee_valgus_angle":  { "min": 140, "max": 180 },
+      "left_ankle_angle":   { "min": 130, "max": 165 },
+      "right_ankle_angle":  { "min": 130, "max": 165 }
+    },
+    "UP": {
+      "trunk_tilt_angle":   { "min": 65,  "max": 95 },
+      "hip_line_angle":     { "min": 0,   "max": 15 },
+      "left_hip_angle":     { "min": 110, "max": 165 },
+      "right_hip_angle":    { "min": 110, "max": 165 },
+      "left_knee_angle":    { "min": 110, "max": 165 },
+      "right_knee_angle":   { "min": 110, "max": 165 },
+      "knee_valgus_angle":  { "min": 145, "max": 180 },
+      "left_ankle_angle":   { "min": 140, "max": 180 },
+      "right_ankle_angle":  { "min": 140, "max": 180 }
     }
   },
 
   "biceps_curl": {
-    "BOTTOM": {
-      "left_elbow_angle":            { "min": 160, "max": 180 },
-      "right_elbow_angle":           { "min": 160, "max": 180 },
-      "left_shoulder_flexion_angle": { "min": 160, "max": 190 },
-      "right_shoulder_flexion_angle":{ "min": 160, "max": 190 },
-      "left_shoulder_torso_angle":   { "min": 70,  "max": 100 },
-      "right_shoulder_torso_angle":  { "min": 70,  "max": 100 },
-      "left_wrist_angle":            { "min": 160, "max": 200 },
-      "right_wrist_angle":           { "min": 160, "max": 200 }
+    "REST": {
+      "left_elbow_angle":             { "min": 155, "max": 180 },
+      "right_elbow_angle":            { "min": 155, "max": 180 },
+      "left_shoulder_flexion_angle":  { "min": 150, "max": 200 },
+      "right_shoulder_flexion_angle": { "min": 150, "max": 200 },
+      "left_shoulder_torso_angle":    { "min": 65,  "max": 110 },
+      "right_shoulder_torso_angle":   { "min": 65,  "max": 110 },
+      "left_wrist_angle":             { "min": 150, "max": 195 },
+      "right_wrist_angle":            { "min": 150, "max": 195 }
     },
-    "UP": {
-      "left_elbow_angle":            { "min": 90,  "max": 140 },
-      "right_elbow_angle":           { "min": 90,  "max": 140 },
-      "left_shoulder_flexion_angle": { "min": 160, "max": 200 },
-      "right_shoulder_flexion_angle":{ "min": 160, "max": 200 },
-      "left_shoulder_torso_angle":   { "min": 70,  "max": 105 },
-      "right_shoulder_torso_angle":  { "min": 70,  "max": 105 },
-      "left_wrist_angle":            { "min": 160, "max": 200 },
-      "right_wrist_angle":           { "min": 160, "max": 200 }
+    "LIFTING": {
+      "left_elbow_angle":             { "min": 95,  "max": 145 },
+      "right_elbow_angle":            { "min": 95,  "max": 145 },
+      "left_shoulder_flexion_angle":  { "min": 150, "max": 210 },
+      "right_shoulder_flexion_angle": { "min": 150, "max": 210 },
+      "left_shoulder_torso_angle":    { "min": 65,  "max": 115 },
+      "right_shoulder_torso_angle":   { "min": 65,  "max": 115 },
+      "left_wrist_angle":             { "min": 150, "max": 195 },
+      "right_wrist_angle":            { "min": 150, "max": 195 }
     },
-    "TOP": {
-      "left_elbow_angle":            { "min": 40,  "max": 90 },
-      "right_elbow_angle":           { "min": 40,  "max": 90 },
-      "left_shoulder_flexion_angle": { "min": 160, "max": 210 },
-      "right_shoulder_flexion_angle":{ "min": 160, "max": 210 },
-      "left_shoulder_torso_angle":   { "min": 70,  "max": 105 },
-      "right_shoulder_torso_angle":  { "min": 70,  "max": 105 },
-      "left_wrist_angle":            { "min": 160, "max": 200 },
-      "right_wrist_angle":           { "min": 160, "max": 200 }
+    "HOLD": {
+      "left_elbow_angle":             { "min": 45,  "max": 95 },
+      "right_elbow_angle":            { "min": 45,  "max": 95 },
+      "left_shoulder_flexion_angle":  { "min": 150, "max": 215 },
+      "right_shoulder_flexion_angle": { "min": 150, "max": 215 },
+      "left_shoulder_torso_angle":    { "min": 65,  "max": 115 },
+      "right_shoulder_torso_angle":   { "min": 65,  "max": 115 },
+      "left_wrist_angle":             { "min": 150, "max": 195 },
+      "right_wrist_angle":            { "min": 150, "max": 195 }
     },
-    "DOWN": {
-      "left_elbow_angle":            { "min": 90,  "max": 160 },
-      "right_elbow_angle":           { "min": 90,  "max": 160 },
-      "left_shoulder_flexion_angle": { "min": 160, "max": 200 },
-      "right_shoulder_flexion_angle":{ "min": 160, "max": 200 },
-      "left_shoulder_torso_angle":   { "min": 70,  "max": 105 },
-      "right_shoulder_torso_angle":  { "min": 70,  "max": 105 },
-      "left_wrist_angle":            { "min": 160, "max": 200 },
-      "right_wrist_angle":           { "min": 160, "max": 200 }
+    "LOWERING": {
+      "left_elbow_angle":             { "min": 95,  "max": 160 },
+      "right_elbow_angle":            { "min": 95,  "max": 160 },
+      "left_shoulder_flexion_angle":  { "min": 150, "max": 210 },
+      "right_shoulder_flexion_angle": { "min": 150, "max": 210 },
+      "left_shoulder_torso_angle":    { "min": 65,  "max": 115 },
+      "right_shoulder_torso_angle":   { "min": 65,  "max": 115 },
+      "left_wrist_angle":             { "min": 150, "max": 195 },
+      "right_wrist_angle":            { "min": 150, "max": 195 }
     }
   },
 
   "lateral_raise": {
-    "BOTTOM": {
-      "left_shoulder_abduction_angle":  { "min": 0,   "max": 30 },
-      "right_shoulder_abduction_angle": { "min": 0,   "max": 30 },
-      "left_elbow_set_angle":           { "min": 150, "max": 180 },
-      "right_elbow_set_angle":          { "min": 150, "max": 180 },
-      "torso_lateral_tilt_angle":       { "min": 70,  "max": 100 },
-      "shoulder_line_angle":            { "min": 0,   "max": 10 }
+    "REST": {
+      "left_shoulder_abduction_angle":  { "min": 0,   "max": 35 },
+      "right_shoulder_abduction_angle": { "min": 0,   "max": 35 },
+      "left_elbow_set_angle":           { "min": 145, "max": 180 },
+      "right_elbow_set_angle":          { "min": 145, "max": 180 },
+      "torso_lateral_tilt_angle":       { "min": 65,  "max": 110 },
+      "shoulder_line_angle":            { "min": 0,   "max": 15 }
     },
-    "UP": {
-      "left_shoulder_abduction_angle":  { "min": 30,  "max": 80 },
-      "right_shoulder_abduction_angle": { "min": 30,  "max": 80 },
-      "left_elbow_set_angle":           { "min": 150, "max": 175 },
-      "right_elbow_set_angle":          { "min": 150, "max": 175 },
-      "torso_lateral_tilt_angle":       { "min": 65,  "max": 100 },
-      "shoulder_line_angle":            { "min": 0,   "max": 10 }
+    "RAISING": {
+      "left_shoulder_abduction_angle":  { "min": 35,  "max": 80 },
+      "right_shoulder_abduction_angle": { "min": 35,  "max": 80 },
+      "left_elbow_set_angle":           { "min": 145, "max": 180 },
+      "right_elbow_set_angle":          { "min": 145, "max": 180 },
+      "torso_lateral_tilt_angle":       { "min": 60,  "max": 110 },
+      "shoulder_line_angle":            { "min": 0,   "max": 15 }
     },
-    "TOP": {
-      "left_shoulder_abduction_angle":  { "min": 80,  "max": 110 },
-      "right_shoulder_abduction_angle": { "min": 80,  "max": 110 },
-      "left_elbow_set_angle":           { "min": 150, "max": 175 },
-      "right_elbow_set_angle":          { "min": 150, "max": 175 },
-      "torso_lateral_tilt_angle":       { "min": 65,  "max": 95 },
-      "shoulder_line_angle":            { "min": 0,   "max": 10 }
+    "HOLD": {
+      "left_shoulder_abduction_angle":  { "min": 80,  "max": 105 },
+      "right_shoulder_abduction_angle": { "min": 80,  "max": 105 },
+      "left_elbow_set_angle":           { "min": 145, "max": 180 },
+      "right_elbow_set_angle":          { "min": 145, "max": 180 },
+      "torso_lateral_tilt_angle":       { "min": 60,  "max": 105 },
+      "shoulder_line_angle":            { "min": 0,   "max": 15 }
     },
-    "DOWN": {
-      "left_shoulder_abduction_angle":  { "min": 30,  "max": 80 },
-      "right_shoulder_abduction_angle": { "min": 30,  "max": 80 },
-      "left_elbow_set_angle":           { "min": 150, "max": 180 },
-      "right_elbow_set_angle":          { "min": 150, "max": 180 },
-      "torso_lateral_tilt_angle":       { "min": 65,  "max": 100 },
-      "shoulder_line_angle":            { "min": 0,   "max": 10 }
+    "LOWERING": {
+      "left_shoulder_abduction_angle":  { "min": 35,  "max": 80 },
+      "right_shoulder_abduction_angle": { "min": 35,  "max": 80 },
+      "left_elbow_set_angle":           { "min": 145, "max": 180 },
+      "right_elbow_set_angle":          { "min": 145, "max": 180 },
+      "torso_lateral_tilt_angle":       { "min": 60,  "max": 110 },
+      "shoulder_line_angle":            { "min": 0,   "max": 15 }
     }
   }
 }

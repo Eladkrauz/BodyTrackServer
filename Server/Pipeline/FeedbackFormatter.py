@@ -172,7 +172,6 @@ class FeedbackFormatter:
                 error=ErrorCode.POSE_QUALITY_FEEDBACK_SELECTION_ERROR,
                 origin=inspect.currentframe(),
                 extra_info={
-                    "Method": "_select_pose_quality_feedback",
                     "Exception": type(e).__name__,
                     "Reason": "Unexpected failure during pose-quality feedback selection."
                 }
@@ -218,7 +217,6 @@ class FeedbackFormatter:
                 error=ErrorCode.BIOMECHANICAL_FEEDBACK_SELECTION_ERROR,
                 origin=inspect.currentframe(),
                 extra_info={
-                    "Method": "_select_biomechanical_feedback",
                     "Exception": type(e).__name__,
                     "Reason": "Unexpected failure during biomechanical feedback selection."
                 }
