@@ -22,7 +22,7 @@
       "left_ankle_angle":   { "min": 140, "max": 170 },
       "right_ankle_angle":  { "min": 140, "max": 170 }
     },
-    "BOTTOM": {
+    "HOLD": {
       "trunk_tilt_angle":   { "min": 55,  "max": 85 },
       "hip_line_angle":     { "min": 0,   "max": 15 },
       "left_hip_angle":     { "min": 75,  "max": 120 },

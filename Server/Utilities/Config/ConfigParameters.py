@@ -62,6 +62,7 @@ class ConfigParameters:
         RECOVERY_OK_THRESHOLD                   = "recovery_ok_threshold"
         BAD_STABILITY_LIMIT                     = "bad_stability_limit"
         MAX_CONSECUTIVE_INVALID_BEFORE_ABORT    = "max_consecutive_invalid_before_abort"
+        LOW_MOTION_ANGLE_DEGREES_THRESHOLD      = "low_motion_angle_degrees_threshold"
 
         # Tasks.
         CLEANUP_INTERVAL_MINUTES                = "cleanup_interval_minutes"
@@ -94,6 +95,7 @@ class ConfigParameters:
 
         # Phase.
         PHASE_DETECTOR_CONFIG_FILE              = "phase_thresholds_config_file"
+        PHASE_LOW_MOTION_THRESHOLD              = "phase_low_motion_threshold"
 
         # Feedback.
         POSE_QUALITY_FEEDBACK_THRESHOLD         = "pose_quality_feedback_threshold"

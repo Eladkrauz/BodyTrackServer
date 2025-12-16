@@ -1,57 +1,64 @@
 {
-    "squat": {
-        "rules": {
-            "TOP": {
-                "left_knee_angle":   { "min": 165, "max": 185 },
-                "right_knee_angle":  { "min": 165, "max": 185 },
-                "left_hip_angle":    { "min":   0, "max":  30 },
-                "right_hip_angle":   { "min":   0, "max":  30 },
-                "trunk_tilt_angle":  { "min": -15, "max":  20 }
-            },
-            "DOWN": {
-                "left_knee_angle":   { "min": 110, "max": 165 },
-                "right_knee_angle":  { "min": 110, "max": 165 },
-                "left_hip_angle":    { "min":  30, "max":  80 },
-                "right_hip_angle":   { "min":  30, "max":  80 }
-            },
-            "HOLD": {
-                "left_knee_angle":   { "min":  70, "max": 110 },
-                "right_knee_angle":  { "min":  70, "max": 110 },
-                "left_hip_angle":    { "min":  70, "max": 110 },
-                "right_hip_angle":   { "min":  70, "max": 110 }
-            },
-            "UP": {
-                "left_knee_angle":   { "min": 110, "max": 165 },
-                "right_knee_angle":  { "min": 110, "max": 165 },
-                "left_hip_angle":    { "min":  30, "max":  80 },
-                "right_hip_angle":   { "min":  30, "max":  80 }
-            }
-        },
-        "initial_phase": "TOP",
-        "transition_order": ["TOP", "DOWN", "HOLD", "UP", "TOP"]
+"squat": {
+  "rules": {
+    "TOP": {
+      "left_knee_angle":   { "min": 135, "max": 190 },
+      "right_knee_angle":  { "min": 135, "max": 190 },
+      "left_hip_angle":    { "min": 135, "max": 190 },
+      "right_hip_angle":   { "min": 135, "max": 190 },
+      "trunk_tilt_angle":  { "min":  90, "max": 180 }
+    },
+
+    "DOWN": {
+      "left_knee_angle":   { "min": 100, "max": 155 },
+      "right_knee_angle":  { "min": 100, "max": 155 },
+      "left_hip_angle":    { "min":  90, "max": 150 },
+      "right_hip_angle":   { "min":  90, "max": 150 }
+    },
+
+    "HOLD": {
+      "left_knee_angle":   { "min":  70, "max": 110 },
+      "right_knee_angle":  { "min":  70, "max": 110 },
+      "left_hip_angle":    { "min":  70, "max": 110 },
+      "right_hip_angle":   { "min":  70, "max": 110 }
+    },
+
+    "UP": {
+      "left_knee_angle":   { "min": 100, "max": 155 },
+      "right_knee_angle":  { "min": 100, "max": 155 },
+      "left_hip_angle":    { "min":  90, "max": 150 },
+      "right_hip_angle":   { "min":  90, "max": 150 }
+    }
+  },
+
+  "initial_phase": "TOP",
+  "low_motion_phases": ["HOLD"],
+  "transition_order": ["TOP", "DOWN", "HOLD", "UP", "TOP"]
+
     },
     "biceps_curl": {
-        "rules": {
-            "REST": {
-                "left_elbow_angle":  { "min": 150, "max": 185 },
-                "right_elbow_angle": { "min": 150, "max": 185 }
-            },
-            "LIFTING": {
-                "left_elbow_angle":  { "min":  60, "max": 150 },
-                "right_elbow_angle": { "min":  60, "max": 150 }
-            },
-            "HOLD": {
-                "left_elbow_angle":  { "min":  20, "max":  60 },
-                "right_elbow_angle": { "min":  20, "max":  60 }
-            },
-            "LOWERING": {
-                "left_elbow_angle":  { "min":  60, "max": 150 },
-                "right_elbow_angle": { "min":  60, "max": 150 }
-            }
+    "rules": {
+        "REST": {
+            "left_elbow_angle":  { "min": 140, "max": 180 },
+            "right_elbow_angle": { "min": 140, "max": 180 }
         },
-        "initial_phase": "REST",
-        "transition_order": ["REST", "LIFTING", "HOLD", "LOWERING", "REST"]
+        "LIFTING": {
+            "left_elbow_angle":  { "min": 70,  "max": 150 },
+            "right_elbow_angle": { "min": 70,  "max": 150 }
+        },
+        "HOLD": {
+            "left_elbow_angle":  { "min": 0,  "max": 80 },
+            "right_elbow_angle": { "min": 0,  "max": 80 }
+        },
+        "LOWERING": {
+            "left_elbow_angle":  { "min": 70,  "max": 150 },
+            "right_elbow_angle": { "min": 70,  "max": 150 }
+        }
     },
+    "initial_phase": "REST",
+    "low_motion_phases": ["HOLD"],
+    "transition_order": ["REST", "LIFTING", "HOLD", "LOWERING", "REST"]
+},
     "lateral_raise": {
         "rules": {
             "REST": {
@@ -72,6 +79,7 @@
             }
         },
         "initial_phase": "REST",
+        "low_motion_phases": ["HOLD"],
         "transition_order": ["REST", "RAISING", "HOLD", "LOWERING", "REST"]
     }
 }

@@ -19,7 +19,8 @@
       "bad_frame_log_size":                   200,
       "recovery_ok_threshold":                4,
       "bad_stability_limit":                  30,
-      "max_consecutive_invalid_before_abort": 60
+      "max_consecutive_invalid_before_abort": 60,
+      "low_motion_angle_degrees_threshold":   3.0
     },
     "tasks": {
       "cleanup_interval_minutes":             10,
@@ -37,7 +38,7 @@
     },
     "pose": {
       "stability_threshold":                  0.1,
-      "bbox_too_far":                         0.1,
+      "bbox_too_far":                         0.2,
       "bbox_too_close":                       0.8,
       "mean_vis_threshold":                   0.4,
       "partial_count_threshold":              6,
@@ -51,12 +52,13 @@
       "error_thresholds_config_file":         "Server/Files/Config/ErrorThresholds.JSON"
     },
     "phase": {
-      "phase_thresholds_config_file":         "Server/Files/Config/PhaseThresholds.JSON"
+      "phase_thresholds_config_file":         "Server/Files/Config/PhaseThresholds.JSON",
+      "phase_low_motion_threshold":           2
     },
     "feedback": {
-      "pose_quality_feedback_threshold":      10,
-      "biomechanical_feedback_threshold":     10,
-      "feedback_cooldown_frames":             20
+      "pose_quality_feedback_threshold":      0,
+      "biomechanical_feedback_threshold":     0,
+      "feedback_cooldown_frames":             0
     },
     "summary": {
       "number_of_top_errors":                 4,

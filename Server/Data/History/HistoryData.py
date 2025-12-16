@@ -39,6 +39,7 @@ class HistoryData:
         `HistoryDictKey.CONSECUTIVE_OK_FRAMES`:         An `int` which holds the number of consecutive OK frames
         `HistoryDictKey.ERROR_COUNTERS`:                A `dict` containing counters for detected errors.
         `HistoryDictKey.ERROR_STRIKES`:                 A `dict` containing consecutive counters for detected errors.
+        `HistoryDictKey.LOW_MOTION_STREAK`:             An `int` which holds the number of consecutive low-motion frames
 
         `HistoryDictKey.PHASE_STATE`:                   The current exercise phase (`PhaseType` enum element)
         `HistoryDictKey.PHASE_TRANSITIONS`:             A `dict` for historical context of phase changes
@@ -99,6 +100,9 @@ class HistoryData:
 
     ### Error Streaks (`Dict[str, int]`):
     - Stores consecutive counters for errors detected (of valid frames).
+
+    ### Low Motion Streak (`int`):
+    - Stores the amount of consecutive low-motion frames.
 
     ### Phase State (`PhaseType`):
     - Tracks the current phase in the state machine (e.g., "down", "bottom", "up").
@@ -224,6 +228,7 @@ class HistoryData:
             HistoryDictKey.CONSECUTIVE_OK_FRAMES:       0,
             HistoryDictKey.ERROR_COUNTERS:              {},
             HistoryDictKey.ERROR_STREAKS:               {},
+            HistoryDictKey.LOW_MOTION_STREAK:           0,
 
             HistoryDictKey.PHASE_STATE:                 None,
             HistoryDictKey.PHASE_TRANSITIONS:           [],
@@ -267,6 +272,7 @@ class HistoryData:
         - `False` if not.
         """
         if len(self.history[HistoryDictKey.FRAMES]) == 0: return False
+        if self.history[HistoryDictKey.LAST_VALID_FRAME] is None: return False
         last_valid_frame_id:int = self.history[HistoryDictKey.LAST_VALID_FRAME][HistoryDictKey.Frame.FRAME_ID]
         last_frames_element_id:int = self.history[HistoryDictKey.FRAMES][-1][HistoryDictKey.Frame.FRAME_ID]
         return last_valid_frame_id == last_frames_element_id
@@ -339,6 +345,19 @@ class HistoryData:
         - A `Dict[str, int]` containing the error streaks.
         """
         return self.history[HistoryDictKey.ERROR_STREAKS]
+    
+    #############################
+    ### GET LOW MOTION STREAK ###
+    #############################
+    def get_low_motion_streak(self) -> int:
+        """
+        ### Brief:
+        The `get_low_motion_streak` method returns the low motion streak counter.
+        
+        ### Returns:
+        - An `int` containing the low motion streak counter.
+        """
+        return self.history[HistoryDictKey.LOW_MOTION_STREAK]
 
     #######################
     ### GET PHASE STATE ###

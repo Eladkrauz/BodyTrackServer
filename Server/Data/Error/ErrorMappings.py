@@ -24,7 +24,8 @@ class ErrorMappings:
     ### SQUAT ERROR MAP LOW ###
     ###########################
     """
-    discription: Low-angle violations for squat exercise           
+    ### Description:
+    Low-angle violations for squat exercise           
     """
     SQUAT_ERROR_MAP_LOW = {
         JointAngle.Squat.TRUNK_TILT.name:   DetectedErrorCode.SQUAT_CHEST_LEAN_FORWARD,
@@ -42,7 +43,8 @@ class ErrorMappings:
     ### SQUAT ERROR MAP HIGH ###
     ############################
     """
-    discription: High-angle violations for squat exercise           
+    ### Description:
+    High-angle violations for squat exercise           
     """
     SQUAT_ERROR_MAP_HIGH = {
         JointAngle.Squat.TRUNK_TILT.name:   DetectedErrorCode.SQUAT_BACK_ROUNDED,
@@ -60,7 +62,8 @@ class ErrorMappings:
     ### BICEPS CURL ERROR MAP LOW ###
     #################################
     """
-    discription: Low-angle violations for biceps curl exercise           
+    ### Description:
+    Low-angle violations for biceps curl exercise           
     """
     BICEPS_CURL_ERROR_MAP_LOW = {
         JointAngle.BicepsCurl.LEFT_ELBOW.name:            DetectedErrorCode.CURL_TOO_SHORT_TOP,
@@ -77,7 +80,8 @@ class ErrorMappings:
     ### BICEPS CURL ERROR MAP HIGH ###
     ##################################
     """
-    discription: High-angle violations for biceps curl exercise           
+    ### Description:
+    High-angle violations for biceps curl exercise           
     """
     BICEPS_CURL_ERROR_MAP_HIGH = {
         JointAngle.BicepsCurl.LEFT_ELBOW.name:            DetectedErrorCode.CURL_NOT_FULL_FLEXION,
@@ -94,7 +98,8 @@ class ErrorMappings:
     ### LATERAL RAISE ERROR MAP LOW ###
     ###################################
     """
-    discription: Low-angle violations for lateral raise exercise           
+    ### Description:
+    Low-angle violations for lateral raise exercise           
     """
     LATERAL_RAISE_ERROR_MAP_LOW = {
         JointAngle.LateralRaise.LEFT_SHOULDER_ABD.name:   DetectedErrorCode.LATERAL_ARMS_TOO_LOW,
@@ -109,7 +114,8 @@ class ErrorMappings:
     ### LATERAL RAISE ERROR MAP HIGH ###
     ####################################
     """
-    discription: High-angle violations for lateral raise exercise           
+    ### Description:
+    High-angle violations for lateral raise exercise           
     """
     LATERAL_RAISE_ERROR_MAP_HIGH = {
         JointAngle.LateralRaise.LEFT_SHOULDER_ABD.name:   DetectedErrorCode.LATERAL_ARMS_TOO_HIGH,

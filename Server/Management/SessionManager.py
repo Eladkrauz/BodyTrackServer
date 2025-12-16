@@ -506,9 +506,7 @@ class SessionManager:
             )
             if isinstance(frame_data, ErrorCode): return ErrorResponse(frame_data)
             
-            # Routing the frame to analysis based on the session analysis state.
-            self.pipeline_processor.analyze_frame_in_ready_state(session_data, frame_data)
-            
+            # Routing the frame to analysis based on the session analysis state.            
             state:AnalyzingState = session_data.analyzing_state
             if state is AnalyzingState.INIT:
                 initial_analysis_result:CalibrationCode | ErrorCode \

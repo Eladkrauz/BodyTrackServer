@@ -50,7 +50,8 @@ class SessionData:
         "last_activity": datetime.now(),
     })
     extended_evaluation:bool            = field(default=False)
-    analyzing_state:AnalyzingState      = field(default=AnalyzingState.INIT)
+    # TODO: CHANGE BACK TO INIT!!!
+    analyzing_state:AnalyzingState      = field(default=AnalyzingState.ACTIVE)
     lock:RLock                          = field(default_factory=RLock, init=False, repr=False)
     session_status:SessionStatus        = field(default=SessionStatus.REGISTERED)
 

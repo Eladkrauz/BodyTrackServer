@@ -305,6 +305,7 @@ class PipelineProcessor:
         # Checking if can move to the next analyzing state.
         if history.get_initial_phase_counter() >= self.num_of_min_correct_phase_frames:
             session_data.set_analyzing_state(AnalyzingState.ACTIVE)
+            self.history_manager.set_initial_phase(history, session_data.get_exercise_type())
             return CalibrationCode.USER_POSITIONING_IS_VALID
         else:
             return CalibrationCode.USER_POSITIONING_IS_UNDER_CHECKING
@@ -333,13 +334,22 @@ class PipelineProcessor:
         - `FeedbackCode` once a feedback formatter is implemented.
         - `ErrorCode` for errors in pose analysis, quality evaluation, joint calculation, phase determination, or error detection.
         """
+        # TODO: REMOVE THIS LINES:
+        if session_data.get_history().get_phase_state() is None:
+            self.history_manager.set_initial_phase(session_data.get_history(), session_data.get_exercise_type())
+        ##############
+
+
+
         ### PIPELINE STEP >>> Analyzing Pose --- using PoseAnalyzer.
         pose_analyzer_result:PoseLandmarksArray | ErrorCode = self.pose_analyzer.analyze_frame(frame_data)
         if self._check_for_error(pose_analyzer_result): return pose_analyzer_result
+        Logger.debug("Successfully analyzed pose landmarks.")
         
         ### PIPELINE STEP >>> Validating Frame Quality --- using PoseQualityManager.
         pose_quality_result:PoseQualityResult = self.pose_quality_manager.evaluate_landmarks(pose_analyzer_result)
         if self._check_for_error(pose_quality_result): return pose_quality_result
+        Logger.debug("Successfully evaluated pose quality.")
 
         # The HistoryData of the session.
         history:HistoryData = session_data.get_history()
@@ -377,6 +387,7 @@ class PipelineProcessor:
             landmarks=pose_analyzer_result
         )
         if self._check_for_error(joint_analyzer_result): return joint_analyzer_result
+        Logger.debug("Successfully calculated joint angles.")
         
         # Recording valid frame.
         self.history_manager.record_valid_frame(
@@ -384,10 +395,13 @@ class PipelineProcessor:
             frame_id=frame_data.frame_id,
             joints=joint_analyzer_result
         )
+        Logger.debug("Successfully recorded valid frame.")
 
         ### PIPELINE STEP >>> Determining the current phase --- using PhaseDetector.
         phase_detector_result:PhaseType = self.phase_detector.determine_phase(session_data=session_data)
+        Logger.debug(f"Determined phase: {phase_detector_result}")
         if self._check_for_error(phase_detector_result): return phase_detector_result
+        Logger.debug(f"Successfully detected current phase: {phase_detector_result.name}.")
         
         # Recording the phase.
         self.history_manager.record_phase_transition(
@@ -397,10 +411,12 @@ class PipelineProcessor:
             frame_id=frame_data.frame_id,
             joints=joint_analyzer_result
         )
+        Logger.debug("Successfully recorded phase transition.")
 
         ### PIPELINE STEP >>> Detecting errors --- using ErrorDetector.
         error_detector_result:DetectedErrorCode = self.error_detector.detect_errors(session_data)
-        if self._check_for_error(error_detector_result): return error_detector_result     
+        if self._check_for_error(error_detector_result): return error_detector_result
+        Logger.debug(f"Successfully detected error: {error_detector_result.name}.")
         
         # Recording the error (also NO_BIOMECHANICAL_ERROR and NOT_READY_FOR_ANALYSIS are recorded).   
         self.history_manager.add_frame_error(
@@ -408,6 +424,7 @@ class PipelineProcessor:
             error_to_add=error_detector_result,
             frame_id=frame_data.frame_id
         )
+
         if not error_detector_result in (
             DetectedErrorCode.NO_BIOMECHANICAL_ERROR,
             DetectedErrorCode.NOT_READY_FOR_ANALYSIS
