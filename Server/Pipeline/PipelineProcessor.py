@@ -20,6 +20,7 @@ from Server.Utilities.Logger                  import Logger
 
 # Pipeline.
 from Server.Pipeline.PoseAnalyzer             import PoseAnalyzer
+from Server.Pipeline.PositionSideDetector     import PositionSideDetector
 from Server.Pipeline.PoseQualityManager       import PoseQualityManager
 from Server.Pipeline.JointAnalyzer            import JointAnalyzer
 from Server.Pipeline.PhaseDetector            import PhaseDetector
@@ -31,7 +32,6 @@ from Server.Pipeline.FeedbackFormatter        import FeedbackFormatter
 from Server.Data.Session.SessionData          import SessionData
 from Server.Data.Session.FrameData            import FrameData
 from Server.Data.Session.AnalyzingState       import AnalyzingState
-from Server.Data.Pose.PoseQualityResult       import PoseQualityResult
 from Server.Data.Pose.PoseQuality             import PoseQuality
 from Server.Data.Pose.PoseLandmarks           import PoseLandmarksArray
 from Server.Data.History.HistoryData          import HistoryData
@@ -80,13 +80,14 @@ class PipelineProcessor:
         - Submodules exposing `retrieve_configurations()` are also initialized.
         """
         # Components.
-        self.pose_analyzer        = PoseAnalyzer()
-        self.pose_quality_manager = PoseQualityManager()
-        self.joint_analyzer       = JointAnalyzer()
-        self.history_manager      = HistoryManager()
-        self.phase_detector       = PhaseDetector()
-        self.error_detector       = ErrorDetector()
-        self.feedback_formatter   = FeedbackFormatter()
+        self.pose_analyzer          = PoseAnalyzer()
+        self.position_side_detector = PositionSideDetector()
+        self.pose_quality_manager   = PoseQualityManager()
+        self.joint_analyzer         = JointAnalyzer()
+        self.history_manager        = HistoryManager()
+        self.phase_detector         = PhaseDetector()
+        self.error_detector         = ErrorDetector()
+        self.feedback_formatter     = FeedbackFormatter()
 
         # For easy access to all pipeline modules.
         self.pipeline_modules = {
@@ -208,17 +209,16 @@ class PipelineProcessor:
         if self._check_for_error(pose_analyzer_result): return pose_analyzer_result
         
         ### Validating Frame Quality --- using PoseQualityManager.
-        pose_quality_result:PoseQualityResult = self.pose_quality_manager.evaluate_landmarks(pose_analyzer_result)
+        pose_quality_result:PoseQuality = self.pose_quality_manager.evaluate_landmarks(pose_analyzer_result)
         if self._check_for_error(pose_quality_result): return pose_quality_result
 
         ### Quality checking.
-        quality:PoseQuality = pose_quality_result.quality
         history:HistoryData = session_data.get_history()
         # If the frame recieved is not OK - we stay in the INIT state.
-        if quality is not PoseQuality.OK:
+        if pose_quality_result is not PoseQuality.OK:
             # Resetting the counter.
             self.history_manager.reset_consecutive_ok_streak(history)
-            error:ErrorCode = PoseQuality.convert_to_error_code(quality)
+            error:ErrorCode = PoseQuality.convert_to_error_code(pose_quality_result)
             ErrorHandler.handle(
                 error=error,
                 origin=inspect.currentframe(),
@@ -261,17 +261,16 @@ class PipelineProcessor:
         if self._check_for_error(pose_analyzer_result): return pose_analyzer_result
         
         ### Validating Frame Quality --- using PoseQualityManager.
-        pose_quality_result:PoseQualityResult = self.pose_quality_manager.evaluate_landmarks(pose_analyzer_result)
+        pose_quality_result:PoseQuality = self.pose_quality_manager.evaluate_landmarks(pose_analyzer_result)
         if self._check_for_error(pose_quality_result): return pose_quality_result
 
         ### Quality checking.
-        quality:PoseQuality = pose_quality_result.quality
         history:HistoryData = session_data.get_history()
         # If the frame recieved is not OK.
-        if quality is not PoseQuality.OK:
+        if pose_quality_result is not PoseQuality.OK:
             # Resetting the initial phase counter.
             self.history_manager.reset_consecutive_init_phase_counter(history)
-            error:ErrorCode = PoseQuality.convert_to_error_code(quality)
+            error:ErrorCode = PoseQuality.convert_to_error_code(pose_quality_result)
             ErrorHandler.handle(
                 error=error,
                 origin=inspect.currentframe(),
@@ -345,9 +344,18 @@ class PipelineProcessor:
         pose_analyzer_result:PoseLandmarksArray | ErrorCode = self.pose_analyzer.analyze_frame(frame_data)
         if self._check_for_error(pose_analyzer_result): return pose_analyzer_result
         Logger.debug("Successfully analyzed pose landmarks.")
+
+        ### PIPELINE STEP >>> Detecting Position Side --- using PositionSideDetector.
+        position_side_result = self.position_side_detector.detect_and_validate(
+            landmarks=pose_analyzer_result,
+            exercise_type=session_data.get_exercise_type()
+        )
+        if self._check_for_error(position_side_result): return position_side_result
+        session_data.history.set_position_side(position_side_result)
+        Logger.debug(f"Successfully detected position side: {position_side_result.name}.")
         
         ### PIPELINE STEP >>> Validating Frame Quality --- using PoseQualityManager.
-        pose_quality_result:PoseQualityResult = self.pose_quality_manager.evaluate_landmarks(pose_analyzer_result)
+        pose_quality_result:PoseQuality = self.pose_quality_manager.evaluate_landmarks(pose_analyzer_result)
         if self._check_for_error(pose_quality_result): return pose_quality_result
         Logger.debug("Successfully evaluated pose quality.")
 
@@ -357,21 +365,14 @@ class PipelineProcessor:
         ##############
         ### CASE 1 ### - The returned results are not OK. This means the frame is invalid (bad frame).
         ##############
-        returned_quality:PoseQuality = pose_quality_result.quality
-        if returned_quality is not PoseQuality.OK:
-            # Logging.
-            quality_fail_to_error_code = PoseQuality.convert_to_error_code(returned_quality)
-            ErrorHandler.handle(
-                error=quality_fail_to_error_code,
-                origin=inspect.currentframe(),
-                extra_info={ "Frame details": str(frame_data) }
-            )
+        if pose_quality_result is not PoseQuality.OK:
             # Recording invalid frame.
             self.history_manager.record_invalid_frame(
                 history_data=history,
                 frame_id=frame_data.frame_id,
-                invalid_reason=returned_quality
+                invalid_reason=pose_quality_result
             )
+            Logger.debug("Successfully recorded invalid frame.")
             # Check if frame needs to get aborted.
             if self.history_manager.should_abort_session(history):
                 return ErrorCode.SESSION_SHOULD_ABORT

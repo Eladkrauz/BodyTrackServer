@@ -18,7 +18,7 @@
       "frames_rolling_window_size":           50,
       "bad_frame_log_size":                   200,
       "recovery_ok_threshold":                4,
-      "bad_stability_limit":                  30,
+      "bad_stability_limit":                  5,
       "max_consecutive_invalid_before_abort": 60,
       "low_motion_angle_degrees_threshold":   3.0
     },
@@ -43,6 +43,12 @@
       "mean_vis_threshold":                   0.4,
       "partial_count_threshold":              6,
       "minimum_bbox_area":                    1e-6
+    },
+    "position_side": {
+      "landmark_visibility_threshold":        0.5,
+      "dominance_ratio_threshold":            0.75,
+      "front_symmetry_threshold":             0.15,
+      "min_required_landmark_ratio":          0.6
     },
     "joints": {
       "visibility_threshold":                 0.5,

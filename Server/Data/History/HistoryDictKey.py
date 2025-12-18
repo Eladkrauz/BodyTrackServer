@@ -15,6 +15,7 @@ class HistoryDictKey:
     ERROR_COUNTERS              = "error_counters"
     ERROR_STREAKS               = "error_streaks"
     LOW_MOTION_STREAK           = "low_motion_streak"
+    POSITION_SIDE               = "position_side"
     # Phase.
     PHASE_STATE                 = "phase_state"
     PHASE_TRANSITIONS           = "phase_transitions"
@@ -38,7 +39,7 @@ class HistoryDictKey:
     PAUSES_DURATIONS            = "pauses_durations"
     # Feedback  .
     FRAMES_SINCE_LAST_FEEDBACK  = "frames_since_last_feedback"
-    # Oth   ers.
+    # Others.
     IS_CAMERA_STABLE            = "is_camera_stable"
 
     #############

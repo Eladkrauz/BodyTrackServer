@@ -207,7 +207,8 @@ class HistoryManager:
             self.reset_consecutive_ok_streak(history_data)
 
             # If too many bad frames - system is unstable.
-            if history_raw_dict[HistoryDictKey.BAD_FRAME_STREAKS][invalid_reason] >= self.bad_stability_limit:
+            if history_raw_dict[HistoryDictKey.BAD_FRAME_STREAKS][invalid_reason.name] >= self.bad_stability_limit:
+                    Logger.warning(f"Camera became unstable due to too many '{invalid_reason.name}' frames.")
                     history_raw_dict[HistoryDictKey.IS_CAMERA_STABLE] = False
 
         except Exception as e:
@@ -761,6 +762,7 @@ class HistoryManager:
 
         history_raw_dict[HistoryDictKey.CONSECUTIVE_OK_FRAMES] += 1
         if history_raw_dict[HistoryDictKey.CONSECUTIVE_OK_FRAMES] >= self.recovery_ok_threshold:
+            Logger.info("Camera became stable again after receiving enough consecutive valid frames.")
             history_raw_dict[HistoryDictKey.IS_CAMERA_STABLE] = True
             return True
         else:

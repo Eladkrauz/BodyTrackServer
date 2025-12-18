@@ -156,6 +156,11 @@ class ErrorCode(enum):
     SUMMARY_MANAGER_CREATE_ERROR                = (1002, "Failed to create session summary",                                                None, False)
     SUMMARY_MANAGER_INTERNAL_ERROR              = (1000, "Internal SessionSummaryManager error",                                            None, False) 
 
+    # PositionSideDetector.
+    FAILED_TO_INITIALIZE_SIDE_DETECTOR          = (1100, "Failed to initialize PositionSideDetector",                                       None, True)
+    POSITION_SIDE_DETECTION_ERROR               = (1101, "Failed to detect position side from landmarks.",                                  None, False)
+    WRONG_EXERCISE_POSITION                     = (1102, "The detected position side is not suitable for the exercise type.",               None, False)
+
     def __new__(cls, code:int, description:str, extra_info:dict = None, critical:bool = False):
         obj = object.__new__(cls)
         obj._value_ = code

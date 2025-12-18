@@ -8,6 +8,7 @@
 ### IMPORTS ###
 ###############
 import numpy as np
+from enum import Enum as enum
 
 ##################################
 ### POSE LANDMARKS ARRAY ALIAS ###
@@ -82,3 +83,89 @@ class PoseLandmark:
     LEFT_FOOT_INDEX   = 31
     RIGHT_FOOT_INDEX  = 32
     NUM_OF_LANDMARKS  = 33
+
+################################
+### LEFT LANDMARK ENUM CLASS ###
+################################
+class LeftLandmark(enum):
+    """
+    ### Description:
+    The `LeftLandmark` enum class defines constants for the left-side body landmarks
+    detected by MediaPipe Pose. Each constant corresponds to a row index in the
+    PoseArray (33x4 NumPy array).
+    """
+    LEFT_EYE_INNER  = PoseLandmark.LEFT_EYE_INNER
+    LEFT_EYE        = PoseLandmark.LEFT_EYE
+    LEFT_EYE_OUTER  = PoseLandmark.LEFT_EYE_OUTER
+    LEFT_EAR        = PoseLandmark.LEFT_EAR
+    LEFT_SHOULDER   = PoseLandmark.LEFT_SHOULDER
+    LEFT_ELBOW      = PoseLandmark.LEFT_ELBOW
+    LEFT_WRIST      = PoseLandmark.LEFT_WRIST
+    LEFT_PINKY      = PoseLandmark.LEFT_PINKY
+    LEFT_INDEX      = PoseLandmark.LEFT_INDEX
+    LEFT_THUMB      = PoseLandmark.LEFT_THUMB
+    LEFT_HIP        = PoseLandmark.LEFT_HIP
+    LEFT_KNEE       = PoseLandmark.LEFT_KNEE
+    LEFT_ANKLE      = PoseLandmark.LEFT_ANKLE
+    LEFT_HEEL       = PoseLandmark.LEFT_HEEL
+    LEFT_FOOT_INDEX = PoseLandmark.LEFT_FOOT_INDEX
+
+    ###############
+    ### AS LIST ###
+    ###############
+    def as_list(self) -> list[int]:
+        """
+        ### Brief:
+        The `as_list` method returns a list of integer indices corresponding
+        to the left-side body landmarks.
+
+        ### Returns:
+        A `list` of integers representing the indices of left-side landmarks.
+        """
+        list_of_indices = []
+        for left_landmark in LeftLandmark:
+            list_of_indices.append(left_landmark.value)
+        return list_of_indices
+
+#################################
+### RIGHT LANDMARK ENUM CLASS ###
+#################################
+class RightLandmark(enum):
+    """
+    ### Description:
+    The `RightLandmark` enum class defines constants for the right-side body landmarks
+    detected by MediaPipe Pose. Each constant corresponds to a row index in the
+    PoseArray (33x4 NumPy array).
+    """
+    RIGHT_EYE_INNER  = PoseLandmark.RIGHT_EYE_INNER
+    RIGHT_EYE        = PoseLandmark.RIGHT_EYE
+    RIGHT_EYE_OUTER  = PoseLandmark.RIGHT_EYE_OUTER
+    RIGHT_EAR        = PoseLandmark.RIGHT_EAR
+    RIGHT_SHOULDER   = PoseLandmark.RIGHT_SHOULDER
+    RIGHT_ELBOW      = PoseLandmark.RIGHT_ELBOW
+    RIGHT_WRIST      = PoseLandmark.RIGHT_WRIST
+    RIGHT_PINKY      = PoseLandmark.RIGHT_PINKY
+    RIGHT_INDEX      = PoseLandmark.RIGHT_INDEX
+    RIGHT_THUMB      = PoseLandmark.RIGHT_THUMB
+    RIGHT_HIP        = PoseLandmark.RIGHT_HIP
+    RIGHT_KNEE       = PoseLandmark.RIGHT_KNEE
+    RIGHT_ANKLE      = PoseLandmark.RIGHT_ANKLE
+    RIGHT_HEEL       = PoseLandmark.RIGHT_HEEL
+    RIGHT_FOOT_INDEX = PoseLandmark.RIGHT_FOOT_INDEX
+
+    ###############
+    ### AS LIST ###
+    ###############
+    def as_list(self) -> list[int]:
+        """
+        ### Brief:
+        The `as_list` method returns a list of integer indices corresponding
+        to the right-side body landmarks.
+
+        ### Returns:
+        A `list` of integers representing the indices of right-side landmarks.
+        """
+        list_of_indices = []
+        for right_landmark in LeftLandmark:
+            list_of_indices.append(right_landmark.value)
+        return list_of_indices

@@ -12,12 +12,12 @@ from datetime import datetime
 from typing import Any, Dict, Optional, List, TYPE_CHECKING
 from copy import deepcopy
 
-from Server.Data.Pose.PoseQuality import PoseQuality
 from Server.Data.History.HistoryDictKey import HistoryDictKey
+from Server.Data.Pose.PositionSide      import PositionSide
+from Server.Data.Pose.PoseQuality       import PoseQuality
 
 if TYPE_CHECKING:
     from Server.Data.Phase.PhaseType import PhaseType
-    from Server.Data.Pose.PoseQuality import PoseQuality
 
 ##########################
 ### HISTORY DATA CLASS ###
@@ -40,6 +40,7 @@ class HistoryData:
         `HistoryDictKey.ERROR_COUNTERS`:                A `dict` containing counters for detected errors.
         `HistoryDictKey.ERROR_STRIKES`:                 A `dict` containing consecutive counters for detected errors.
         `HistoryDictKey.LOW_MOTION_STREAK`:             An `int` which holds the number of consecutive low-motion frames
+        `HistoryDictKey.POSITION_SIDE`:                 The current position side (`PositionSide` enum element)
 
         `HistoryDictKey.PHASE_STATE`:                   The current exercise phase (`PhaseType` enum element)
         `HistoryDictKey.PHASE_TRANSITIONS`:             A `dict` for historical context of phase changes
@@ -103,6 +104,9 @@ class HistoryData:
 
     ### Low Motion Streak (`int`):
     - Stores the amount of consecutive low-motion frames.
+
+    ### Position Side (`PositionSide`):
+    - Stores the current position side (e.g., "left", "right", "center").
 
     ### Phase State (`PhaseType`):
     - Tracks the current phase in the state machine (e.g., "down", "bottom", "up").
@@ -229,6 +233,7 @@ class HistoryData:
             HistoryDictKey.ERROR_COUNTERS:              {},
             HistoryDictKey.ERROR_STREAKS:               {},
             HistoryDictKey.LOW_MOTION_STREAK:           0,
+            HistoryDictKey.POSITION_SIDE:               PositionSide.UNKNOWN,
 
             HistoryDictKey.PHASE_STATE:                 None,
             HistoryDictKey.PHASE_TRANSITIONS:           [],
@@ -358,6 +363,19 @@ class HistoryData:
         - An `int` containing the low motion streak counter.
         """
         return self.history[HistoryDictKey.LOW_MOTION_STREAK]
+
+    #########################
+    ### GET POSITION SIDE ###
+    #########################
+    def get_position_side(self) -> PositionSide:
+        """
+        ### Brief:
+        The `get_position_side` method returns the current position side.
+        
+        ### Returns:
+        - A `PositionSide` element of the current position side.
+        """
+        return self.history[HistoryDictKey.POSITION_SIDE]
 
     #######################
     ### GET PHASE STATE ###
@@ -615,3 +633,19 @@ class HistoryData:
         An `int` indicating the current transition index.
         """
         return self.history[HistoryDictKey.CURRENT_TRANSITION_INDEX]
+    
+    #########################
+    ### SET POSITION SIDE ###
+    #########################
+    def set_position_side(self, position_side:PositionSide) -> None:
+        """
+        ### Brief:
+        The `set_position_side` method sets the current position side.
+
+        ### Arguments:
+        - `position_side` (`PositionSide`): The new position side to set.
+        """
+        if position_side is None:
+            self.history[HistoryDictKey.POSITION_SIDE] = PositionSide.UNKNOWN
+        else:
+            self.history[HistoryDictKey.POSITION_SIDE] = position_side

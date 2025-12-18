@@ -54,9 +54,9 @@ class ServerManager:
         Logger.info("##### SERVER IS INITIALIZED SUCCESSFULLY #####")
         Logger.info("##############################################")
 
-        TestManager().test(
-            exercise_type=ExerciseType.SQUAT,
-            video_path="/Users/eladkrauz/Desktop/try4.mp4"
+        TestManager().test_with_enters(
+            exercise_type=ExerciseType.BICEPS_CURL,
+            video_path="/Users/eladkrauz/Desktop/try7.mp4"
         )
 
         # Keep the main thread alive.
