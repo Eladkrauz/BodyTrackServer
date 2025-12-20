@@ -138,6 +138,8 @@ class ErrorCode(enum):
     ERROR_DETECTOR_MISSING_THRESHOLD            = (701, "Missing threshold entry in JSON for angle.",                                       None, False)
     ERROR_DETECTOR_MAPPING_NOT_FOUND            = (703, "Mapping from angle to error code not found.",                                      None, False)
     ERROR_DETECTOR_UNSUPPORTED_PHASE            = (704, "The provided exercise phase is not supported by ErrorDetector.",                   None, False)
+    ERROR_DETECTOR_INIT_ERROR                   = (705, "Failed to initialize ErrorDetector.",                                             None, True)
+    ERROR_DETECTOR_CONFIG_ERROR                 = (706, "Error in ErrorDetector configuration.",                                             None, True)    
 
     # PhaseDetector.
     PHASE_THRESHOLDS_CONFIG_FILE_ERROR          = (800, "Error with the phase thresholds configuration file.",                              None, True)
@@ -150,7 +152,8 @@ class ErrorCode(enum):
     FEEDBACK_CONSTRUCTION_ERROR                 = (901, "Error during feedback constructor",                                                None, False)
     POSE_QUALITY_FEEDBACK_SELECTION_ERROR       = (902, "Error during pose quality feedback selection",                                     None, False)
     BIOMECHANICAL_FEEDBACK_SELECTION_ERROR      = (903, "Error during biomechanical feedback selection",                                    None, False)
-
+    
+    
     # SessionSummaryManager.
     SUMMARY_MANAGER_INIT_ERROR                  = (1001, "Failed to initialize SessionSummaryManager",                                      None, True)
     SUMMARY_MANAGER_CREATE_ERROR                = (1002, "Failed to create session summary",                                                None, False)

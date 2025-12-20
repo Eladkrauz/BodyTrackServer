@@ -157,9 +157,6 @@ class FeedbackFormatter:
         - `FeedbackCode`: Pose-quality feedback or `SILENT`.
         """
         try:
-                
-            if history.is_state_ok(): return None
-
             frames_since_last_valid:int = history.get_frames_since_last_valid()
             if frames_since_last_valid < self.pose_quality_feedback_threshold:
                 return FeedbackCode.SILENT
@@ -200,11 +197,9 @@ class FeedbackFormatter:
         ### Returns:
         - `FeedbackCode`: A biomechanical feedback code or `SILENT`.
         """
-        try:
-                
-            if not history.is_state_ok(): return None
-            
+        try:            
             biomechanical_streaks:Dict[str, int] = history.get_error_streaks()
+            if not biomechanical_streaks: return FeedbackCode.SILENT
             worst_error_streak:str = max(biomechanical_streaks, key=biomechanical_streaks.get)
 
             if biomechanical_streaks[worst_error_streak] < self.biomechanical_feedback_threshold:

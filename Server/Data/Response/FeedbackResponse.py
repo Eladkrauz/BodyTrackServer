@@ -109,6 +109,7 @@ class FeedbackCode(enum):
             PoseQuality.TOO_CLOSE:      FeedbackCode.TOO_CLOSE,
             PoseQuality.UNSTABLE:       FeedbackCode.UNSTABLE
         }
+        if isinstance(pose_quality, str): pose_quality = PoseQuality[pose_quality]
         return mapping.get(pose_quality, FeedbackCode.SILENT)
     
     ###########################
