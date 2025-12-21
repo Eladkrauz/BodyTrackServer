@@ -288,6 +288,7 @@ class PhaseDetector:
                 return False
 
             angle = joints[joint_name]
+            print(f"Angle of joint {joint_name}: {angle}")
             Logger.debug(f"Phase '{phase_type.name}': Checking joint '{joint_name}' with angle {angle} against limits {joint_range}.")
             min_allowed = joint_range.get(PhaseDictKey.MIN)
             max_allowed = joint_range.get(PhaseDictKey.MAX)

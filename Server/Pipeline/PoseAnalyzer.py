@@ -226,7 +226,6 @@ class PoseAnalyzer:
         - `np.ndarray`: The resized frame with preserved aspect ratio .
         """
         original_height, original_width = frame_content.shape[:2]
-        print("Original (W x H):", original_width, "x", original_height)
         original_ratio = original_width / original_height
         target_ratio = target_width / target_height
 
@@ -240,7 +239,6 @@ class PoseAnalyzer:
 
         # Resize the frame.
         resized_frame = cv2.resize(frame_content, (new_width, new_height))
-        print("Resized (W x H):", new_width, "x", new_height)
         return resized_frame
 
     ########################

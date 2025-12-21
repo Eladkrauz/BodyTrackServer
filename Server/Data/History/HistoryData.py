@@ -476,6 +476,19 @@ class HistoryData:
         - An `int` which stores the counter of correct initial phase.
         """
         return self.history[HistoryDictKey.INITIAL_PHASE_COUNTER]
+    
+    #######################
+    ### GET CURRENT REP ###
+    #######################
+    def get_current_rep(self) -> Optional[Dict[str, Any]]:
+        """
+        ### Brief:
+        The `get_current_rep` method returns the current repetition data.
+        
+        ### Returns:
+        - A `dict` containing the current repetition data.
+        """
+        return self.history[HistoryDictKey.CURRENT_REP]
 
     #####################
     ### GET REP COUNT ###

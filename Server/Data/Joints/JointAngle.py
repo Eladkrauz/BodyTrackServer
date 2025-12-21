@@ -50,19 +50,19 @@ class JointAngle:
     #############
     class Squat:
         # Core joints (always calculated).
-        LEFT_KNEE   = Joint("left_knee_angle",   (PoseLandmark.LEFT_HIP.value,       PoseLandmark.LEFT_KNEE.value,     PoseLandmark.LEFT_ANKLE.value),           True)
-        RIGHT_KNEE  = Joint("right_knee_angle",  (PoseLandmark.RIGHT_HIP.value,      PoseLandmark.RIGHT_KNEE.value,    PoseLandmark.RIGHT_ANKLE.value),          True)
-        LEFT_HIP    = Joint("left_hip_angle",    (PoseLandmark.LEFT_SHOULDER.value,  PoseLandmark.LEFT_HIP.value,      PoseLandmark.LEFT_KNEE.value),            True)
-        RIGHT_HIP   = Joint("right_hip_angle",   (PoseLandmark.RIGHT_SHOULDER.value, PoseLandmark.RIGHT_HIP.value,     PoseLandmark.RIGHT_KNEE.value),           True)
+        LEFT_KNEE   = Joint("left_knee_angle",   (PoseLandmark.LEFT_HIP.value,       PoseLandmark.LEFT_KNEE.value,     PoseLandmark.LEFT_ANKLE.value),          False)
+        RIGHT_KNEE  = Joint("right_knee_angle",  (PoseLandmark.RIGHT_HIP.value,      PoseLandmark.RIGHT_KNEE.value,    PoseLandmark.RIGHT_ANKLE.value),         False)
+        LEFT_HIP    = Joint("left_hip_angle",    (PoseLandmark.LEFT_SHOULDER.value,  PoseLandmark.LEFT_HIP.value,      PoseLandmark.LEFT_KNEE.value),           False)
+        RIGHT_HIP   = Joint("right_hip_angle",   (PoseLandmark.RIGHT_SHOULDER.value, PoseLandmark.RIGHT_HIP.value,     PoseLandmark.RIGHT_KNEE.value),          False)
         TRUNK_TILT  = Joint("trunk_tilt_angle",  (PoseLandmark.LEFT_HIP.value,       PoseLandmark.LEFT_SHOULDER.value, PoseLandmark.LEFT_EAR.value),            False)
         LEFT_CORE   = [LEFT_KNEE, LEFT_HIP, TRUNK_TILT]
         RIGHT_CORE  = [RIGHT_KNEE, RIGHT_HIP, TRUNK_TILT]
         CORE        = [LEFT_KNEE, RIGHT_KNEE, LEFT_HIP, RIGHT_HIP, TRUNK_TILT]
 
         # Extended joints (optional).
-        LEFT_ANKLE     = Joint("left_ankle_angle",  (PoseLandmark.LEFT_KNEE.value,      PoseLandmark.LEFT_ANKLE.value,    PoseLandmark.LEFT_FOOT_INDEX.value),   True)
-        RIGHT_ANKLE    = Joint("right_ankle_angle", (PoseLandmark.RIGHT_KNEE.value,     PoseLandmark.RIGHT_ANKLE.value,   PoseLandmark.RIGHT_FOOT_INDEX.value),  True)
-        KNEE_VALGUS    = Joint("knee_valgus_angle", (PoseLandmark.LEFT_HIP.value,       PoseLandmark.LEFT_KNEE.value,     PoseLandmark.LEFT_ANKLE.value),        True)
+        LEFT_ANKLE     = Joint("left_ankle_angle",  (PoseLandmark.LEFT_KNEE.value,      PoseLandmark.LEFT_ANKLE.value,    PoseLandmark.LEFT_FOOT_INDEX.value),  False)
+        RIGHT_ANKLE    = Joint("right_ankle_angle", (PoseLandmark.RIGHT_KNEE.value,     PoseLandmark.RIGHT_ANKLE.value,   PoseLandmark.RIGHT_FOOT_INDEX.value), False)
+        KNEE_VALGUS    = Joint("knee_valgus_angle", (PoseLandmark.LEFT_HIP.value,       PoseLandmark.LEFT_KNEE.value,     PoseLandmark.LEFT_ANKLE.value),       False)
         HIP_LINE       = Joint("hip_line_angle",    (PoseLandmark.LEFT_HIP.value,       PoseLandmark.RIGHT_HIP.value),                                          False)
         LEFT_EXTENDED  = [LEFT_ANKLE, KNEE_VALGUS, HIP_LINE]
         RIGHT_EXTENDED = [RIGHT_ANKLE, KNEE_VALGUS, HIP_LINE]
@@ -73,10 +73,10 @@ class JointAngle:
     ###################
     class BicepsCurl:
         # Core joints
-        LEFT_ELBOW           = Joint("left_elbow_angle",             (PoseLandmark.LEFT_SHOULDER.value,  PoseLandmark.LEFT_ELBOW.value,     PoseLandmark.LEFT_WRIST.value),   True)
-        RIGHT_ELBOW          = Joint("right_elbow_angle",            (PoseLandmark.RIGHT_SHOULDER.value, PoseLandmark.RIGHT_ELBOW.value,    PoseLandmark.RIGHT_WRIST.value),  True)
-        LEFT_SHOULDER_FLEX   = Joint("left_shoulder_flexion_angle",  (PoseLandmark.LEFT_HIP.value,       PoseLandmark.LEFT_SHOULDER.value,  PoseLandmark.LEFT_ELBOW.value),   True)
-        RIGHT_SHOULDER_FLEX  = Joint("right_shoulder_flexion_angle", (PoseLandmark.RIGHT_HIP.value,      PoseLandmark.RIGHT_SHOULDER.value, PoseLandmark.RIGHT_ELBOW.value),  True)
+        LEFT_ELBOW           = Joint("left_elbow_angle",             (PoseLandmark.LEFT_SHOULDER.value,  PoseLandmark.LEFT_ELBOW.value,     PoseLandmark.LEFT_WRIST.value),  False)
+        RIGHT_ELBOW          = Joint("right_elbow_angle",            (PoseLandmark.RIGHT_SHOULDER.value, PoseLandmark.RIGHT_ELBOW.value,    PoseLandmark.RIGHT_WRIST.value), False)
+        LEFT_SHOULDER_FLEX   = Joint("left_shoulder_flexion_angle",  (PoseLandmark.LEFT_HIP.value,       PoseLandmark.LEFT_SHOULDER.value,  PoseLandmark.LEFT_ELBOW.value),  False)
+        RIGHT_SHOULDER_FLEX  = Joint("right_shoulder_flexion_angle", (PoseLandmark.RIGHT_HIP.value,      PoseLandmark.RIGHT_SHOULDER.value, PoseLandmark.RIGHT_ELBOW.value), False)
         LEFT_CORE            = [LEFT_ELBOW, LEFT_SHOULDER_FLEX]
         RIGHT_CORE           = [RIGHT_ELBOW, RIGHT_SHOULDER_FLEX]
         CORE                 = [LEFT_ELBOW, RIGHT_ELBOW, LEFT_SHOULDER_FLEX, RIGHT_SHOULDER_FLEX]
@@ -84,8 +84,8 @@ class JointAngle:
         # Extended joints
         LEFT_SHOULDER_TORSO  = Joint("left_shoulder_torso_angle",    (PoseLandmark.LEFT_HIP.value,       PoseLandmark.LEFT_SHOULDER.value,  PoseLandmark.LEFT_EAR.value),    False)
         RIGHT_SHOULDER_TORSO = Joint("right_shoulder_torso_angle",   (PoseLandmark.RIGHT_HIP.value,      PoseLandmark.RIGHT_SHOULDER.value, PoseLandmark.RIGHT_EAR.value),   False)
-        LEFT_WRIST           = Joint("left_wrist_angle",             (PoseLandmark.LEFT_ELBOW.value,     PoseLandmark.LEFT_WRIST.value,     PoseLandmark.LEFT_INDEX.value),   True)
-        RIGHT_WRIST          = Joint("right_wrist_angle",            (PoseLandmark.RIGHT_ELBOW.value,    PoseLandmark.RIGHT_WRIST.value,    PoseLandmark.RIGHT_INDEX.value),  True)
+        LEFT_WRIST           = Joint("left_wrist_angle",             (PoseLandmark.LEFT_ELBOW.value,     PoseLandmark.LEFT_WRIST.value,     PoseLandmark.LEFT_INDEX.value),  False)
+        RIGHT_WRIST          = Joint("right_wrist_angle",            (PoseLandmark.RIGHT_ELBOW.value,    PoseLandmark.RIGHT_WRIST.value,    PoseLandmark.RIGHT_INDEX.value), False)
         LEFT_EXTENDED        = [LEFT_SHOULDER_TORSO, LEFT_WRIST]
         RIGHT_EXTENDED       = [RIGHT_SHOULDER_TORSO, RIGHT_WRIST]
         EXTENDED             = [LEFT_SHOULDER_TORSO, RIGHT_SHOULDER_TORSO, LEFT_WRIST, RIGHT_WRIST]
