@@ -189,89 +189,6 @@ class ErrorMappings:
     }
 
 
-    #####################################
-    ### LATERAL RAISE PHASE-AWARE MAP ###
-    #####################################
-    LATERAL_RAISE_MAP = {
-
-        PhaseType.LateralRaise.REST: {
-
-            "left_shoulder_abduction_angle": {
-                LOW:  DetectedErrorCode.LATERAL_REST_ARM_TOO_LOW,
-                HIGH: DetectedErrorCode.LATERAL_REST_ARM_TOO_HIGH,
-            },
-            "right_shoulder_abduction_angle": {
-                LOW:  DetectedErrorCode.LATERAL_REST_ARM_TOO_LOW,
-                HIGH: DetectedErrorCode.LATERAL_REST_ARM_TOO_HIGH,
-            },
-
-            "torso_lateral_tilt_angle": {
-                LOW:  DetectedErrorCode.LATERAL_REST_TORSO_TILT_LEFT_RIGHT,
-                HIGH: DetectedErrorCode.LATERAL_REST_TORSO_TILT_LEFT_RIGHT,
-            },
-        },
-
-        PhaseType.LateralRaise.RAISING: {
-
-            "left_shoulder_abduction_angle": {
-                LOW:  DetectedErrorCode.LATERAL_RAISE_ARM_TOO_LOW,
-                HIGH: DetectedErrorCode.LATERAL_RAISE_ARM_TOO_HIGH,
-            },
-            "right_shoulder_abduction_angle": {
-                LOW:  DetectedErrorCode.LATERAL_RAISE_ARM_TOO_LOW,
-                HIGH: DetectedErrorCode.LATERAL_RAISE_ARM_TOO_HIGH,
-            },
-
-            "left_elbow_set_angle": {
-                LOW:  DetectedErrorCode.LATERAL_RAISE_ELBOW_TOO_BENT,
-                HIGH: DetectedErrorCode.LATERAL_RAISE_ELBOW_TOO_BENT,
-            },
-            "right_elbow_set_angle": {
-                LOW:  DetectedErrorCode.LATERAL_RAISE_ELBOW_TOO_BENT,
-                HIGH: DetectedErrorCode.LATERAL_RAISE_ELBOW_TOO_BENT,
-            },
-        },
-
-        PhaseType.LateralRaise.HOLD: {
-
-            "left_shoulder_abduction_angle": {
-                LOW:  DetectedErrorCode.LATERAL_HOLD_ARM_TOO_LOW,
-                HIGH: DetectedErrorCode.LATERAL_HOLD_ARM_TOO_HIGH,
-            },
-            "right_shoulder_abduction_angle": {
-                LOW:  DetectedErrorCode.LATERAL_HOLD_ARM_TOO_LOW,
-                HIGH: DetectedErrorCode.LATERAL_HOLD_ARM_TOO_HIGH,
-            },
-
-            "torso_lateral_tilt_angle": {
-                LOW:  DetectedErrorCode.LATERAL_HOLD_TORSO_TILT_LEFT_RIGHT,
-                HIGH: DetectedErrorCode.LATERAL_HOLD_TORSO_TILT_LEFT_RIGHT,
-            },
-        },
-
-        PhaseType.LateralRaise.LOWERING: {
-
-            "left_shoulder_abduction_angle": {
-                LOW:  DetectedErrorCode.LATERAL_LOWER_ARM_TOO_LOW,
-                HIGH: DetectedErrorCode.LATERAL_LOWER_ARM_TOO_HIGH,
-            },
-            "right_shoulder_abduction_angle": {
-                LOW:  DetectedErrorCode.LATERAL_LOWER_ARM_TOO_LOW,
-                HIGH: DetectedErrorCode.LATERAL_LOWER_ARM_TOO_HIGH,
-            },
-
-            "left_elbow_set_angle": {
-                LOW:  DetectedErrorCode.LATERAL_LOWER_ELBOW_TOO_BENT,
-                HIGH: DetectedErrorCode.LATERAL_LOWER_ELBOW_TOO_BENT,
-            },
-            "right_elbow_set_angle": {
-                LOW:  DetectedErrorCode.LATERAL_LOWER_ELBOW_TOO_BENT,
-                HIGH: DetectedErrorCode.LATERAL_LOWER_ELBOW_TOO_BENT,
-            },
-        }
-    }
-
-
     ##############################################
     ### MASTER MAP (ExerciseType -> Phase Map) ###
     ##############################################
@@ -281,7 +198,6 @@ class ErrorMappings:
     MASTER_MAP: Dict[ExerciseType, Dict[Any, Dict[str, Dict[str, DetectedErrorCode]]]] = {
         ExerciseType.SQUAT:         SQUAT_MAP,
         ExerciseType.BICEPS_CURL:   BICEPS_CURL_MAP,
-        ExerciseType.LATERAL_RAISE: LATERAL_RAISE_MAP
     }
 
     ##################
@@ -291,7 +207,7 @@ class ErrorMappings:
     def get_error(
         cls,
         exercise_type: ExerciseType,
-        phase: Any,
+        phase: PhaseType,
         angle_name: str,
         is_high: bool
     ) -> Optional[DetectedErrorCode]:

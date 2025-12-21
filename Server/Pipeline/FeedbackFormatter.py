@@ -21,6 +21,8 @@ from Server.Data.Error.DetectedErrorCode      import DetectedErrorCode
 from Server.Data.Pose.PoseQuality             import PoseQuality
 from Server.Data.Response.FeedbackResponse    import FeedbackCode
 from Server.Data.Session                      import SessionData
+from Server.Data.History.HistoryDictKey       import HistoryDictKey
+
 
 if TYPE_CHECKING:
     from Server.Data.History.HistoryData import HistoryData
@@ -53,15 +55,12 @@ class FeedbackFormatter:
         Loads all feedback-related threshold values from the configuration.
 
         ### Thresholds Loaded:
-        - `pose_quality_feedback_threshold` :
-            Minimum number of consecutive bad frames before pose-quality feedback is allowed.
-
-        - `biomechanical_feedback_threshold` :
-            Minimum number of repetitions of a biomechanical error before feedback is allowed.
-
-        - `cooldown_frames` :
-            Cooldown interval between feedback messages to prevent over-alerting the user.
-        """
+        - Pose-quality feedback threshold (frames)
+        - Biomechanical feedback threshold (frames)
+        - Pose-quality cooldown frames
+        - Biomechanical cooldown frames
+        - VALID feedback cooldown frames
+     """
         try:
             self.retrieve_configurations()
             Logger.info("FeedbackFormatter initialized successfully.")
@@ -84,17 +83,13 @@ class FeedbackFormatter:
         The `construct_feedback` methoddetermines which feedback message
         should be returned for the current frame.
 
-        ### Decision Process:
-        1. Check whether the pose state is valid (`is_state_ok()`):
-            - If **valid**, biomechanical feedback (errors in movement technique) is evaluated first.
-            - If **invalid**, pose-quality feedback (visibility, distance, stability issues) is evaluated.
-
-        2. If a feedback code is identified:
-            - Return it **only** if the cooldown threshold is satisfied.
-            - Otherwise return `FeedbackCode.SILENT`.
-
-        3. If no feedback is required, return `FeedbackCode.SILENT`.
-
+        ### Decision Pipeline:
+        1. Validate history state
+        2. Check pose-quality feedback (highest priority)
+        3. Check biomechanical feedback
+        4. Check positive reinforcement (VALID)
+        5. Otherwise return SILENT
+        
         ### Arguments:
         - `session` (SessionData): Contains all runtime session data including history.
 
@@ -106,22 +101,18 @@ class FeedbackFormatter:
             current_state_ok:bool = history.is_state_ok()  
 
             # Check biomechanical issues.
-            if current_state_ok:
-                biomechanical_feedback:FeedbackCode = self._select_biomechanical_feedback(history)
-                if biomechanical_feedback is FeedbackCode.SILENT \
-                    or biomechanical_feedback is FeedbackCode.VALID:
-                    return biomechanical_feedback
-                else:
-                    if self._is_allowed_to_return_feedback(history): return biomechanical_feedback
-                    else:                                            return FeedbackCode.SILENT
-            else:
-                pose_feedback:FeedbackCode = self._select_pose_quality_feedback(history)
-                if pose_feedback is FeedbackCode.SILENT:
-                    return pose_feedback
-                else:
-                    # Allow biomechanical feedback only if cooldown passed.
-                    if self._is_allowed_to_return_feedback(history): return pose_feedback
-                    else:                                            return FeedbackCode.SILENT
+            if not current_state_ok:
+                return self._handle_pose_quality_feedback(history)
+
+            biomechanical_feedback:FeedbackCode = self._handle_biomechanical_feedback(history)
+            if biomechanical_feedback is not FeedbackCode.SILENT:
+                return biomechanical_feedback
+            
+            valid_feedback: FeedbackCode = self._handle_valid_feedback(history)
+            if valid_feedback is not FeedbackCode.SILENT:
+                return valid_feedback
+            
+            return FeedbackCode.SILENT
         except Exception as e:
             ErrorHandler.handle(
                 error=ErrorCode.FEEDBACK_CONSTRUCTION_ERROR,
@@ -133,13 +124,14 @@ class FeedbackFormatter:
             )
             return FeedbackCode.SILENT
 
+
     ####################################
-    ### SELECT POSE QUALITY FEEDBACK ###
+    ### HANDLE POSE QUALITY FEEDBACK ###
     ####################################
-    def _select_pose_quality_feedback(self, history:HistoryData) -> FeedbackCode:
+    def _handle_pose_quality_feedback(self, history:HistoryData) -> FeedbackCode:
         """
         ### Brief:
-        The `_select_pose_quality_feedback` method determines whether pose-quality
+        The `_handle_pose_quality_feedback` method determines whether pose-quality
         feedback should be issued.
 
         ### Logic:
@@ -160,10 +152,16 @@ class FeedbackFormatter:
             frames_since_last_valid:int = history.get_frames_since_last_valid()
             if frames_since_last_valid < self.pose_quality_feedback_threshold:
                 return FeedbackCode.SILENT
-            else:
-                bad_frame_streak:Dict[str, int] = history.get_bad_frame_streaks()
-                worst_quality:PoseQuality = max(bad_frame_streak, key=bad_frame_streak.get)
-                return FeedbackCode.from_pose_quality(worst_quality)        
+            if not self._pose_quality_cooldown_passed():
+                return FeedbackCode.SILENT
+            
+            
+            bad_frame_streak:Dict[str, int] = history.get_bad_frame_streaks()
+
+            worst_quality:PoseQuality = max(bad_frame_streak, key=bad_frame_streak.get)
+
+            return FeedbackCode.from_pose_quality(worst_quality)        
+        
         except Exception as e:
             ErrorHandler.handle(
                 error=ErrorCode.POSE_QUALITY_FEEDBACK_SELECTION_ERROR,
@@ -176,12 +174,12 @@ class FeedbackFormatter:
             return FeedbackCode.SILENT    
 
     #####################################
-    ### SELECT BIOMECHANICAL FEEDBACK ###
+    ### HANDLE BIOMECHANICAL FEEDBACK ###
     #####################################
-    def _select_biomechanical_feedback(self, history:HistoryData) -> FeedbackCode:
+    def _handle_biomechanical_feedback(self, history:HistoryData) -> FeedbackCode:
         """
         ### Brief:
-        The `_select_biomechanical_feedback` method determines whether
+        The `_handle_biomechanical_feedback` method determines whether
         biomechanical feedback should be issued.
 
         ### Logic:
@@ -202,11 +200,27 @@ class FeedbackFormatter:
             if not biomechanical_streaks: return FeedbackCode.SILENT
             worst_error_streak:str = max(biomechanical_streaks, key=biomechanical_streaks.get)
 
+            current_rep : dict[str, any] = history.get_current_rep()
+            rep_errors:Dict[str, any] = current_rep[HistoryDictKey.CurrentRep.ERRORS]
+            if rep_errors is None:
+                return FeedbackCode.SILENT
+            if worst_error_streak in rep_errors:
+                return FeedbackCode.SILENT
+
             if biomechanical_streaks[worst_error_streak] < self.biomechanical_feedback_threshold:
                 return FeedbackCode.SILENT
-            else:
-                detected_enum = DetectedErrorCode[worst_error_streak]
-                return FeedbackCode.from_detected_error(detected_enum)
+            
+            if not self._biomechanical_cooldown_passed():
+                return FeedbackCode.SILENT
+            
+            current_rep : dict[str, any] = history.get_current_rep()
+            if current_rep.HistoryDictKey.CurrentRep.ERRORS is None:
+                return FeedbackCode.SILENT
+            
+            
+            detected_enum = DetectedErrorCode[worst_error_streak]
+            return FeedbackCode.from_detected_error(detected_enum)
+        
         except Exception as e:
             ErrorHandler.handle(
                 error=ErrorCode.BIOMECHANICAL_FEEDBACK_SELECTION_ERROR,
@@ -218,6 +232,41 @@ class FeedbackFormatter:
             )
             return FeedbackCode.SILENT       
 
+
+    #############################
+    ### HANDLE VALID FEEDBACK ###   
+    #############################
+    def _handle_valid_feedback(self, history: HistoryData) -> FeedbackCode:
+        """
+        ### Brief:
+        The `_handle_valid_feedback` method determines whether positive
+        reinforcement feedback (VALID) should be issued.
+
+        ### Logic:
+        - If the state is not OK (pose-quality error exists) → VALID feedback is irrelevant.
+        - Check how many consecutive valid frames have occurred (`get_frames_since_last_invalid()`).
+        - If below threshold return `SILENT`.
+        - If cooldown period has not passed return `SILENT`.
+        - Otherwise return `FeedbackCode.VALID`.
+
+        ### Arguments:
+        - `history` (HistoryData): Provides valid frame streaks.
+
+        ### Returns:
+        - `FeedbackCode`: VALID feedback or `SILENT`.
+        """
+        try:
+            
+        except Exception as e:
+            ErrorHandler.handle(
+                error=ErrorCode.VALID_FEEDBACK_SELECTION_ERROR,
+                origin=inspect.currentframe(),
+                extra_info={
+                    "Exception": type(e).__name__,
+                    "Reason": "Unexpected failure during VALID feedback selection."
+                }
+            )
+            return FeedbackCode.SILENT
     #####################################
     ### IS ALLOWED TO RETURN FEEDBACK ###
     #####################################

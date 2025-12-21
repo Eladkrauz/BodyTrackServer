@@ -58,7 +58,7 @@ class ErrorDetector:
         """
         try:
             self.retrieve_configurations()
-            Logger.info("ErrorDetector initialized successfully.")
+            Logger.info("Initialized successfully.")
         except Exception as e:
             ErrorHandler.handle(
                 error=ErrorCode.ERROR_DETECTOR_INIT_ERROR,
@@ -110,13 +110,6 @@ class ErrorDetector:
             return ErrorCode.ERROR_DETECTOR_CONFIG_ERROR
         
         exercise_type:ExerciseType = session.get_exercise_type()
-        if exercise_type is None:
-            ErrorHandler.handle(
-                error=ErrorCode.ERROR_DETECTOR_CONFIG_ERROR,
-                origin=inspect.currentframe(),
-                extra_info={"reason": "Exercise type is None"}
-            )
-            return ErrorCode.ERROR_DETECTOR_CONFIG_ERROR
         
         exercise_name = exercise_type.value
         exercise_block = self.thresholds.get(exercise_name)
@@ -146,13 +139,7 @@ class ErrorDetector:
         for angle_name, rules in phase_thresholds.items():
             # Angle missing from JointAnalyzer output.
             if angle_name not in angles:
-                ErrorHandler.handle(
-                    error=ErrorCode.ERROR_DETECTOR_INVALID_ANGLE,
-                    origin=inspect.currentframe(),
-                    extra_info={ "angle": angle_name }
-                )
-                return ErrorCode.ERROR_DETECTOR_INVALID_ANGLE
-
+                continue
             value = angles[angle_name]
 
             # Invalid numeric value.

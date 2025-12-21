@@ -59,26 +59,6 @@ class DetectedErrorCode(Enum):
     CURL_LOWERING_SHOULDER_TOO_FORWARD  = 3114
     CURL_LOWERING_SHOULDER_TOO_BACKWARD = 3115
 
-    #################################
-    ### LATERAL RAISE (3200–3211) ###
-    #################################
-
-    LATERAL_REST_ARM_TOO_HIGH           = 3200
-    LATERAL_REST_ARM_TOO_LOW            = 3201
-    LATERAL_REST_TORSO_TILT_LEFT_RIGHT  = 3202
-
-    LATERAL_RAISE_ARM_TOO_LOW           = 3203
-    LATERAL_RAISE_ARM_TOO_HIGH          = 3204
-    LATERAL_RAISE_ELBOW_TOO_BENT        = 3205
-
-    LATERAL_HOLD_ARM_TOO_LOW            = 3206
-    LATERAL_HOLD_ARM_TOO_HIGH           = 3207
-    LATERAL_HOLD_TORSO_TILT_LEFT_RIGHT  = 3208
-
-    LATERAL_LOWER_ARM_TOO_LOW           = 3209
-    LATERAL_LOWER_ARM_TOO_HIGH          = 3210
-    LATERAL_LOWER_ELBOW_TOO_BENT        = 3211
-
     ##############
     ### SYSTEM ###
     ##############
