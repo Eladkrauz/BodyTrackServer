@@ -48,6 +48,7 @@ class HistoryDictKey:
     class Frame:
         FRAME_ID  = "frame_id"
         TIMESTAMP = "timestamp"
+        LANDMARKS = "landmarks"
         JOINTS    = "joints"
         ERRORS    = "errors"
 

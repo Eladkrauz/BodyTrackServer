@@ -2,6 +2,7 @@
 ### IMPORTS ###
 ###############
 from enum import Enum
+from enum import auto
 
 #################################
 ### DETECTED ERROR CODE CLASS ###
@@ -17,50 +18,50 @@ class DetectedErrorCode(Enum):
     ### SQUAT (3000–3012)###
     ########################
 
-    SQUAT_TOP_TRUNK_TOO_FORWARD        = 3000
-    SQUAT_TOP_TRUNK_TOO_BACKWARD       = 3001
-    SQUAT_TOP_HIP_LINE_UNBALANCED      = 3002
+    SQUAT_TOP_TRUNK_TOO_FORWARD        = auto()
+    SQUAT_TOP_TRUNK_TOO_BACKWARD       = auto()
+    SQUAT_TOP_HIP_LINE_UNBALANCED      = auto()
 
-    SQUAT_DOWN_KNEE_TOO_STRAIGHT       = 3003
-    SQUAT_DOWN_KNEE_TOO_BENT           = 3004
-    SQUAT_DOWN_HIP_TOO_STRAIGHT        = 3005
-    SQUAT_DOWN_HIP_TOO_BENT            = 3006
+    SQUAT_DOWN_KNEE_TOO_STRAIGHT       = auto()
+    SQUAT_DOWN_KNEE_TOO_BENT           = auto()
+    SQUAT_DOWN_HIP_TOO_STRAIGHT        = auto()
+    SQUAT_DOWN_HIP_TOO_BENT            = auto()
 
-    SQUAT_HOLD_HIP_NOT_DEEP_ENOUGH     = 3007
-    SQUAT_HOLD_HIP_TOO_DEEP            = 3008
-    SQUAT_HOLD_KNEE_VALGUS             = 3009
+    SQUAT_HOLD_HIP_NOT_DEEP_ENOUGH     = auto()
+    SQUAT_HOLD_HIP_TOO_DEEP            = auto()
+    SQUAT_HOLD_KNEE_VALGUS             = auto()
 
-    SQUAT_UP_KNEE_COLLAPSE             = 3010
-    SQUAT_UP_TRUNK_TOO_FORWARD         = 3011
-    SQUAT_UP_TRUNK_TOO_BACKWARD        = 3012
+    SQUAT_UP_KNEE_COLLAPSE             = auto()
+    SQUAT_UP_TRUNK_TOO_FORWARD         = auto()
+    SQUAT_UP_TRUNK_TOO_BACKWARD        = auto()
 
 
     ###############################
     ### BICEPS CURL (3100–3115) ###
     ###############################
 
-    CURL_REST_ELBOW_TOO_BENT            = 3100
-    CURL_REST_ELBOW_TOO_STRAIGHT        = 3101
-    CURL_REST_SHOULDER_TOO_FORWARD      = 3102
-    CURL_REST_SHOULDER_TOO_BACKWARD     = 3103
+    CURL_REST_ELBOW_TOO_BENT            = auto()
+    CURL_REST_ELBOW_TOO_STRAIGHT        = auto()
+    CURL_REST_SHOULDER_TOO_FORWARD      = auto()
+    CURL_REST_SHOULDER_TOO_BACKWARD     = auto()
 
-    CURL_LIFTING_ELBOW_TOO_STRAIGHT     = 3104
-    CURL_LIFTING_ELBOW_TOO_BENT         = 3105
-    CURL_LIFTING_SHOULDER_TOO_FORWARD   = 3106
-    CURL_LIFTING_SHOULDER_TOO_BACKWARD  = 3107
+    CURL_LIFTING_ELBOW_TOO_STRAIGHT     = auto()
+    CURL_LIFTING_ELBOW_TOO_BENT         = auto()
+    CURL_LIFTING_SHOULDER_TOO_FORWARD   = auto()
+    CURL_LIFTING_SHOULDER_TOO_BACKWARD  = auto()
 
-    CURL_HOLD_ELBOW_TOO_OPEN            = 3108
-    CURL_HOLD_ELBOW_TOO_CLOSED          = 3109
-    CURL_HOLD_WRIST_TOO_FLEXED          = 3110
-    CURL_HOLD_WRIST_TOO_EXTENDED        = 3111
+    CURL_HOLD_ELBOW_TOO_OPEN            = auto()
+    CURL_HOLD_ELBOW_TOO_CLOSED          = auto()
+    CURL_HOLD_WRIST_TOO_FLEXED          = auto()
+    CURL_HOLD_WRIST_TOO_EXTENDED        = auto()
 
-    CURL_LOWERING_ELBOW_TOO_STRAIGHT    = 3112
-    CURL_LOWERING_ELBOW_TOO_BENT        = 3113
-    CURL_LOWERING_SHOULDER_TOO_FORWARD  = 3114
-    CURL_LOWERING_SHOULDER_TOO_BACKWARD = 3115
+    CURL_LOWERING_ELBOW_TOO_STRAIGHT    = auto()
+    CURL_LOWERING_ELBOW_TOO_BENT        = auto()
+    CURL_LOWERING_SHOULDER_TOO_FORWARD  = auto()
+    CURL_LOWERING_SHOULDER_TOO_BACKWARD = auto()
 
     ##############
     ### SYSTEM ###
     ##############
-    NO_BIOMECHANICAL_ERROR        = 3999
-    NOT_READY_FOR_ANALYSIS        = 4000
+    NO_BIOMECHANICAL_ERROR        = auto()
+    NOT_READY_FOR_ANALYSIS        = auto()

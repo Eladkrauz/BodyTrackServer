@@ -87,11 +87,6 @@ class PositionSideDetector:
             left_ratio:float  = self._compute_visibility_ratio(visibility, LeftLandmark.as_list())
             right_ratio:float = self._compute_visibility_ratio(visibility, RightLandmark.as_list())
 
-            Logger.debug(
-                f"PositionSideDetector: left_ratio={left_ratio:.3f}, "
-                f"right_ratio={right_ratio:.3f}"
-            )
-
             ##############
             ### STEP 1 ### - Not enough signal, return PositionSide.UNKNOWN.
             ##############
@@ -130,10 +125,10 @@ class PositionSideDetector:
                 origin=inspect.currentframe(),
                 extra_info={
                     "Exception": type(e).__name__,
-                    "Reason": "Unexpected error in PositionSideDetector."
+                    "Reason": str(e)
                 }
             )
-            return PositionSide.UNKNOWN, ErrorCode.POSITION_SIDE_DETECTION_ERROR
+            return PositionSide.UNKNOWN
 
     #############################################################################    
     ############################## PRIVATE METHODS ##############################
@@ -160,6 +155,8 @@ class PositionSideDetector:
         # This command creates a boolean array where each element indicates
         # whether the corresponding landmark is visible.
         visible = visibility[indices] >= self.landmark_visibility_threshold
+
+        Logger.debug(' '.join([f"{i}: {visible[i]}" for i in range(len(visible))]))
         
         # Calculate and return the ratio of visible landmarks.
         return float(np.sum(visible)) / float(len(indices))
@@ -184,7 +181,7 @@ class PositionSideDetector:
         allowed_sides:list[PositionSide] = PositionSide.allowed_sides(exercise_type)
 
         # Early exit for UNKNOWN side.
-        if side == PositionSide.UNKNOWN: return side
+        if side.is_unkwown(): return side
 
         # Validate against allowed sides for the exercise.
         if side not in allowed_sides: return ErrorCode.WRONG_EXERCISE_POSITION

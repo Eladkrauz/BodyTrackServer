@@ -51,7 +51,7 @@ class SessionData:
     })
     extended_evaluation:bool            = field(default=False)
     # TODO: CHANGE BACK TO INIT!!!
-    analyzing_state:AnalyzingState      = field(default=AnalyzingState.ACTIVE)
+    analyzing_state:AnalyzingState      = field(default=AnalyzingState.INIT)
     lock:RLock                          = field(default_factory=RLock, init=False, repr=False)
     session_status:SessionStatus        = field(default=SessionStatus.REGISTERED)
 

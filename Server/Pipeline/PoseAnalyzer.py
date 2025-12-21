@@ -71,9 +71,24 @@ class PoseAnalyzer:
             # Works together with mp_drawing to render pose annotations consistently.
             self.mp_drawing_styles = mp.solutions.drawing_styles
 
-            self.enable_visualization = True
+            import os
+            import shutil
+            def clear_directory(path):
+                for name in os.listdir(path):
+                    full_path = os.path.join(path, name)
+                    if os.path.isfile(full_path) or os.path.islink(full_path):
+                        os.unlink(full_path)
+                    elif os.path.isdir(full_path):
+                        shutil.rmtree(full_path)
+
+            self.enable_visualization = self.log_level == "DEBUG"
             self.debug_output_dir = "/Users/eladkrauz/Desktop/OUTPUT"
             os.makedirs(self.debug_output_dir, exist_ok=True)
+            clear_directory(self.debug_output_dir)
+
+            self.debug_frame_sent_to_media_pipe = "/Users/eladkrauz/Desktop/INPUT"
+            os.makedirs(self.debug_frame_sent_to_media_pipe, exist_ok=True)
+            clear_directory(self.debug_frame_sent_to_media_pipe)
 
             Logger.info("Initialized successfully.")
         except ValueError as e:
@@ -226,7 +241,6 @@ class PoseAnalyzer:
         resized_frame = cv2.resize(frame_content, (new_width, new_height))
         return resized_frame
 
-
     ########################
     ### PREPROCESS FRAME ###
     ########################
@@ -249,6 +263,14 @@ class PoseAnalyzer:
         # Resize the frame.
         try:
             frame_content = self._resize_with_aspect_ratio(frame_content, self.frame_width, self.frame_height)
+            vis_frame = frame_content.copy()   # original BGR frame
+
+            output_path = os.path.join(
+                self.debug_frame_sent_to_media_pipe,
+                f"session_frame.jpg"
+            )
+
+            cv2.imwrite(output_path, vis_frame)
         except cv2.error as e:
             ErrorHandler.handle(
                 error=ErrorCode.FRAME_PREPROCESSING_ERROR,
@@ -318,37 +340,34 @@ class PoseAnalyzer:
         validation_result = self._validate_frame(frame_data.content)
         if isinstance(validation_result, ErrorCode):
             return ErrorCode.FRAME_VALIDATION_ERROR
-        else:
-            Logger.info(f"Frame {frame_data.frame_id} of session {frame_data.session_id} - validated successfully.")
         
         # Preprocess the frame.
         preprocessing_result = self._preprocess_frame(frame_data.content)
         if isinstance(preprocessing_result, ErrorCode):
             return preprocessing_result
-        else:
-            Logger.info(f"Frame {frame_data.frame_id} of session {frame_data.session_id} - preprocessed successfully.")
         
         try:
-            import os
             # Run MediaPipe Pose.
             result = self.pose.process(preprocessing_result)
-            # Optional visualization
-            if self.enable_visualization and result.pose_landmarks is not None:
-                try:
-                    vis_frame = frame_data.content.copy()   # original BGR frame
-                    self._draw_pose(vis_frame, result.pose_landmarks)
 
-                    output_path = os.path.join(
-                        self.debug_output_dir,
-                        f"session_{frame_data.session_id}_frame_{frame_data.frame_id}.jpg"
-                    )
+            # Optional visualization.
+            if self.enable_visualization:
+                if self.enable_visualization and result.pose_landmarks is not None:
+                    try:
+                        vis_frame = frame_data.content.copy()   # original BGR frame
+                        self._draw_pose(vis_frame, result.pose_landmarks)
 
-                    cv2.imwrite(output_path, vis_frame)
+                        output_path = os.path.join(
+                            self.debug_output_dir,
+                            f"session_{frame_data.session_id}_frame_{frame_data.frame_id}.jpg"
+                        )
 
-                except Exception as e:
-                    Logger.warning(
-                        f"Failed to save debug frame {frame_data.frame_id}: {type(e).__name__}"
-                    )
+                        cv2.imwrite(output_path, vis_frame)
+
+                    except Exception as e:
+                        Logger.warning(
+                            f"Failed to save debug frame {frame_data.frame_id}: {type(e).__name__}"
+                        )
 
             # Convert results to NormalizedLandmarkList.
             pose_landmarks:Optional[landmark_pb2.NormalizedLandmarkList] = getattr(result, "pose_landmarks", None)
@@ -399,19 +418,19 @@ class PoseAnalyzer:
             # Converting the results array (which is a list) to a np.array.
             landmarks_array:PoseLandmarksArray = np.array(results_array, dtype=np.float32)
             # If the size is invalid.
-            if len(landmarks_array) != PoseLandmark.NUM_OF_LANDMARKS:
+            if len(landmarks_array) != PoseLandmark.NUM_OF_LANDMARKS.value:
                 ErrorHandler.handle(
                     error=ErrorCode.FRAME_ANALYSIS_ERROR,
                     origin=inspect.currentframe(),
                     extra_info={
                         "Reason": "The output landmarks array size is invalid",
                         "Contains": f"{len(landmarks_array)} rows",
-                        "Supposed to contain": f"{PoseLandmark.NUM_OF_LANDMARKS} rows (landmarks)"
+                        "Supposed to contain": f"{PoseLandmark.NUM_OF_LANDMARKS.value} rows (landmarks)"
                     }
                 )
                 return ErrorCode.FRAME_ANALYSIS_ERROR
 
-            Logger.info(f"Extracted {landmarks_array.shape[0]} landmarks "
+            Logger.debug(f"Extracted {landmarks_array.shape[0]} landmarks "
                         f"from frame {frame_data.frame_id} (Session {frame_data.session_id}).")
             
             # Returning the output landmarks array.
@@ -496,4 +515,8 @@ class PoseAnalyzer:
         self.frame_height = ConfigLoader.get([
             ConfigParameters.Major.FRAME,
             ConfigParameters.Minor.HEIGHT
+        ])
+        self.log_level = ConfigLoader.get([
+            ConfigParameters.Major.LOG,
+            ConfigParameters.Minor.LOG_LEVEL
         ])

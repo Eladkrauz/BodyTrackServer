@@ -7,7 +7,7 @@
 ###############
 ### IMPORTS ###
 ###############
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Set
 import inspect
 
 from Server.Utilities.Error.ErrorCode    import ErrorCode
@@ -18,9 +18,15 @@ from Server.Data.Session.ExerciseType    import ExerciseType
 from Server.Data.Session.SessionData     import SessionData
 from Server.Data.Phase.PhaseType         import PhaseType
 from Server.Data.Phase.PhaseDictKey      import PhaseDictKey
-from Server.Data.Joints.JointAngle       import JointAngle
+from Server.Data.Joints.JointAngle       import JointAngle, Joint
 from Server.Data.History.HistoryDictKey  import HistoryDictKey
 from Server.Data.History.HistoryData     import HistoryData
+from Server.Data.Pose.PositionSide       import PositionSide
+
+###################
+### RULES ALIAS ###
+###################
+Rules = Dict[str, Dict[str, Any]]
 
 ############################
 ### PHASE DETECTOR CLASS ###
@@ -83,8 +89,21 @@ class PhaseDetector:
         if isinstance(exercise_configuration, ErrorCode): return exercise_configuration
 
         # Get the rules of the exercise, from the configuration.
-        rules = exercise_configuration.get(PhaseDictKey.RULES, None)
-        if rules is None: return ErrorCode.PHASE_THRESHOLDS_CONFIG_FILE_ERROR
+        rules:Rules = exercise_configuration.get(PhaseDictKey.RULES, None)
+        if rules is None:
+            ErrorHandler.handle(
+                error=ErrorCode.PHASE_THRESHOLDS_CONFIG_FILE_ERROR,
+                origin=inspect.currentframe(),
+                extra_info={ "Missing": "Rules" }
+            )
+            return ErrorCode.PHASE_THRESHOLDS_CONFIG_FILE_ERROR
+        
+        # Filter rules based on position side.
+        rules:Rules = self._filter_rules(
+            rules=rules,
+            session_data=session_data,
+            position_side=session_data.get_history().get_position_side()
+        )
 
         # Retrieve the latest joints from history.
         last_valid_frame:Dict[str, Any] = session_data.get_history().get_last_valid_frame()
@@ -93,21 +112,18 @@ class PhaseDetector:
             return ErrorCode.NO_VALID_FRAME_DATA_IN_SESSION
 
         # Check which phases match all joint rules.
-        phase_enum = PhaseType.get_phase_enum(session_data.get_exercise_type())
+        phase_enum:PhaseType.Squat | PhaseType.BicepsCurl \
+              = PhaseType.get_phase_enum(session_data.get_exercise_type())
         candidates: list[str] = []
 
         for phase in phase_enum:
             # Ignoring the NONE type.
-            if phase.name == "NONE": continue
+            if PhaseType.is_none(phase): continue
 
             # Adding candidate if rules match.
-            Logger.debug(f"########## Checking phase '{phase.name}' against rules.")
-            for joint_name, angle in last_valid_joints.items():
-                Logger.debug(f"Joint '{joint_name}': angle = {angle}")
             if self._phase_matches_rules(phase, rules, last_valid_joints):
                 candidates.append(phase.name)
 
-        print(candidates)
         # Resolve final selected phase.
         return self._select_phase_from_candidates(candidates, session_data)
     
@@ -152,6 +168,13 @@ class PhaseDetector:
                 extra_info={"Missing rules for initial phase": initial_phase_name}
             )
             return ErrorCode.PHASE_THRESHOLDS_CONFIG_FILE_ERROR
+        
+        # Filter rules based on position side.
+        rules:Rules = self._filter_rules(
+            rules=rules,
+            session_data=session_data,
+            position_side=session_data.get_history().get_position_side()
+        )
 
         # Validate joints against initial phase rules.
         is_match:bool = self._phase_matches_rules(
@@ -160,13 +183,16 @@ class PhaseDetector:
             joints=joints
         )
 
-        Logger.info(f"Initial phase '{initial_phase_name}' match status: {is_match}")
+        Logger.debug(f"Initial phase '{initial_phase_name}' match status: {is_match}")
         return is_match
         
     #####################################################################
     ############################## HELPERS ##############################
     #####################################################################
 
+    #######################
+    ### IS MOTION SMALL ###
+    #######################
     def _is_motion_small(self, history:HistoryData, joints:Dict[str, float]) -> bool:
         """
         ### Brief:
@@ -196,7 +222,6 @@ class PhaseDetector:
 
         return True
 
-    
     ###########################
     ### GET EXERCISE CONFIG ###
     ###########################
@@ -256,7 +281,6 @@ class PhaseDetector:
             return False
 
         Logger.debug(f"Checking phase '{phase_type.name}' with rules: {phase_rules}")
-        Logger.info("")
         for joint_name, joint_range in phase_rules.items():
             if joint_name not in joints:
                 # Missing joint: cannot match this phase.
@@ -264,6 +288,7 @@ class PhaseDetector:
                 return False
 
             angle = joints[joint_name]
+            print(f"Angle of joint {joint_name}: {angle}")
             Logger.debug(f"Phase '{phase_type.name}': Checking joint '{joint_name}' with angle {angle} against limits {joint_range}.")
             min_allowed = joint_range.get(PhaseDictKey.MIN)
             max_allowed = joint_range.get(PhaseDictKey.MAX)
@@ -273,6 +298,48 @@ class PhaseDetector:
 
         return True
     
+    ####################
+    ### FILTER RULES ###
+    ####################
+    def _filter_rules(self, rules:Rules, session_data:SessionData, position_side:PositionSide) -> Rules:
+        """
+        ### Brief:
+        The `_filter_rules` method filters the joint angle rules based on the
+        position side (front, left, right) of the user.
+
+        ### Arguments:
+        - `rules` (Rules): The original joint angle rules.
+        - `session_data` (SessionData): The session data containing relevant information.
+        - `position_side` (PositionSide): The position side of the user.
+
+        ### Returns:
+        - `Rules`: The filtered joint angle rules.
+        """
+        joint_cls:JointAngle.Squat | JointAngle.BicepsCurl \
+              = JointAngle.exercise_type_to_joint_type(session_data.get_exercise_type())
+
+        # Unknown side, do nit restrict rules.
+        if position_side.is_unkwown(): return rules
+
+        # Get allowed joints for the given position side.
+        allowed:Set[str] = { joint.name for joint in JointAngle.get_all_joints(
+            cls_name=joint_cls,
+            position_side=position_side,
+            extended_evaluation=session_data.get_extended_evaluation()
+        )}
+
+        filtered_rules:Rules = {}
+
+        # Filter rules to only include allowed joints.
+        for phase_name, phase_rules in rules.items():
+            filtered_rules[phase_name] = {
+                joint: limits
+                for joint, limits in phase_rules.items()
+                if joint in allowed
+            }
+
+        return filtered_rules
+
     ####################################
     ### SELECT PHASE FROM CANDIDATES ###
     ####################################
@@ -308,12 +375,12 @@ class PhaseDetector:
         #
         # Returning "PHASE_UNDETERMINED" in this case is harmful because it blocks feedback.
         # Therefore: prefer continuity (last phase) or a safe initial default.
+        last_phase:PhaseType = session_data.get_history().get_phase_state()
         if len(candidates) == 0:
-            Logger.info("CASE NUMBER 1")
+            Logger.debug("CASE NUMBER 1")
             # If we have a last known phase, keep it (hysteresis / continuity).
-            last_phase = session_data.get_history().get_phase_state()
             if last_phase is not None:
-                Logger.info("Returning last known phase for continuity.")
+                Logger.debug("Returning last known phase for continuity.")
                 return last_phase
 
             # If we have no last phase (for example - start of session), fallback to initial phase from config.
@@ -327,40 +394,13 @@ class PhaseDetector:
 
             # Config validation should ensure 'initial' exists, but we keep this safe-guard anyway.
             if initial in phase_enum:
-                Logger.info("Returning initial phase from configuration.")
+                Logger.debug("Returning initial phase from configuration.")
                 return phase_enum[initial]
 
             # If we cannot determine a safe phase, return undetermined.
             return ErrorCode.PHASE_UNDETERMINED_IN_FRAME
-
-        ##############
-        ### CASE 2 ### - Exactly one candidate, a trivial selection.
-        ##############
-        # At least one candidate exists.
-        # Load phase enum for this exercise once so we can return PhaseType elements.
-        phase_enum: PhaseType = PhaseType.get_phase_enum(session_data.get_exercise_type())
-
-        # If only one phase matches rules, that is the phase.
-        if len(candidates) == 1:
-            Logger.info("CASE NUMBER 2")
-            Logger.info(f"Only one candidate phase '{candidates[0]}' matched rules. Selecting it.")
-            return phase_enum[candidates[0]]
-
-        ##############
-        ### CASE 3 ### - Multiple candidates, we need resolution logic.
-        ##############
-        Logger.info("CASE NUMBER 3")
-        Logger.info(f"Candidates: {candidates}")
-        # Common cause: overlapping thresholds.
-        last_phase:PhaseType | None = session_data.get_history().get_phase_state()
-
-        # If the last phase is still a valid candidate this frame, keep it.
-        # This is standard hysteresis to prevent flickering when multiple phases match.
-        if last_phase is not None and last_phase.name in candidates:
-            Logger.info(f"Last phase '{last_phase.name}' is still a valid candidate. Keeping it for stability.")
-            return last_phase
-
-        # Otherwise, load config for transition order and low-motion behavior.
+        
+        # Load config for transition order and low-motion behavior.
         exercise_configuration:Dict[str, Any] | ErrorCode = self._get_exercise_config(session_data)
         # If config retrieval failed, we cannot decide.
         if isinstance(exercise_configuration, ErrorCode): return exercise_configuration
@@ -369,6 +409,41 @@ class PhaseDetector:
         transition_order:List[str] = exercise_configuration.get(PhaseDictKey.TRANSITION_ORDER, [])
         # If transition order is missing, we cannot decide.
         if not transition_order: return ErrorCode.PHASE_THRESHOLDS_CONFIG_FILE_ERROR
+
+        ##############
+        ### CASE 2 ### - Exactly one candidate, a trivial selection.
+        ##############
+        # At least one candidate exists.
+        # Load phase enum for this exercise once so we can return PhaseType elements.
+        phase_enum:PhaseType = PhaseType.get_phase_enum(session_data.get_exercise_type())
+        idx:int = transition_order.index(last_phase.name)
+        next_expected:PhaseType = phase_enum[transition_order[(idx + 1) % len(transition_order)]]
+
+        # If only one phase matches rules, that is the phase.
+        if len(candidates) == 1:
+            Logger.debug("CASE NUMBER 2")
+            Logger.debug(f"Only one candidate phase '{candidates[0]}' matched rules.")
+            # Hysteresis: if last phase is different, but still valid, keep it for stability.
+            candidate:PhaseType = phase_enum[candidates[0]]
+
+            if candidate != last_phase and last_phase is not None and candidate != next_expected:
+                return last_phase
+            else:
+                return candidate
+
+        ##############
+        ### CASE 3 ### - Multiple candidates, we need resolution logic.
+        ##############
+        Logger.debug("CASE NUMBER 3")
+        Logger.debug(f"Candidates: {candidates}")
+        # Common cause: overlapping thresholds.
+        last_phase:PhaseType | None = session_data.get_history().get_phase_state()
+
+        # If the last phase is still a valid candidate this frame, keep it.
+        # This is standard hysteresis to prevent flickering when multiple phases match.
+        if last_phase is not None and last_phase.name in candidates:
+            Logger.debug(f"Last phase '{last_phase.name}' is still a valid candidate. Keeping it for stability.")
+            return last_phase
 
         # Low-motion phases are phases we only want to allow when motion is actually small.
         # Example: HOLD at the top of a curl or bottom of a squat.
@@ -393,12 +468,12 @@ class PhaseDetector:
                 # Instead, keep last phase to avoid falsely entering HOLD (or similar).
                 # Note: last_phase may not be in candidates here, but we accept hysteresis for stability.
                 if (next_expected in low_motion_phases) and (not is_low_motion_ready):
-                    Logger.info(f"Next expected phase '{next_expected}' is low-motion but not ready. Keeping last phase '{last_phase.name}'.")
+                    Logger.debug(f"Next expected phase '{next_expected}' is low-motion but not ready. Keeping last phase '{last_phase.name}'.")
                     return last_phase
 
                 # If the next expected phase is one of the candidates, choose it.
                 if next_expected in candidates:
-                    Logger.info(f"Selecting next expected phase '{next_expected}' from candidates for natural progression.")
+                    Logger.debug(f"Selecting next expected phase '{next_expected}' from candidates for natural progression.")
                     return phase_enum[next_expected]
 
             except ValueError:
@@ -427,14 +502,14 @@ class PhaseDetector:
                 # If this candidate is a low-motion phase but we are not yet “low-motion ready”, skip it.
                 if (phase_name in low_motion_phases) and (not is_low_motion_ready):
                     continue
-                Logger.info(f"Selecting candidate phase '{phase_name}' based on recovery order.")
+                Logger.debug(f"Selecting candidate phase '{phase_name}' based on recovery order.")
                 return phase_enum[phase_name]
 
         # If we got here, candidates exist but none were selectable under gating rules.
         # This can happen if candidates only include low-motion phases but motion isn't low yet.
         # In that case, prefer continuity.
         if last_phase is not None:
-            Logger.info("No candidates selectable under gating rules. Keeping last phase for continuity.")
+            Logger.debug("No candidates selectable under gating rules. Keeping last phase for continuity.")
             return last_phase
 
         # Otherwise, safe-guard.

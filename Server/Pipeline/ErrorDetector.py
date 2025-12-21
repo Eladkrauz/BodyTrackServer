@@ -189,8 +189,6 @@ class ErrorDetector:
         # No biomechanical issues detected.
         return DetectedErrorCode.NO_BIOMECHANICAL_ERROR
         
-
-    
     ###############################
     ### RETRIEVE CONFIGURATIONS ###
     ###############################

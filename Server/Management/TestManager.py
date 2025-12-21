@@ -77,7 +77,7 @@ class TestManager:
         capture_interval = 1.0 / original_fps
 
         # Sampling configuration (25% reduction).
-        REDUCTION_RATIO = 0.8
+        REDUCTION_RATIO = 0
         target_fps = original_fps * (1.0 - REDUCTION_RATIO)
         sampling_interval = 1.0 / target_fps
 
@@ -238,4 +238,5 @@ class TestManager:
             "frame_content": image_b64
         }
         self.show(requests.post(Endpoint.ANALYZE, json=payload).json())
+        # requests.post(Endpoint.ANALYZE, json=payload)
 

@@ -123,14 +123,12 @@ class ConfigParameters:
         STABILITY_THRESHOLD                     = "stability_threshold"
         # The maximum distance thresholds for bounding box size.
         BBOX_TOO_FAR                            = "bbox_too_far"
-        # The minimum distance thresholds for bounding box size.
-        BBOX_TOO_CLOSE                          = "bbox_too_close"
-        # The mean visibility threshold for pose detection.
-        MEAN_VIS_THRESHOLD                      = "mean_vis_threshold"
-        # The partial count threshold for pose detection.
-        PARTIAL_COUNT_THRESHOLD                 = "partial_count_threshold"
         # The minimum bounding box area.
         MINIMUM_BBOX_AREA                       = "minimum_bbox_area"
+        # The required visibility threshold for pose landmarks.
+        VISIBILITY_GOOD_THRESHOLD               = "visibility_good_threshold"
+        # The required visibility ratio for valid pose.
+        REQUIRED_VISIBILITY_RATIO               = "required_visibility_ratio"
 
         #####################
         ### POSITION SIDE ###

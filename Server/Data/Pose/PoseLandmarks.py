@@ -37,7 +37,7 @@ PoseLandmarksArray = np.ndarray
 ###########################
 ### POSE LANDMARK CLASS ###
 ###########################
-class PoseLandmark:
+class PoseLandmark(enum):
     """
     ### Description:
     The `PoseLandmark` class defines constants for the 33 body landmarks
@@ -113,7 +113,8 @@ class LeftLandmark(enum):
     ###############
     ### AS LIST ###
     ###############
-    def as_list(self) -> list[int]:
+    @classmethod
+    def as_list(cls) -> list[int]:
         """
         ### Brief:
         The `as_list` method returns a list of integer indices corresponding
@@ -124,7 +125,9 @@ class LeftLandmark(enum):
         """
         list_of_indices = []
         for left_landmark in LeftLandmark:
-            list_of_indices.append(left_landmark.value)
+            pose_landmark:PoseLandmark = left_landmark.value
+            index:int = pose_landmark.value
+            list_of_indices.append(index)
         return list_of_indices
 
 #################################
@@ -156,7 +159,8 @@ class RightLandmark(enum):
     ###############
     ### AS LIST ###
     ###############
-    def as_list(self) -> list[int]:
+    @classmethod
+    def as_list(cls) -> list[int]:
         """
         ### Brief:
         The `as_list` method returns a list of integer indices corresponding
@@ -166,6 +170,8 @@ class RightLandmark(enum):
         A `list` of integers representing the indices of right-side landmarks.
         """
         list_of_indices = []
-        for right_landmark in LeftLandmark:
-            list_of_indices.append(right_landmark.value)
+        for right_landmark in RightLandmark:
+            pose_landmark:PoseLandmark = right_landmark.value
+            index:int = pose_landmark.value
+            list_of_indices.append(index)
         return list_of_indices

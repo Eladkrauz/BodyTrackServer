@@ -18,6 +18,14 @@ from Server.Utilities.Error.ErrorCode    import ErrorCode
 from Server.Data.Pose.PoseLandmarks      import PoseLandmarksArray
 from Server.Data.Session.SessionData     import SessionData
 from Server.Data.Joints.JointAngle       import JointAngle, Joint
+from Server.Data.Pose.PositionSide       import PositionSide
+from Server.Data.History.HistoryData     import HistoryData
+from Server.Data.Session.AnalyzingState  import AnalyzingState
+
+###############################
+### CALCULATED JOINTS ALIAS ###
+###############################
+CalculatedJoints = Dict[str, float]
 
 ############################
 ### JOINT ANALYZER CLASS ###
@@ -45,6 +53,134 @@ class JointAnalyzer:
 
         # Initialized.
         Logger.info("Initialized successfully.")
+
+    ############################################################################
+    ############################## PUBLIC METHODS ##############################
+    ############################################################################
+
+    ########################
+    ### CALCULATE JOINTS ###
+    ########################
+    def calculate_joints(self, session_data:SessionData, landmarks:PoseLandmarksArray) -> CalculatedJoints | ErrorCode:
+        """
+        ### Brief:
+        The `calculate_joints` method calculates the relevant joint angles for the given exercise.
+
+        ### Arguments:
+        - `session_data` (SessionData): The session data of the checked session.
+        - `landmarks` (PoseLandmarksArray): Array of pose landmarks from PoseAnalyzer.
+
+        ### Returns:
+        - `CalculatedJoints`, which is a `dict[str, float]` of calculated joint angles.
+        - An empty `dict` if the last frame is not actually valid.
+        - `ErrorCode`: If calculation fails due to missing/invalid landmarks.
+        """
+        history:HistoryData = session_data.get_history()
+        # Ensure session state is stable.
+        if not history.is_state_ok():
+            ErrorHandler.handle(
+                error=ErrorCode.CANT_CALCULATE_JOINTS_OF_UNSTALBE_FRAME,
+                origin=inspect.currentframe()
+            )
+            return {}
+        
+        # Ensure there is valid frame data to analyze.
+        if session_data.analyzing_state is AnalyzingState.ACTIVE and \
+            not history.is_last_frame_actually_valid():
+            return {}
+        
+        exercise_type       = session_data.get_exercise_type()
+        extended_evaluation = session_data.get_extended_evaluation()
+        # Validate landmarks.
+        if landmarks is None or not isinstance(landmarks, np.ndarray):
+            ErrorHandler.handle(
+                error=ErrorCode.JOINT_CALCULATION_ERROR,
+                origin=inspect.currentframe(),
+                extra_info={"Reason": "Invalid landmarks array."}
+            )
+            return ErrorCode.JOINT_CALCULATION_ERROR
+
+        # Handle each exercise.
+        try:        
+            # Based on position side and extended_evaluation parameter, decide which joints to calculate.
+            position_side:PositionSide = session_data.get_history().get_position_side()
+            exercise_joints:list[Joint] = JointAngle.get_all_joints(
+                cls_name=JointAngle.exercise_type_to_joint_type(exercise_type),
+                position_side=position_side,
+                extended_evaluation=extended_evaluation
+            )
+            # If no joints are defined for the given exercise type, in this position side.
+            if exercise_joints is None or len(exercise_joints) == 0:
+                ErrorHandler.handle(
+                    error=ErrorCode.JOINT_CALCULATION_ERROR,
+                    origin=inspect.currentframe(),
+                    extra_info={"Reason": "No joints defined for the given exercise type."}
+                )
+                return ErrorCode.JOINT_CALCULATION_ERROR
+
+            results:CalculatedJoints = {}
+
+            count_valid_core_joints = 0
+            # Iterate over required joints to be calculated.
+            for joint in exercise_joints:
+                if len(joint.landmarks) == JointAngle.TWO_POINT_JOINT:
+                    left_point, right_point = joint.landmarks
+                    calculated_angle = self._line_against_horizontal_angle(
+                        left_point=landmarks[left_point],
+                        right_point=landmarks[right_point]
+                    )
+                    Logger.debug(f"Calculated angle for joint {joint.name}: {calculated_angle}, with landmarks {left_point} ({landmarks[left_point]}), {right_point} ({landmarks[right_point]})")
+                elif len(joint.landmarks) == JointAngle.THREE_POINT_JOINT:
+                    landmark_1, landmark_2, landmark_3 = joint.landmarks
+                    calculated_angle = self._calculate_angle(
+                        dimension=joint.dimension,
+                        landmark_1=landmarks[landmark_1],
+                        landmark_2=landmarks[landmark_2],
+                        landmark_3=landmarks[landmark_3]
+                    )
+                    Logger.debug(f"Calculated angle for joint {joint.name}: {calculated_angle}, with landmarks {landmark_1} ({landmarks[landmark_1]}), {landmark_2} ({landmarks[landmark_2]}), {landmark_3} ({landmarks[landmark_3]})")
+                else:
+                    ErrorHandler.handle(
+                        error=ErrorCode.DIMENSION_OF_ANGLE_IS_INVALID,
+                        origin=inspect.currentframe(),
+                        extra_info={
+                            "The dimension is": len(joint.landmarks),
+                            "The required dimension is": "2 or 3"
+                        }
+                    )
+                    calculated_angle = None
+
+                # Counting valid core joints.
+                if calculated_angle is not None:
+                    count_valid_core_joints += 1
+                
+                # Adding the angle to the results dictionary.
+                results[joint.name] = calculated_angle
+
+            # Checking the percentage of valid core joints versus the predefined parameter.
+            if (count_valid_core_joints / len(exercise_joints)) < self.min_valid_joint_ratio:
+                ErrorHandler.handle(
+                    error=ErrorCode.TOO_MANY_INVALID_ANGLES,
+                    origin=inspect.currentframe(),
+                    extra_info={
+                        "Valid angles percentage": (count_valid_core_joints / len(exercise_joints)),
+                        "Minimum required to proceed with pipeline": self.min_valid_joint_ratio
+                    }
+                )
+                return ErrorCode.TOO_MANY_INVALID_ANGLES
+            else:
+                return results
+        except Exception as e:
+            ErrorHandler.handle(
+                error=ErrorCode.JOINT_CALCULATION_ERROR,
+                origin=inspect.currentframe(),
+                extra_info={ "Exception": str(e) }
+            )
+            return ErrorCode.JOINT_CALCULATION_ERROR
+        
+    #############################################################################
+    ############################## PRIVATE METHODS ##############################
+    #############################################################################
 
     ########################
     ### VALIDATE NDARRAY ###
@@ -209,12 +345,19 @@ class JointAnalyzer:
     #######################
     ### CLACULATE ANGLE ###
     #######################
-    def _calculate_angle(self, landmark_1:np.ndarray, landmark_2:np.ndarray, landmark_3:np.ndarray) -> float | ErrorCode:
+    def _calculate_angle(
+            self,
+            dimension:bool,
+            landmark_1:np.ndarray,
+            landmark_2:np.ndarray,
+            landmark_3:np.ndarray
+        ) -> float | ErrorCode:
         """
         ### Brief:
         The `_calculate_angle` method calculates the angle at landmark_2 given three landmarks.
 
         ### Arguments:
+        - `dimension` (bool): The dimension to calculate the angle in (2D - `False` or 3D - `True`).
         - `landmark_1` (np.ndarray): The first landmark.
         - `landmark_2` (np.ndarray): The second landmark.
         - `landmark_3` (np.ndarray): The third landmark.
@@ -227,43 +370,69 @@ class JointAnalyzer:
         - Vector creation failed cause one/more of the points validation failed.
         - Angle calculation failed cause one/more of the vectors validation failed.
         """
-        # Calculating the first vector.
-        vector_1 = self._vector(landmark_2, landmark_1)
-        if vector_1 is None:
-            ErrorHandler.handle(
-                error=ErrorCode.ANGLE_CALCULATION_FAILED,
-                origin=inspect.currentframe(),
-                extra_info={ "Reason": "Failed to calculate a vector between landmark 1 and 2." }
-            )
-            return ErrorCode.ANGLE_CALCULATION_FAILED
-        
-        # Calculating the second vector.
-        vector_2 = self._vector(landmark_2, landmark_3)
-        if vector_2 is None:
-            ErrorHandler.handle(
-                error=ErrorCode.ANGLE_CALCULATION_FAILED,
-                origin=inspect.currentframe(),
-                extra_info={ "Reason": "Failed to calculate a vector between landmark 2 and 3." }
-            )
-            return ErrorCode.ANGLE_CALCULATION_FAILED
-        
-        # Calculating the angle between the two vectors.
-        angle = self._angle(vector_1, vector_2)
-        if angle is None:
-            ErrorHandler.handle(
-                error=ErrorCode.ANGLE_CALCULATION_FAILED,
-                origin=inspect.currentframe(),
-                extra_info={ "Reason": "Failed to calculate an angle between the two (correctly) calculated vectors." }
-            )
-            return ErrorCode.ANGLE_CALCULATION_FAILED
-        
+        if dimension is True:
+            Logger.debug("Calculating angle in 3D space.")
+            # Calculating the first vector.
+            vector_1 = self._vector(landmark_2, landmark_1)
+            if vector_1 is None:
+                ErrorHandler.handle(
+                    error=ErrorCode.ANGLE_CALCULATION_FAILED,
+                    origin=inspect.currentframe(),
+                    extra_info={ "Reason": "Failed to calculate a vector between landmark 1 and 2." }
+                )
+                return ErrorCode.ANGLE_CALCULATION_FAILED
+            
+            # Calculating the second vector.
+            vector_2 = self._vector(landmark_2, landmark_3)
+            if vector_2 is None:
+                ErrorHandler.handle(
+                    error=ErrorCode.ANGLE_CALCULATION_FAILED,
+                    origin=inspect.currentframe(),
+                    extra_info={ "Reason": "Failed to calculate a vector between landmark 2 and 3." }
+                )
+                return ErrorCode.ANGLE_CALCULATION_FAILED
+            
+            # Calculating the angle between the two vectors.
+            angle = self._angle(vector_1, vector_2)
+            if angle is None:
+                ErrorHandler.handle(
+                    error=ErrorCode.ANGLE_CALCULATION_FAILED,
+                    origin=inspect.currentframe(),
+                    extra_info={ "Reason": "Failed to calculate an angle between the two (correctly) calculated vectors." }
+                )
+                return ErrorCode.ANGLE_CALCULATION_FAILED
+            
+        else:
+            Logger.debug("Calculating angle in 2D space.")
+            try:
+                # Extracting XY coordinates of the landmarks.
+                p1 = landmark_1[:2]
+                p2 = landmark_2[:2]
+                p3 = landmark_3[:2]
+
+                # Building vectors in 2D.
+                v1 = p1 - p2
+                v2 = p3 - p2
+
+                # Calculating the angle using the dot product formula.
+                dot = float(np.dot(v1, v2))
+                norm = float(np.linalg.norm(v1) * np.linalg.norm(v2))
+
+                if norm == 0.0:
+                    return ErrorCode.ANGLE_CALCULATION_FAILED
+
+                cos_theta = np.clip(dot / norm, -1.0, 1.0)
+                angle = float(np.degrees(np.arccos(cos_theta)))
+            except Exception:
+                return ErrorCode.ANGLE_CALCULATION_FAILED
+            
         # All calculations went correctly - returning the calculated angle.
         return angle
     
     #####################################
     ### LINE AGAINST HORIZONTAL ANGLE ###
     #####################################
-    def _line_against_horizontal_angle(self, left_point: np.ndarray, right_point: np.ndarray) -> float | ErrorCode:
+    def _line_against_horizontal_angle(self, left_point:np.ndarray, right_point:np.ndarray) -> float | ErrorCode:
         """
         ### Brief:
         The `_line_against_horizontal_angle` mathod calculates the angle (in degrees) between a line segment
@@ -324,100 +493,10 @@ class JointAnalyzer:
                 extra_info={"Exception": type(e).__name__, "Reason": str(e)}
             )
             return ErrorCode.ANGLE_CALCULATION_FAILED
-
-    ########################
-    ### CALCULATE JOINTS ###
-    ########################
-    def calculate_joints(self, session_data:SessionData, landmarks:PoseLandmarksArray) -> Dict[str, Any] | ErrorCode:
-        """
-        ### Brief:
-        The `calculate_joints` method calculates the relevant joint angles for the given exercise.
-
-        ### Arguments:
-        - `session_data` (SessionData): The session data of the checked session.
-        - `landmarks` (PoseLandmark): Array of pose landmarks from PoseAnalyzer.
-
-        ### Returns:
-        - `dict[str, Any]`: Dictionary with calculated joint angles and metadata.
-        - `ErrorCode`: If calculation fails due to missing/invalid landmarks.
-        """
-        exercise_type       = session_data.get_exercise_type()
-        extended_evaluation = session_data.get_extended_evaluation()
-        # Validate landmarks.
-        if landmarks is None or not isinstance(landmarks, np.ndarray):
-            ErrorHandler.handle(
-                error=ErrorCode.JOINT_CALCULATION_ERROR,
-                origin=inspect.currentframe(),
-                extra_info={"Reason": "Invalid landmarks array."}
-            )
-            return ErrorCode.JOINT_CALCULATION_ERROR
-
-        # Handle each exercise.
-        try:
-            exercise_type:JointAngle.Squat | JointAngle.BicepsCurl | JointAngle.LateralRaise \
-                = JointAngle.exercise_type_to_joint_type(exercise_type)
-            if exercise_type is None:
-                return ErrorCode.EXERCISE_TYPE_DOES_NOT_EXIST
-            
-            # Based on extended_evaluation parameter, decide which joints to calculate.
-            if extended_evaluation: exercise_joints:list[Joint] = exercise_type.CORE + exercise_type.EXTENDED
-            else:                   exercise_joints:list[Joint] = exercise_type.CORE
-            results: Dict[str, float] = {}
-
-            count_valid_core_joints = 0
-            # Iterate over required joints to be calculated.
-            for joint in exercise_joints:
-                if len(joint.landmarks) == JointAngle.TWO_POINT_JOINT:
-                    left_point, right_point = joint.landmarks
-                    calculated_angle = self._line_against_horizontal_angle(
-                        left_point=landmarks[left_point],
-                        right_point=landmarks[right_point]
-                    )
-                elif len(joint.landmarks) == JointAngle.THREE_POINT_JOINT:
-                    landmark_1, landmark_2, landmark_3 = joint.landmarks
-                    calculated_angle = self._calculate_angle(
-                        landmark_1=landmarks[landmark_1],
-                        landmark_2=landmarks[landmark_2],
-                        landmark_3=landmarks[landmark_3]
-                    )
-                else:
-                    ErrorHandler.handle(
-                        error=ErrorCode.DIMENSION_OF_ANGLE_IS_INVALID,
-                        origin=inspect.currentframe(),
-                        extra_info={
-                            "The dimension is": len(joint.landmarks),
-                            "The required dimension is": "2 or 3"
-                        }
-                    )
-                    calculated_angle = None
-
-                # Counting valid core joints.
-                if calculated_angle is not None and joint in exercise_type.CORE:
-                    count_valid_core_joints += 1
-                
-                # Adding the angle to the results dictionary.
-                results[joint.name] = calculated_angle
-
-            # Checking the percentage of valid core joints versus the predefined parameter.
-            if (count_valid_core_joints / len(exercise_type.CORE)) < self.min_valid_joint_ratio:
-                ErrorHandler.handle(
-                    error=ErrorCode.TOO_MANY_INVALID_ANGLES,
-                    origin=inspect.currentframe(),
-                    extra_info={
-                        "Valid angles percentage": (count_valid_core_joints / len(exercise_type.CORE)),
-                        "Minimum required to proceed with pipeline": self.min_valid_joint_ratio
-                    }
-                )
-                return ErrorCode.TOO_MANY_INVALID_ANGLES
-            else:
-                return results
-        except Exception as e:
-            ErrorHandler.handle(
-                error=ErrorCode.JOINT_CALCULATION_ERROR,
-                origin=inspect.currentframe(),
-                extra_info={ "Exception": str(e) }
-            )
-            return ErrorCode.JOINT_CALCULATION_ERROR
+        
+    ############################################################################
+    ############################## CONFIGURATIONS ##############################
+    ############################################################################
         
     ###############################
     ### RETRIEVE CONFIGURATIONS ###

@@ -75,6 +75,7 @@ class HistoryData:
     {
         `HistoryDictKey.Frame.FRAME_ID`:  `int`,
         `HistoryDictKey.Frame.TIMESTAMP`: `datetime`,
+        `HistoryDictKey.Frame.LANDMARKS`: `PoseLandmarksArray`,
         `HistoryDictKey.Frame.JOINTS`:    `dict[str, float]`
         `HistoryDictKey.Frame.ERRORS`:    `list[str]`
     }
@@ -258,7 +259,7 @@ class HistoryData:
 
             HistoryDictKey.FRAMES_SINCE_LAST_FEEDBACK:  0,
 
-            HistoryDictKey.IS_CAMERA_STABLE:            True
+            HistoryDictKey.IS_CAMERA_STABLE:            False
         }
 
     ####################################
@@ -475,6 +476,19 @@ class HistoryData:
         - An `int` which stores the counter of correct initial phase.
         """
         return self.history[HistoryDictKey.INITIAL_PHASE_COUNTER]
+    
+    #######################
+    ### GET CURRENT REP ###
+    #######################
+    def get_current_rep(self) -> Optional[Dict[str, Any]]:
+        """
+        ### Brief:
+        The `get_current_rep` method returns the current repetition data.
+        
+        ### Returns:
+        - A `dict` containing the current repetition data.
+        """
+        return self.history[HistoryDictKey.CURRENT_REP]
 
     #####################
     ### GET REP COUNT ###
@@ -515,6 +529,19 @@ class HistoryData:
         A `list` of all valid frames.
         """
         return deepcopy(self.history[HistoryDictKey.FRAMES])
+    
+    ####################################
+    ### GET CURRENT NUMBER OF FRAMES ###
+    ####################################
+    def get_current_number_of_frames(self) -> int:
+        """
+        ### Brief:
+        The `get_current_number_of_frames` method returns the current number of valid frames stored.
+
+        ### Returns:
+        An `int` indicating the current number of valid frames stored.
+        """
+        return len(self.history[HistoryDictKey.FRAMES])
     
     ###################################
     ### GET FRAMES SINCE LAST VALID ###
@@ -633,19 +660,3 @@ class HistoryData:
         An `int` indicating the current transition index.
         """
         return self.history[HistoryDictKey.CURRENT_TRANSITION_INDEX]
-    
-    #########################
-    ### SET POSITION SIDE ###
-    #########################
-    def set_position_side(self, position_side:PositionSide) -> None:
-        """
-        ### Brief:
-        The `set_position_side` method sets the current position side.
-
-        ### Arguments:
-        - `position_side` (`PositionSide`): The new position side to set.
-        """
-        if position_side is None:
-            self.history[HistoryDictKey.POSITION_SIDE] = PositionSide.UNKNOWN
-        else:
-            self.history[HistoryDictKey.POSITION_SIDE] = position_side

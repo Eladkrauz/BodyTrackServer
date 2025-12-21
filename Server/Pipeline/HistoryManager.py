@@ -19,6 +19,8 @@ from Server.Data.History.HistoryData     import HistoryData
 from Server.Data.Error.DetectedErrorCode import DetectedErrorCode
 from Server.Data.Session.ExerciseType    import ExerciseType
 from Server.Data.Phase.PhaseType         import PhaseType
+from Server.Data.Pose.PoseLandmarks      import PoseLandmarksArray
+from Server.Data.Pose.PositionSide       import PositionSide
 from Server.Utilities.Logger             import Logger
 
 if TYPE_CHECKING:
@@ -53,7 +55,13 @@ class HistoryManager:
     ##########################
     ### RECORD VALID FRAME ###
     ##########################
-    def record_valid_frame(self, history_data:HistoryData, frame_id:int, joints:Dict[JointAngle, float]) -> None:
+    def record_valid_frame(
+            self,
+            history_data:HistoryData,
+            frame_id:int,
+            landmarks:PoseLandmarksArray,
+            joints:Dict[str, float]
+        ) -> None:
         """
         ### Brief:
         The `record_valid_frame` method adds a new valid (OK) frame record to history.
@@ -65,8 +73,9 @@ class HistoryManager:
 
         ### Argumetns:
         - `history_data` (HistoryData): The `HistoryData` instance to work with.
-        - `frame_id` (int): The frame number
-        - `joints` (Dict[JointAngle, Any]): The angles dictionary from `JointAnalyzer`
+        - `frame_id` (int): The frame number.
+        - `landmarks` (PoseLandmarksArray): The landmarks from `PoseAnalyzer`.
+        - `joints` (Dict[str, Any]): The angles dictionary from `JointAnalyzer`.
 
         ### Use:
         - Used by the `SessionManager` to record an `OK` frame after calculating its joints.
@@ -77,6 +86,7 @@ class HistoryManager:
             new_frame = {
                 HistoryDictKey.Frame.FRAME_ID:  frame_id,
                 HistoryDictKey.Frame.TIMESTAMP: datetime.now(),
+                HistoryDictKey.Frame.LANDMARKS: deepcopy(landmarks),
                 HistoryDictKey.Frame.JOINTS:    deepcopy(joints),
                 HistoryDictKey.Frame.ERRORS:    []
             }
@@ -383,6 +393,18 @@ class HistoryManager:
 
         # Update current phase type and start time.
         history_raw_dict[HistoryDictKey.PHASE_STATE] = new_phase
+
+    def set_position_side(self, history_data:HistoryData, position_side:PositionSide) -> None:
+        """
+        ### Brief:
+        The `set_position_side` method sets the user's position side in history.
+
+        ### Arguments:
+        - `history_data` (HistoryData): The `HistoryData` instance to work with.
+        - `position_side` (PositionSide): The user's position side.
+        """
+        history_raw_dict:Dict[str, Any] = self._get_raw_history_data(history_data)
+        history_raw_dict[HistoryDictKey.POSITION_SIDE] = position_side
 
     #########################################################################
     ############################## REPETITIONS ##############################
@@ -736,6 +758,20 @@ class HistoryManager:
         history_raw_dict:Dict[str, Any] = self._get_raw_history_data(history_data)
 
         history_raw_dict[HistoryDictKey.FRAMES_SINCE_LAST_FEEDBACK] = 0
+
+    ############################
+    ### SET CAMERA IS STABLE ###
+    ############################
+    def set_camera_is_stable(self, history_data:HistoryData) -> None:
+        """
+        ### Brief:
+        The `set_camera_is_stable` method sets the camera stability flag to True.
+
+        ### Arguments:
+        - `history_data` (HistoryData): The `HistoryData` instance to work with.
+        """
+        history_raw_dict:Dict[str, Any] = self._get_raw_history_data(history_data)
+        history_raw_dict[HistoryDictKey.IS_CAMERA_STABLE] = True
 
     #####################################################################
     ############################## HELPERS ##############################

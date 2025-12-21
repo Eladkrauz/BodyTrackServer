@@ -22,7 +22,7 @@ from Server.Utilities.Logger                  import Logger
 from Server.Pipeline.PoseAnalyzer             import PoseAnalyzer
 from Server.Pipeline.PositionSideDetector     import PositionSideDetector
 from Server.Pipeline.PoseQualityManager       import PoseQualityManager
-from Server.Pipeline.JointAnalyzer            import JointAnalyzer
+from Server.Pipeline.JointAnalyzer            import JointAnalyzer, CalculatedJoints
 from Server.Pipeline.PhaseDetector            import PhaseDetector
 from Server.Pipeline.HistoryManager           import HistoryManager
 from Server.Pipeline.ErrorDetector            import ErrorDetector
@@ -39,6 +39,7 @@ from Server.Data.Response.CalibrationResponse import CalibrationCode
 from Server.Data.Response.FeedbackResponse    import FeedbackCode
 from Server.Data.Error.DetectedErrorCode      import DetectedErrorCode
 from Server.Data.Phase.PhaseType              import PhaseType
+from Server.Data.Pose.PositionSide            import PositionSide
 
 ################################
 ### PIPELINE PROCESSOR CLASS ###
@@ -208,17 +209,33 @@ class PipelineProcessor:
         pose_analyzer_result:PoseLandmarksArray | ErrorCode = self.pose_analyzer.analyze_frame(frame_data)
         if self._check_for_error(pose_analyzer_result): return pose_analyzer_result
         
+        ### Detecting Position Side --- using PositionSideDetector.
+        position_side_result:PositionSide | ErrorCode = self.position_side_detector.detect_and_validate(
+            landmarks=pose_analyzer_result,
+            exercise_type=session_data.get_exercise_type()
+        )
+        position_side_error:bool = self._check_for_error(position_side_result)
+        if not position_side_error:
+            self.history_manager.set_position_side(
+                history_data=session_data.get_history(),
+                position_side=position_side_result
+            )
+        
         ### Validating Frame Quality --- using PoseQualityManager.
-        pose_quality_result:PoseQuality = self.pose_quality_manager.evaluate_landmarks(pose_analyzer_result)
+        pose_quality_result:PoseQuality = self.pose_quality_manager.evaluate_landmarks(
+            session_data=session_data,
+            landmarks=pose_analyzer_result
+        )
         if self._check_for_error(pose_quality_result): return pose_quality_result
 
         ### Quality checking.
         history:HistoryData = session_data.get_history()
         # If the frame recieved is not OK - we stay in the INIT state.
-        if pose_quality_result is not PoseQuality.OK:
+        if position_side_error or pose_quality_result is not PoseQuality.OK:
             # Resetting the counter.
             self.history_manager.reset_consecutive_ok_streak(history)
-            error:ErrorCode = PoseQuality.convert_to_error_code(pose_quality_result)
+            if position_side_error: error:ErrorCode = position_side_result
+            else:                   error:ErrorCode = PoseQuality.convert_to_error_code(pose_quality_result)
             ErrorHandler.handle(
                 error=error,
                 origin=inspect.currentframe(),
@@ -233,6 +250,7 @@ class PipelineProcessor:
             # Checking if can move to the next analyzing state.
             if history.get_consecutive_ok_streak() >= self.num_of_min_init_ok_frames:
                 session_data.set_analyzing_state(AnalyzingState.READY)
+                self.history_manager.set_camera_is_stable(history)
                 return CalibrationCode.USER_VISIBILITY_IS_VALID
             else:
                 return CalibrationCode.USER_VISIBILITY_IS_UNDER_CHECKING
@@ -259,15 +277,25 @@ class PipelineProcessor:
         ### Analyzing Pose --- using PoseAnalyzer.
         pose_analyzer_result:PoseLandmarksArray | ErrorCode = self.pose_analyzer.analyze_frame(frame_data)
         if self._check_for_error(pose_analyzer_result): return pose_analyzer_result
+
+        ### Detecting Position Side --- using PositionSideDetector.
+        position_side_result:PositionSide | ErrorCode = self.position_side_detector.detect_and_validate(
+            landmarks=pose_analyzer_result,
+            exercise_type=session_data.get_exercise_type()
+        )
+        position_side_error:bool = self._check_for_error(position_side_result)
         
         ### Validating Frame Quality --- using PoseQualityManager.
-        pose_quality_result:PoseQuality = self.pose_quality_manager.evaluate_landmarks(pose_analyzer_result)
+        pose_quality_result:PoseQuality = self.pose_quality_manager.evaluate_landmarks(
+            landmarks=pose_analyzer_result,
+            session_data=session_data
+        )
         if self._check_for_error(pose_quality_result): return pose_quality_result
 
         ### Quality checking.
         history:HistoryData = session_data.get_history()
         # If the frame recieved is not OK.
-        if pose_quality_result is not PoseQuality.OK:
+        if position_side_error or pose_quality_result is not PoseQuality.OK:
             # Resetting the initial phase counter.
             self.history_manager.reset_consecutive_init_phase_counter(history)
             error:ErrorCode = PoseQuality.convert_to_error_code(pose_quality_result)
@@ -284,6 +312,7 @@ class PipelineProcessor:
             session_data=session_data,
             landmarks=pose_analyzer_result
         )
+
         if self._check_for_error(joint_analyzer_result): return joint_analyzer_result
         
         ### Checking Inital Phase --- using PhaseDetector.
@@ -305,6 +334,7 @@ class PipelineProcessor:
         if history.get_initial_phase_counter() >= self.num_of_min_correct_phase_frames:
             session_data.set_analyzing_state(AnalyzingState.ACTIVE)
             self.history_manager.set_initial_phase(history, session_data.get_exercise_type())
+            self.history_manager.set_position_side(history, position_side_result)
             return CalibrationCode.USER_POSITIONING_IS_VALID
         else:
             return CalibrationCode.USER_POSITIONING_IS_UNDER_CHECKING
@@ -333,31 +363,18 @@ class PipelineProcessor:
         - `FeedbackCode` once a feedback formatter is implemented.
         - `ErrorCode` for errors in pose analysis, quality evaluation, joint calculation, phase determination, or error detection.
         """
-        # TODO: REMOVE THIS LINES:
-        if session_data.get_history().get_phase_state() is None:
-            self.history_manager.set_initial_phase(session_data.get_history(), session_data.get_exercise_type())
-        ##############
-
-
-
         ### PIPELINE STEP >>> Analyzing Pose --- using PoseAnalyzer.
         pose_analyzer_result:PoseLandmarksArray | ErrorCode = self.pose_analyzer.analyze_frame(frame_data)
         if self._check_for_error(pose_analyzer_result): return pose_analyzer_result
         Logger.debug("Successfully analyzed pose landmarks.")
-
-        ### PIPELINE STEP >>> Detecting Position Side --- using PositionSideDetector.
-        position_side_result = self.position_side_detector.detect_and_validate(
-            landmarks=pose_analyzer_result,
-            exercise_type=session_data.get_exercise_type()
-        )
-        if self._check_for_error(position_side_result): return position_side_result
-        session_data.history.set_position_side(position_side_result)
-        Logger.debug(f"Successfully detected position side: {position_side_result.name}.")
         
         ### PIPELINE STEP >>> Validating Frame Quality --- using PoseQualityManager.
-        pose_quality_result:PoseQuality = self.pose_quality_manager.evaluate_landmarks(pose_analyzer_result)
+        pose_quality_result:PoseQuality = self.pose_quality_manager.evaluate_landmarks(
+            session_data=session_data,
+            landmarks=pose_analyzer_result
+        )
         if self._check_for_error(pose_quality_result): return pose_quality_result
-        Logger.debug("Successfully evaluated pose quality.")
+        Logger.debug(f"Successfully evaluated pose quality: {pose_quality_result}")
 
         # The HistoryData of the session.
         history:HistoryData = session_data.get_history()
@@ -383,24 +400,24 @@ class PipelineProcessor:
         ### CASE 2 ### - The returned results are OK. This means the frame is valid.
         ##############
         ### PIPELINE STEP >>> Calculating Joints --- using JointAnalyzer.
-        joint_analyzer_result:Dict[str, Any] | ErrorCode = self.joint_analyzer.calculate_joints(
+        joint_analyzer_result:CalculatedJoints | ErrorCode = self.joint_analyzer.calculate_joints(
             session_data=session_data,
             landmarks=pose_analyzer_result
         )
         if self._check_for_error(joint_analyzer_result): return joint_analyzer_result
         Logger.debug("Successfully calculated joint angles.")
         
-        # Recording valid frame.
+        # Recording valid §frame.
         self.history_manager.record_valid_frame(
             history_data=history,
             frame_id=frame_data.frame_id,
+            landmarks=pose_analyzer_result,
             joints=joint_analyzer_result
         )
         Logger.debug("Successfully recorded valid frame.")
 
         ### PIPELINE STEP >>> Determining the current phase --- using PhaseDetector.
         phase_detector_result:PhaseType = self.phase_detector.determine_phase(session_data=session_data)
-        Logger.debug(f"Determined phase: {phase_detector_result}")
         if self._check_for_error(phase_detector_result): return phase_detector_result
         Logger.debug(f"Successfully detected current phase: {phase_detector_result.name}.")
         
@@ -412,7 +429,6 @@ class PipelineProcessor:
             frame_id=frame_data.frame_id,
             joints=joint_analyzer_result
         )
-        Logger.debug("Successfully recorded phase transition.")
 
         ### PIPELINE STEP >>> Detecting errors --- using ErrorDetector.
         error_detector_result:DetectedErrorCode = self.error_detector.detect_errors(session_data)
