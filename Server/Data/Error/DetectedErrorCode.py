@@ -44,15 +44,6 @@ class DetectedErrorCode(Enum):
     CURL_LEANING_BACKWARD          = 3105   # torso angle too high
     CURL_WRIST_NOT_NEUTRAL         = 3106   # wrist too low/high
 
-    ######################################
-    ### LATERAL RAISE ERRORS 3200–3210 ###
-    ######################################
-    LATERAL_ARMS_TOO_LOW           = 3200   # ABD too low
-    LATERAL_ARMS_TOO_HIGH          = 3201   # ABD too high
-    LATERAL_ELBOWS_BENT_TOO_MUCH   = 3202   # elbow_set too low
-    LATERAL_TORSO_SWAYING          = 3203   # torso tilt low/high
-    LATERAL_PARTIAL_REP            = 3204   # elbow_set or shoulder_line too high/low
-
     ######################
     ### NO ERROR FOUND ###
     ######################

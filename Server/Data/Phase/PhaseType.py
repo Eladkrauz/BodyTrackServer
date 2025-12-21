@@ -28,7 +28,6 @@ class PhaseType:
     ### Example:
     - For Squats: DOWN → HOLD → UP → TOP
     - For Biceps Curl: LOWERING → HOLD → LIFTING → PEAK
-    - For Lateral Raise: RAISING → HOLD → LOWERING → REST
     """
     #############
     ### SQUAT ###
@@ -50,21 +49,11 @@ class PhaseType:
         LOWERING = auto() # Extending the arm downward.
         REST     = auto() # Fully extended arm position.
 
-    ##############################
-    ### LATERAL SHOULDER RAISE ###
-    ##############################
-    class LateralRaise(enum):
-        NONE     = auto() # Initial state (no detection yet).
-        RAISING  = auto() # Lifting arms outward/upward.
-        HOLD     = auto() # At top position (arms parallel to ground).
-        LOWERING = auto() # Bringing arms back down.
-        REST     = auto() # Arms fully down by sides.
-
     ###############
     ### IS NONE ###
     ###############
     @staticmethod
-    def is_none(phase_class:Squat | BicepsCurl | LateralRaise) -> bool:
+    def is_none(phase_class:Squat | BicepsCurl) -> bool:
         """
         ### Brief:
         The `is_none` method checks if the given phase class instance
@@ -80,8 +69,6 @@ class PhaseType:
             return phase_class is PhaseType.Squat.NONE
         elif isinstance(phase_class, PhaseType.BicepsCurl):
             return phase_class is PhaseType.BicepsCurl.NONE
-        elif isinstance(phase_class, PhaseType.LateralRaise):
-            return phase_class is PhaseType.LateralRaise.NONE
         else:
             return True
 
@@ -103,5 +90,4 @@ class PhaseType:
         """
         if   exercise_type == ExerciseType.SQUAT:         return PhaseType.Squat
         elif exercise_type == ExerciseType.BICEPS_CURL:   return PhaseType.BicepsCurl
-        elif exercise_type == ExerciseType.LATERAL_RAISE: return PhaseType.LateralRaise
         else:                                             raise ValueError(f"Unsupported exercise: {exercise_type}")

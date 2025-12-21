@@ -76,20 +76,6 @@ class ErrorRecommendations:
         DetectedErrorCode.CURL_WRIST_NOT_NEUTRAL:
             "Keep your wrist straight to avoid unnecessary stress.",
 
-        ############################
-        ### LATERAL RAISE ERRORS ###
-        ############################
-        DetectedErrorCode.LATERAL_ARMS_TOO_LOW:
-            "Lift your arms slightly higher for proper lateral raise form.",
-        DetectedErrorCode.LATERAL_ARMS_TOO_HIGH:
-            "Avoid raising your arms above shoulder level.",
-        DetectedErrorCode.LATERAL_ELBOWS_BENT_TOO_MUCH:
-            "Straighten your elbows slightly — avoid excessive bending.",
-        DetectedErrorCode.LATERAL_TORSO_SWAYING:
-            "Avoid swaying your torso — use lighter weights if needed.",
-        DetectedErrorCode.LATERAL_PARTIAL_REP:
-            "Try completing the full range of motion for better results.",
-
         #####################
         ### SPECIAL CASES ###
         #####################

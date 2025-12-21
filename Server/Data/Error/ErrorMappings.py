@@ -93,35 +93,3 @@ class ErrorMappings:
         JointAngle.BicepsCurl.LEFT_WRIST.name:            DetectedErrorCode.CURL_WRIST_NOT_NEUTRAL,
         JointAngle.BicepsCurl.RIGHT_WRIST.name:           DetectedErrorCode.CURL_WRIST_NOT_NEUTRAL,
     }
-
-    ###################################
-    ### LATERAL RAISE ERROR MAP LOW ###
-    ###################################
-    """
-    ### Description:
-    Low-angle violations for lateral raise exercise           
-    """
-    LATERAL_RAISE_ERROR_MAP_LOW = {
-        JointAngle.LateralRaise.LEFT_SHOULDER_ABD.name:   DetectedErrorCode.LATERAL_ARMS_TOO_LOW,
-        JointAngle.LateralRaise.RIGHT_SHOULDER_ABD.name:  DetectedErrorCode.LATERAL_ARMS_TOO_LOW,
-        JointAngle.LateralRaise.LEFT_ELBOW_SET.name:      DetectedErrorCode.LATERAL_ELBOWS_BENT_TOO_MUCH,
-        JointAngle.LateralRaise.RIGHT_ELBOW_SET.name:     DetectedErrorCode.LATERAL_ELBOWS_BENT_TOO_MUCH,
-        JointAngle.LateralRaise.TORSO_TILT.name:          DetectedErrorCode.LATERAL_TORSO_SWAYING,
-        JointAngle.LateralRaise.SHOULDER_LINE.name:       DetectedErrorCode.LATERAL_PARTIAL_REP,
-    }
-
-    ####################################
-    ### LATERAL RAISE ERROR MAP HIGH ###
-    ####################################
-    """
-    ### Description:
-    High-angle violations for lateral raise exercise           
-    """
-    LATERAL_RAISE_ERROR_MAP_HIGH = {
-        JointAngle.LateralRaise.LEFT_SHOULDER_ABD.name:   DetectedErrorCode.LATERAL_ARMS_TOO_HIGH,
-        JointAngle.LateralRaise.RIGHT_SHOULDER_ABD.name:  DetectedErrorCode.LATERAL_ARMS_TOO_HIGH,
-        JointAngle.LateralRaise.LEFT_ELBOW_SET.name:      DetectedErrorCode.LATERAL_PARTIAL_REP,
-        JointAngle.LateralRaise.RIGHT_ELBOW_SET.name:     DetectedErrorCode.LATERAL_PARTIAL_REP,
-        JointAngle.LateralRaise.TORSO_TILT.name:          DetectedErrorCode.LATERAL_TORSO_SWAYING,
-        JointAngle.LateralRaise.SHOULDER_LINE.name:       DetectedErrorCode.LATERAL_PARTIAL_REP,
-    }

@@ -112,7 +112,7 @@ class PhaseDetector:
             return ErrorCode.NO_VALID_FRAME_DATA_IN_SESSION
 
         # Check which phases match all joint rules.
-        phase_enum:PhaseType.Squat | PhaseType.BicepsCurl | PhaseType.LateralRaise \
+        phase_enum:PhaseType.Squat | PhaseType.BicepsCurl \
               = PhaseType.get_phase_enum(session_data.get_exercise_type())
         candidates: list[str] = []
 
@@ -314,7 +314,7 @@ class PhaseDetector:
         ### Returns:
         - `Rules`: The filtered joint angle rules.
         """
-        joint_cls:JointAngle.Squat | JointAngle.BicepsCurl | JointAngle.LateralRaise \
+        joint_cls:JointAngle.Squat | JointAngle.BicepsCurl \
               = JointAngle.exercise_type_to_joint_type(session_data.get_exercise_type())
 
         # Unknown side, do nit restrict rules.

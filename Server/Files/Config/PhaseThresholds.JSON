@@ -58,28 +58,5 @@
         "initial_phase": "REST",
         "low_motion_phases": ["HOLD"],
         "transition_order": ["REST", "LIFTING", "HOLD", "LOWERING", "REST"]
-    },
-        "lateral_raise": {
-            "rules": {
-                "REST": {
-                    "left_shoulder_abduction_angle":  { "min":   0, "max":  20 },
-                    "right_shoulder_abduction_angle": { "min":   0, "max":  20 }
-                },
-                "RAISING": {
-                    "left_shoulder_abduction_angle":  { "min":  20, "max":  80 },
-                    "right_shoulder_abduction_angle": { "min":  20, "max":  80 }
-                },
-                "HOLD": {
-                    "left_shoulder_abduction_angle":  { "min":  80, "max": 110 },
-                    "right_shoulder_abduction_angle": { "min":  80, "max": 110 }
-                },
-                "LOWERING": {
-                    "left_shoulder_abduction_angle":  { "min":  20, "max":  80 },
-                    "right_shoulder_abduction_angle": { "min":  20, "max":  80 }
-                }
-            },
-            "initial_phase": "REST",
-            "low_motion_phases": ["HOLD"],
-            "transition_order": ["REST", "RAISING", "HOLD", "LOWERING", "REST"]
-        }
     }
+}

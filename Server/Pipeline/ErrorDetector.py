@@ -159,7 +159,6 @@ class ErrorDetector:
         """
         if   exercise is ExerciseType.SQUAT:         return ErrorMappings.SQUAT_ERROR_MAP_LOW.get(angle_name)
         elif exercise is ExerciseType.BICEPS_CURL:   return ErrorMappings.BICEPS_CURL_ERROR_MAP_LOW.get(angle_name)
-        elif exercise is ExerciseType.LATERAL_RAISE: return ErrorMappings.LATERAL_RAISE_ERROR_MAP_LOW.get(angle_name)
         else:                                        return None
 
     ###############################
@@ -180,7 +179,6 @@ class ErrorDetector:
         """
         if   exercise is ExerciseType.SQUAT:         return ErrorMappings.SQUAT_ERROR_MAP_HIGH.get(angle_name)
         elif exercise is ExerciseType.BICEPS_CURL:   return ErrorMappings.BICEPS_CURL_ERROR_MAP_HIGH.get(angle_name)
-        elif exercise is ExerciseType.LATERAL_RAISE: return ErrorMappings.LATERAL_RAISE_ERROR_MAP_HIGH.get(angle_name)
         else:                                        return None
 
     ###############################

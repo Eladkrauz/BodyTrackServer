@@ -100,5 +100,4 @@ class PositionSide(enum):
         """
         if   exercise_type is ExerciseType.SQUAT:         return [cls.FRONT, cls.LEFT, cls.RIGHT]
         elif exercise_type is ExerciseType.BICEPS_CURL:   return [cls.LEFT, cls.RIGHT]
-        elif exercise_type is ExerciseType.LATERAL_RAISE: return [cls.LEFT, cls.RIGHT]
         else:                                             return []

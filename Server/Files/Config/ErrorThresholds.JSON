@@ -87,40 +87,5 @@
       "left_wrist_angle":             { "min": 150, "max": 195 },
       "right_wrist_angle":            { "min": 150, "max": 195 }
     }
-  },
-
-  "lateral_raise": {
-    "REST": {
-      "left_shoulder_abduction_angle":  { "min": 0,   "max": 35 },
-      "right_shoulder_abduction_angle": { "min": 0,   "max": 35 },
-      "left_elbow_set_angle":           { "min": 145, "max": 180 },
-      "right_elbow_set_angle":          { "min": 145, "max": 180 },
-      "torso_lateral_tilt_angle":       { "min": 65,  "max": 110 },
-      "shoulder_line_angle":            { "min": 0,   "max": 15 }
-    },
-    "RAISING": {
-      "left_shoulder_abduction_angle":  { "min": 35,  "max": 80 },
-      "right_shoulder_abduction_angle": { "min": 35,  "max": 80 },
-      "left_elbow_set_angle":           { "min": 145, "max": 180 },
-      "right_elbow_set_angle":          { "min": 145, "max": 180 },
-      "torso_lateral_tilt_angle":       { "min": 60,  "max": 110 },
-      "shoulder_line_angle":            { "min": 0,   "max": 15 }
-    },
-    "HOLD": {
-      "left_shoulder_abduction_angle":  { "min": 80,  "max": 105 },
-      "right_shoulder_abduction_angle": { "min": 80,  "max": 105 },
-      "left_elbow_set_angle":           { "min": 145, "max": 180 },
-      "right_elbow_set_angle":          { "min": 145, "max": 180 },
-      "torso_lateral_tilt_angle":       { "min": 60,  "max": 105 },
-      "shoulder_line_angle":            { "min": 0,   "max": 15 }
-    },
-    "LOWERING": {
-      "left_shoulder_abduction_angle":  { "min": 35,  "max": 80 },
-      "right_shoulder_abduction_angle": { "min": 35,  "max": 80 },
-      "left_elbow_set_angle":           { "min": 145, "max": 180 },
-      "right_elbow_set_angle":          { "min": 145, "max": 180 },
-      "torso_lateral_tilt_angle":       { "min": 60,  "max": 110 },
-      "shoulder_line_angle":            { "min": 0,   "max": 15 }
-    }
   }
 }

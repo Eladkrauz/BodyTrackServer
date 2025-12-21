@@ -36,7 +36,6 @@ class FeedbackCode(enum):
     2. Pose Quality Errors: Issues related to the quality of the detected pose.
     3. Squat Errors: Specific errors related to squat exercise form.
     4. Biceps Curl Errors: Specific errors related to biceps curl exercise form.
-    5. Lateral Raise Errors: Specific errors related to lateral raise exercise form.
     """
     #####################
     ### SYSTEM STATES ###
@@ -78,15 +77,6 @@ class FeedbackCode(enum):
     CURL_LEANING_FORWARD            = auto(), "Stand upright - avoid leaning forward."
     CURL_LEANING_BACKWARD           = auto(), "Don't lean backward - keep your core stable."
     CURL_WRIST_NOT_NEUTRAL          = auto(), "Keep your wrists straight during the curl."
-
-    ############################
-    ### LATERAL RAISE ERRORS ###
-    ############################
-    LATERAL_ARMS_TOO_LOW            = auto(), "Lift your arms a bit higher."
-    LATERAL_ARMS_TOO_HIGH           = auto(), "Don't raise your arms too high - stay in control."
-    LATERAL_ELBOWS_BENT_TOO_MUCH    = auto(), "Straighten your elbows slightly."
-    LATERAL_TORSO_SWAYING           = auto(), "Keep your torso stable - avoid swaying."
-    LATERAL_PARTIAL_REP             = auto(), "Complete the full range of motion for best results."
     
     ###########
     ### NEW ###

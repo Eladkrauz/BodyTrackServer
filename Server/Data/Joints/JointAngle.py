@@ -94,7 +94,7 @@ class JointAngle:
     ### EXERCISE TYPE TO JOINT TYPE ###
     ###################################
     @classmethod
-    def exercise_type_to_joint_type(cls, exercise_type:ExerciseType) -> Squat | BicepsCurl | LateralRaise | None:
+    def exercise_type_to_joint_type(cls, exercise_type:ExerciseType) -> Squat | BicepsCurl | None:
         """
         ### Brief:
         The `exercise_type_to_joint_type` method converts an `ExerciseType` object to a `JointAngle` object.
@@ -107,7 +107,6 @@ class JointAngle:
         """
         if exercise_type is ExerciseType.SQUAT:         return JointAngle.Squat
         if exercise_type is ExerciseType.BICEPS_CURL:   return JointAngle.BicepsCurl
-        if exercise_type is ExerciseType.LATERAL_RAISE: return JointAngle.LateralRaise
         else:
             from Server.Utilities.Error.ErrorHandler import ErrorHandler
             from Server.Utilities.Error.ErrorCode import ErrorCode
@@ -121,7 +120,7 @@ class JointAngle:
     @classmethod
     def _get_core(
             cls,
-            cls_name:Squat | BicepsCurl | LateralRaise,
+            cls_name:Squat | BicepsCurl,
             position_side:PositionSide
         ) -> list[Joint]:
         """
@@ -129,7 +128,7 @@ class JointAngle:
         The `_get_core` method retrieves the core joints based on the specified position side.
 
         ### Arguments:
-        - `cls_name` (Squat | BicepsCurl | LateralRaise): The joint angle class to retrieve joints from.
+        - `cls_name` (Squat | BicepsCurl): The joint angle class to retrieve joints from.
         - `position_side` (PositionSide): The side of the body (LEFT, RIGHT, or BOTH).
 
         ### Returns:
@@ -152,7 +151,7 @@ class JointAngle:
     @classmethod
     def _get_extended(
             cls,
-            cls_name:Squat | BicepsCurl | LateralRaise,
+            cls_name:Squat | BicepsCurl,
             position_side:PositionSide
         ) -> list[Joint]:
         """
@@ -160,7 +159,7 @@ class JointAngle:
         The `_get_extended` method retrieves the extended joints based on the specified position side.
 
         ### Arguments:
-        - `cls_name` (Squat | BicepsCurl | LateralRaise): The joint angle class to retrieve joints from.
+        - `cls_name` (Squat | BicepsCurl): The joint angle class to retrieve joints from.
         - `position_side` (PositionSide): The side of the body (LEFT, RIGHT, or BOTH).
 
         ### Returns:
@@ -183,7 +182,7 @@ class JointAngle:
     @classmethod
     def get_all_joints(
             cls,
-            cls_name:Squat | BicepsCurl | LateralRaise,
+            cls_name:Squat | BicepsCurl,
             position_side:PositionSide,
             extended_evaluation:bool
         ) -> list[Joint]:
@@ -193,7 +192,7 @@ class JointAngle:
         based on the specified position side.
 
         ### Arguments:
-        - `cls_name` (Squat | BicepsCurl | LateralRaise): The joint angle class to retrieve joints from.
+        - `cls_name` (Squat | BicepsCurl): The joint angle class to retrieve joints from.
         - `position_side` (PositionSide): The side of the body (LEFT, RIGHT, or BOTH).
         - `extended_evaluation` (bool): Whether to include extended joints.
 
