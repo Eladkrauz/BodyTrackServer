@@ -60,6 +60,31 @@ class PhaseType:
         LOWERING = auto() # Bringing arms back down.
         REST     = auto() # Arms fully down by sides.
 
+    ###############
+    ### IS NONE ###
+    ###############
+    @staticmethod
+    def is_none(phase_class:Squat | BicepsCurl | LateralRaise) -> bool:
+        """
+        ### Brief:
+        The `is_none` method checks if the given phase class instance
+        represents the 'NONE' state for its respective exercise type.
+
+        ### Arguments:
+        - `phase_class`: An instance of one of the phase enums.
+
+        ### Returns:
+        - `bool`: `True` if the phase is 'NONE', `False` otherwise.
+        """
+        if isinstance(phase_class, PhaseType.Squat):
+            return phase_class is PhaseType.Squat.NONE
+        elif isinstance(phase_class, PhaseType.BicepsCurl):
+            return phase_class is PhaseType.BicepsCurl.NONE
+        elif isinstance(phase_class, PhaseType.LateralRaise):
+            return phase_class is PhaseType.LateralRaise.NONE
+        else:
+            return True
+
     ######################
     ### GET PHASE ENUM ###
     ######################

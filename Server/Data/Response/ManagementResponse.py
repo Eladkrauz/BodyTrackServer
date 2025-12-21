@@ -8,6 +8,7 @@
 ### IMPORTS ###
 ###############
 from enum import Enum as enum
+from enum import auto
 from typing import Dict, Any, Optional
 from dataclasses import dataclass
 
@@ -20,16 +21,16 @@ ManagementResponseDict = Dict[str, Any]
 ### MANAGEMENT CODE ENUM CLASS ###
 ##################################
 class ManagementCode(enum):
-    CLIENT_REGISTERED_SUCCESSFULLY      = (1, "The client was registered successfully.")
-    CLIENT_SESSION_IS_REGISTERED        = (2, "The client's session is registered.")
-    CLIENT_SESSION_IS_ACTIVE            = (3, "The client's session is active.")
-    CLIENT_SESSION_IS_PAUSED            = (4, "The client's session is paused.")
-    CLIENT_SESSION_IS_RESUMED           = (5, "The client's session is resumed.")
-    CLIENT_SESSION_IS_ENDED             = (6, "The client's session is ended.")
-    CLIENT_SESSION_IS_UNREGISTERED      = (7, "The client's session is unregistered.")
-    CLIENT_SESSION_IS_NOT_IN_SYSTEM     = (8, "The client's session is not in the system.")
-    SERVER_IS_BEING_SHUTDOWN            = (9, "The server is being shutdown.")
-    CONFIGURATION_UPDATED_SUCCESSFULLY  = (10, "The configuration was updated successfully.")
+    CLIENT_REGISTERED_SUCCESSFULLY      = auto(), "The client was registered successfully."
+    CLIENT_SESSION_IS_REGISTERED        = auto(), "The client's session is registered."
+    CLIENT_SESSION_IS_ACTIVE            = auto(), "The client's session is active."
+    CLIENT_SESSION_IS_PAUSED            = auto(), "The client's session is paused."
+    CLIENT_SESSION_IS_RESUMED           = auto(), "The client's session is resumed."
+    CLIENT_SESSION_IS_ENDED             = auto(), "The client's session is ended."
+    CLIENT_SESSION_IS_UNREGISTERED      = auto(), "The client's session is unregistered."
+    CLIENT_SESSION_IS_NOT_IN_SYSTEM     = auto(), "The client's session is not in the system."
+    SERVER_IS_BEING_SHUTDOWN            = auto(), "The server is being shutdown."
+    CONFIGURATION_UPDATED_SUCCESSFULLY  = auto(), "The configuration was updated successfully."
 
     def __new__(cls, code, description):
         obj = object.__new__(cls)

@@ -8,6 +8,7 @@
 ### IMPORTS ###
 ###############
 from enum import Enum as enum
+from enum import auto
 from typing import Dict, Any, Optional
 from dataclasses import dataclass
 from Server.Data.Pose.PoseQuality import PoseQuality
@@ -40,52 +41,52 @@ class FeedbackCode(enum):
     #####################
     ### SYSTEM STATES ###
     #####################
-    VALID                           = (0,   "")
-    SILENT                          = (1,   "")
+    VALID                           = auto(), ""
+    SILENT                          = auto(), ""
 
     ###########################
     ### POSE QUALITY ERRORS ###
     ###########################
-    NO_PERSON                       = (100, "I can't see you - please step into the frame.")
-    LOW_VISIBILITY                  = (101, "The camera can't see you clearly - improve lighting.")
-    PARTIAL_BODY                    = (102, "Move back a bit - I need to see your full body.")
-    TOO_FAR                         = (103, "You're too far away - step closer.")
-    TOO_CLOSE                       = (104, "You're too close - please take a small step back.")
-    UNSTABLE                        = (105, "The camera view is unstable - try holding your position.")
+    NO_PERSON                       = auto(), "I can't see you - please step into the frame."
+    LOW_VISIBILITY                  = auto(), "The camera can't see you clearly - improve lighting."
+    PARTIAL_BODY                    = auto(), "Move back a bit - I need to see your full body."
+    TOO_FAR                         = auto(), "You're too far away - step closer."
+    TOO_CLOSE                       = auto(), "You're too close - please take a small step back."
+    UNSTABLE                        = auto(), "The camera view is unstable - try holding your position."
 
     ####################
     ### SQUAT ERRORS ###
     ####################
-    SQUAT_NOT_DEEP_ENOUGH           = (3000, "Go a bit deeper in your squat.")
-    SQUAT_TOO_DEEP                  = (3001, "You're going too deep - rise slightly.")
-    SQUAT_KNEES_INWARD              = (3002, "Keep your knees from collapsing inward.")
-    SQUAT_KNEES_OUTWARD             = (3003, "Don't push your knees too far outward.")
-    SQUAT_HEELS_OFF_GROUND          = (3004, "Keep your heels down during the squat.")
-    SQUAT_WEIGHT_FORWARD            = (3005, "Shift your weight backward - avoid leaning forward.")
-    SQUAT_CHEST_LEAN_FORWARD        = (3006, "Keep your chest more upright.")
-    SQUAT_BACK_ROUNDED              = (3007, "Straighten your back - avoid rounding.")
-    SQUAT_HIP_SHIFT_LEFT            = (3008, "Your hips are shifting left - keep centered.")
-    SQUAT_HIP_SHIFT_RIGHT           = (3009, "Your hips are shifting right - keep centered.")
+    SQUAT_NOT_DEEP_ENOUGH           = auto(), "Go a bit deeper in your squat."
+    SQUAT_TOO_DEEP                  = auto(), "You're going too deep - rise slightly."
+    SQUAT_KNEES_INWARD              = auto(), "Keep your knees from collapsing inward."
+    SQUAT_KNEES_OUTWARD             = auto(), "Don't push your knees too far outward."
+    SQUAT_HEELS_OFF_GROUND          = auto(), "Keep your heels down during the squat."
+    SQUAT_WEIGHT_FORWARD            = auto(), "Shift your weight backward - avoid leaning forward."
+    SQUAT_CHEST_LEAN_FORWARD        = auto(), "Keep your chest more upright."
+    SQUAT_BACK_ROUNDED              = auto(), "Straighten your back - avoid rounding."
+    SQUAT_HIP_SHIFT_LEFT            = auto(), "Your hips are shifting left - keep centered."
+    SQUAT_HIP_SHIFT_RIGHT           = auto(), "Your hips are shifting right - keep centered."
 
     ##########################
     ### BICEPS CURL ERRORS ###
     ##########################
-    CURL_TOO_SHORT_TOP              = (3100, "Lift a bit higher to complete the curl.")
-    CURL_NOT_FULL_FLEXION           = (3101, "Curl your arm fully at the top of the movement.")
-    CURL_ELBOWS_MOVING_FORWARD      = (3102, "Keep your elbows close - don't swing them forward.")
-    CURL_ELBOWS_MOVING_BACKWARD     = (3103, "Your elbows are drifting back - keep them stable.")
-    CURL_LEANING_FORWARD            = (3104, "Stand upright - avoid leaning forward.")
-    CURL_LEANING_BACKWARD           = (3105, "Don't lean backward - keep your core stable.")
-    CURL_WRIST_NOT_NEUTRAL          = (3106, "Keep your wrists straight during the curl.")
+    CURL_TOO_SHORT_TOP              = auto(), "Lift a bit higher to complete the curl."
+    CURL_NOT_FULL_FLEXION           = auto(), "Curl your arm fully at the top of the movement."
+    CURL_ELBOWS_MOVING_FORWARD      = auto(), "Keep your elbows close - don't swing them forward."
+    CURL_ELBOWS_MOVING_BACKWARD     = auto(), "Your elbows are drifting back - keep them stable."
+    CURL_LEANING_FORWARD            = auto(), "Stand upright - avoid leaning forward."
+    CURL_LEANING_BACKWARD           = auto(), "Don't lean backward - keep your core stable."
+    CURL_WRIST_NOT_NEUTRAL          = auto(), "Keep your wrists straight during the curl."
 
     ############################
     ### LATERAL RAISE ERRORS ###
     ############################
-    LATERAL_ARMS_TOO_LOW            = (3200, "Lift your arms a bit higher.")
-    LATERAL_ARMS_TOO_HIGH           = (3201, "Don't raise your arms too high - stay in control.")
-    LATERAL_ELBOWS_BENT_TOO_MUCH    = (3202, "Straighten your elbows slightly.")
-    LATERAL_TORSO_SWAYING           = (3203, "Keep your torso stable - avoid swaying.")
-    LATERAL_PARTIAL_REP             = (3204, "Complete the full range of motion for best results.")
+    LATERAL_ARMS_TOO_LOW            = auto(), "Lift your arms a bit higher."
+    LATERAL_ARMS_TOO_HIGH           = auto(), "Don't raise your arms too high - stay in control."
+    LATERAL_ELBOWS_BENT_TOO_MUCH    = auto(), "Straighten your elbows slightly."
+    LATERAL_TORSO_SWAYING           = auto(), "Keep your torso stable - avoid swaying."
+    LATERAL_PARTIAL_REP             = auto(), "Complete the full range of motion for best results."
     
     ###########
     ### NEW ###
@@ -101,14 +102,25 @@ class FeedbackCode(enum):
     #########################
     @staticmethod
     def from_pose_quality(pose_quality:PoseQuality) -> 'FeedbackCode':
+        """
+        ### Brief:
+        The `from_pose_quality` static method maps a `PoseQuality` value
+        to its corresponding `FeedbackCode`.
+
+        ### Arguments:
+        - `pose_quality` (PoseQuality): The quality of the detected pose.
+
+        ### Returns:
+        - `FeedbackCode`: The corresponding feedback code for the given pose quality.
+        """
         mapping = {
             PoseQuality.NO_PERSON:      FeedbackCode.NO_PERSON,
-            PoseQuality.LOW_VISIBILITY: FeedbackCode.LOW_VISIBILITY,
             PoseQuality.PARTIAL_BODY:   FeedbackCode.PARTIAL_BODY,
             PoseQuality.TOO_FAR:        FeedbackCode.TOO_FAR,
-            PoseQuality.TOO_CLOSE:      FeedbackCode.TOO_CLOSE,
             PoseQuality.UNSTABLE:       FeedbackCode.UNSTABLE
         }
+
+        if isinstance(pose_quality, str): pose_quality = PoseQuality[pose_quality]
         return mapping.get(pose_quality, FeedbackCode.SILENT)
     
     ###########################
@@ -116,7 +128,21 @@ class FeedbackCode(enum):
     ###########################
     @staticmethod
     def from_detected_error(detected_error:DetectedErrorCode) -> 'FeedbackCode':
+        """
+        ### Brief:
+        The `from_detected_error` static method maps a `DetectedErrorCode` value
+        to its corresponding `FeedbackCode`.
+
+        ### Arguments:
+        - `detected_error` (DetectedErrorCode): The detected error code.
+        ### Returns:
+        - `FeedbackCode`: The corresponding feedback code for the given detected error.
+        """
         try:
+            # Convert string to DetectedErrorCode if necessary.
+            if isinstance(detected_error, str):
+                detected_error:DetectedErrorCode = DetectedErrorCode[detected_error]
+
             if detected_error.name is DetectedErrorCode.NO_BIOMECHANICAL_ERROR.name:
                 return FeedbackCode.VALID
             if detected_error.name is DetectedErrorCode.NOT_READY_FOR_ANALYSIS.name:

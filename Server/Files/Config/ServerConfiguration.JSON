@@ -11,8 +11,8 @@
     "session": {
       "supported_exercises":                  ["squat", "biceps_curl", "lateral_raise"],
       "maximum_clients":                      10,
-      "num_of_min_init_ok_frames":            10,
-      "num_of_min_init_correct_phase":        10
+      "num_of_min_init_ok_frames":            3,
+      "num_of_min_init_correct_phase":        4
     },
     "history": {
       "frames_rolling_window_size":           50,
@@ -37,12 +37,11 @@
       "log_level":                            "DEBUG"
     },
     "pose": {
-      "stability_threshold":                  0.1,
-      "bbox_too_far":                         0.1,
-      "bbox_too_close":                       0.8,
-      "mean_vis_threshold":                   0.4,
-      "partial_count_threshold":              6,
-      "minimum_bbox_area":                    1e-6
+      "stability_threshold":                  0.015,
+      "bbox_too_far":                         0.015,
+      "minimum_bbox_area":                    0.002,
+      "visibility_good_threshold":            0.55,
+      "required_visibility_ratio":            0.65
     },
     "position_side": {
       "landmark_visibility_threshold":        0.5,

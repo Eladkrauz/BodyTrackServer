@@ -201,10 +201,10 @@ class FeedbackFormatter:
         - `FeedbackCode`: A biomechanical feedback code or `SILENT`.
         """
         try:
-                
             if not history.is_state_ok(): return None
-            
             biomechanical_streaks:Dict[str, int] = history.get_error_streaks()
+            if not biomechanical_streaks: return FeedbackCode.SILENT
+
             worst_error_streak:str = max(biomechanical_streaks, key=biomechanical_streaks.get)
 
             if biomechanical_streaks[worst_error_streak] < self.biomechanical_feedback_threshold:

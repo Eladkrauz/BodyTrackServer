@@ -9,7 +9,7 @@
 ###############
 import json, os, inspect
 from json import JSONDecodeError
-from typing import Dict
+from typing import Dict, List
 
 from Server.Utilities.Error.ErrorHandler import ErrorHandler
 from Server.Utilities.Error.ErrorCode import ErrorCode
@@ -124,7 +124,7 @@ class ConfigLoader:
             critical_value:bool = True,
             different_file:str = None,
             read_all:bool = False
-        ) -> str | Dict | None:
+        ) -> str | Dict | List | int | float | None:
         """
         ### Brief:
         The `get` method returns a configuration value by key.

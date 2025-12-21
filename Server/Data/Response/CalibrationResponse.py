@@ -8,6 +8,7 @@
 ### IMPORTS ###
 ###############
 from enum import Enum as enum
+from enum import auto
 from typing import Dict, Any, Optional
 from dataclasses import dataclass
 
@@ -20,10 +21,10 @@ CalibrationResponseDict = Dict[str, Any]
 ### CALIBRATION CODE ENUM CLASS ###
 ###################################
 class CalibrationCode(enum):
-    USER_VISIBILITY_IS_VALID           = (1, "Initial frame visibility checking is valid.")
-    USER_VISIBILITY_IS_UNDER_CHECKING  = (2, "Initial frame visibility checking is in process.")
-    USER_POSITIONING_IS_VALID          = (3, "Initial frame positioning checking is valid.")
-    USER_POSITIONING_IS_UNDER_CHECKING = (4, "Initial frame positioning checking is in process.")
+    USER_VISIBILITY_IS_VALID           = auto(), "Initial frame visibility checking is valid."
+    USER_VISIBILITY_IS_UNDER_CHECKING  = auto(), "Initial frame visibility checking is in process."
+    USER_POSITIONING_IS_VALID          = auto(), "Initial frame positioning checking is valid."
+    USER_POSITIONING_IS_UNDER_CHECKING = auto(), "Initial frame positioning checking is in process."
 
     def __new__(cls, code, description):
         obj = object.__new__(cls)
