@@ -8,7 +8,7 @@
 ### IMPORTS ###
 ###############
 from __future__ import annotations
-from typing     import TYPE_CHECKING, Dict
+from typing import TYPE_CHECKING, Dict, Set, Any, List
 import inspect
 
 from Server.Utilities.Error.ErrorHandler      import ErrorHandler
@@ -22,7 +22,6 @@ from Server.Data.Pose.PoseQuality             import PoseQuality
 from Server.Data.Response.FeedbackResponse    import FeedbackCode
 from Server.Data.Session                      import SessionData
 from Server.Data.History.HistoryDictKey       import HistoryDictKey
-
 
 if TYPE_CHECKING:
     from Server.Data.History.HistoryData import HistoryData
@@ -52,14 +51,8 @@ class FeedbackFormatter:
     def __init__(self):
         """
         ### Brief:
-        Loads all feedback-related threshold values from the configuration.
-
-        ### Thresholds Loaded:
-        - Pose-quality feedback threshold (frames)
-        - Biomechanical feedback threshold (frames)
-        - Pose-quality cooldown frames
-        - Biomechanical cooldown frames
-        - VALID feedback cooldown frames
+        The `__init__` method initializes the `FeedbackFormatter` instance
+        by loading all feedback-related threshold values from the configuration.
      """
         try:
             self.retrieve_configurations()
@@ -116,7 +109,6 @@ class FeedbackFormatter:
                 }
             )
 
-
     ####################################
     ### HANDLE POSE QUALITY FEEDBACK ###
     ####################################
@@ -141,17 +133,19 @@ class FeedbackFormatter:
         - `FeedbackCode`: Pose-quality feedback or `SILENT`.
         """
         try:
+            # Check if pose is currently valid.
             frames_since_last_valid:int = history.get_frames_since_last_valid()
             if frames_since_last_valid < self.pose_quality_feedback_threshold:
                 return FeedbackCode.SILENT
-            if not self._cooldown_passed(history):
+            # If cooldown not passed, return SILENT.
+            if not self._is_cooldown_passed(history):
                 return FeedbackCode.SILENT
             
-            
+            # Select worst pose-quality issue.
             bad_frame_streak:Dict[str, int] = history.get_bad_frame_streaks()
-
             worst_quality:PoseQuality = max(bad_frame_streak, key=bad_frame_streak.get)
 
+            # Convert to FeedbackCode and return it.
             return FeedbackCode.from_pose_quality(worst_quality)        
         
         except Exception as e:
@@ -189,30 +183,46 @@ class FeedbackFormatter:
         ### Returns:
         - `FeedbackCode`: A biomechanical feedback code or `SILENT`.
         """
-        try:            
-            current_rep : dict[str, any] = history.get_current_rep()
-            rep_errors:Dict[str, any] = current_rep[HistoryDictKey.CurrentRep.ERRORS]
+        try:
+            # Get current rep data.
+            current_rep:Dict[str, Any] = history.get_current_rep()
+            rep_errors:List[str] = current_rep[HistoryDictKey.CurrentRep.ERRORS]
+            # If no biomechanical errors, return VALID.
             if not rep_errors:
+                Logger.debug("No biomechanical errors detected in current rep. Returning VALID feedback.")
                 return FeedbackCode.VALID
-            if not self._cooldown_passed(history):
+            # If there are errors but cooldown not passed, return SILENT.
+            if not self._is_cooldown_passed(history):
+                Logger.debug("Cooldown not passed for biomechanical feedback. Returning SILENT.")
                 return FeedbackCode.SILENT
             
+            # Select worst biomechanical error.
             biomechanical_streaks:Dict[str, int] = history.get_error_streaks()
-            if not biomechanical_streaks: return FeedbackCode.SILENT
+            print("Biomechanical Streaks:", biomechanical_streaks)
+            if not biomechanical_streaks:
+                Logger.debug("No biomechanical error streaks found. Returning SILENT.")
+                return FeedbackCode.SILENT
             worst_error_streak:str = max(biomechanical_streaks, key=biomechanical_streaks.get)
-            
+            print("Worst Error Streak:", worst_error_streak)
+
+            # If below threshold, return SILENT.
             if biomechanical_streaks[worst_error_streak] < self.biomechanical_feedback_threshold:
+                Logger.debug(f"Biomechanical error '{worst_error_streak}' below threshold. Returning SILENT.")
                 return FeedbackCode.SILENT
                         
-            
+            # Convert to FeedbackCode and check if already notified in rep.
             detected_enum = DetectedErrorCode[worst_error_streak]
-            notified_errors_in_rep : set[FeedbackCode] = current_rep[HistoryDictKey.CurrentRep.NOTIFIED_ERRORS]
+            notified_errors_in_rep:Set[FeedbackCode] = current_rep[HistoryDictKey.CurrentRep.NOTIFIED]
             feedback_code = FeedbackCode.from_detected_error(detected_enum)
+
+            # If already notified in rep, return SILENT.
             if feedback_code in notified_errors_in_rep:
+                Logger.debug(f"Biomechanical feedback '{feedback_code}' already notified in current rep. Returning SILENT.")
                 return FeedbackCode.SILENT
+            # Otherwise, return the feedback code.
             else:
+                Logger.debug(f"Returning biomechanical feedback: {feedback_code}.")
                 return feedback_code
-        
         except Exception as e:
             ErrorHandler.handle(
                 error=ErrorCode.BIOMECHANICAL_FEEDBACK_SELECTION_ERROR,
@@ -224,16 +234,20 @@ class FeedbackFormatter:
             )
             return FeedbackCode.SILENT       
 
+    ##########################
+    ### IS COOLDOWN PASSED ###
+    ##########################
+    def _is_cooldown_passed(self, history:HistoryData) -> bool:
+        """
+        The `_is_cooldown_passed` method checks if the cooldown period has passed
+        since the last feedback was issued.
 
-    ############################
-    ### COOLDOWN EVALUATIONS ###
-    ############################
-    """
-    ### Brief:
-    The cooldown evaluation methods check whether enough frames have passed
-    since the last feedback was issued, based on the configured cooldown frames.
-    """
-    def _cooldown_passed(self, history: HistoryData) -> bool:
+        ### Arguments:
+        - `history` (HistoryData): Provides frame count since last feedback.
+
+        ### Returns:
+        - `bool`: `True` if cooldown period has passed, `False` otherwise.
+        """
         return history.get_frames_since_last_feedback() >= self.cooldown_frames
     
     ###############################
@@ -246,7 +260,6 @@ class FeedbackFormatter:
         threshold values from the configuration file.
         """
         try:
-                
             self.pose_quality_feedback_threshold:int = ConfigLoader().get([
                 ConfigParameters.Major.FEEDBACK,
                 ConfigParameters.Minor.POSE_QUALITY_FEEDBACK_THRESHOLD
@@ -256,11 +269,10 @@ class FeedbackFormatter:
                 ConfigParameters.Minor.BIO_FEEDBACK_THRESHOLD
             ])
 
-            self.cooldown_frames: int = ConfigLoader.get([
+            self.cooldown_frames:int = ConfigLoader.get([
             ConfigParameters.Major.FEEDBACK,
-            ConfigParameters.Minor.COOLDOWN_FRAMES
+            ConfigParameters.Minor.FEEDBACK_COOLDOWN_FRAMES
             ])
-            
         except Exception as e:
             ErrorHandler.handle(
                 error=ErrorCode.FEEDBACK_CONFIG_RETRIEVAL_ERROR,

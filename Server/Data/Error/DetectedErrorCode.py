@@ -1,3 +1,9 @@
+###############################################################
+############# BODY TRACK // SERVER // DATA // ERROR ###########
+###############################################################
+################### CLASS: DetectedErrorCode ##################
+###############################################################
+ 
 ###############
 ### IMPORTS ###
 ###############
@@ -11,35 +17,32 @@ class DetectedErrorCode(Enum):
     """
     The `DetectedErrorCode` class is pure biomechanical error codes detected strictly by ErrorDetector.
     No text strings are included here — only numeric codes.
-    FeedbackFormatter decides how to phrase the user-facing message.
+    `FeedbackFormatter` decides how to phrase the user-facing message.
     """
 
-    ########################
-    ### SQUAT (3000–3012)###
-    ########################
+    ##################################
+    ### SQUAT DETECTED ERROR CODES ###
+    ##################################
+    SQUAT_TOP_TRUNK_TOO_FORWARD         = auto()
+    SQUAT_TOP_TRUNK_TOO_BACKWARD        = auto()
+    SQUAT_TOP_HIP_LINE_UNBALANCED       = auto()
 
-    SQUAT_TOP_TRUNK_TOO_FORWARD        = auto()
-    SQUAT_TOP_TRUNK_TOO_BACKWARD       = auto()
-    SQUAT_TOP_HIP_LINE_UNBALANCED      = auto()
+    SQUAT_DOWN_KNEE_TOO_STRAIGHT        = auto()
+    SQUAT_DOWN_KNEE_TOO_BENT            = auto()
+    SQUAT_DOWN_HIP_TOO_STRAIGHT         = auto()
+    SQUAT_DOWN_HIP_TOO_BENT             = auto()
 
-    SQUAT_DOWN_KNEE_TOO_STRAIGHT       = auto()
-    SQUAT_DOWN_KNEE_TOO_BENT           = auto()
-    SQUAT_DOWN_HIP_TOO_STRAIGHT        = auto()
-    SQUAT_DOWN_HIP_TOO_BENT            = auto()
+    SQUAT_HOLD_HIP_NOT_DEEP_ENOUGH      = auto()
+    SQUAT_HOLD_HIP_TOO_DEEP             = auto()
+    SQUAT_HOLD_KNEE_VALGUS              = auto()
 
-    SQUAT_HOLD_HIP_NOT_DEEP_ENOUGH     = auto()
-    SQUAT_HOLD_HIP_TOO_DEEP            = auto()
-    SQUAT_HOLD_KNEE_VALGUS             = auto()
+    SQUAT_UP_KNEE_COLLAPSE              = auto()
+    SQUAT_UP_TRUNK_TOO_FORWARD          = auto()
+    SQUAT_UP_TRUNK_TOO_BACKWARD         = auto()
 
-    SQUAT_UP_KNEE_COLLAPSE             = auto()
-    SQUAT_UP_TRUNK_TOO_FORWARD         = auto()
-    SQUAT_UP_TRUNK_TOO_BACKWARD        = auto()
-
-
-    ###############################
-    ### BICEPS CURL (3100–3115) ###
-    ###############################
-
+    ########################################
+    ### BICEPS CURL DETECTED ERROR CODES ###
+    ########################################
     CURL_REST_ELBOW_TOO_BENT            = auto()
     CURL_REST_ELBOW_TOO_STRAIGHT        = auto()
     CURL_REST_SHOULDER_TOO_FORWARD      = auto()
@@ -63,5 +66,5 @@ class DetectedErrorCode(Enum):
     ##############
     ### SYSTEM ###
     ##############
-    NO_BIOMECHANICAL_ERROR        = auto()
-    NOT_READY_FOR_ANALYSIS        = auto()
+    NO_BIOMECHANICAL_ERROR              = auto()
+    NOT_READY_FOR_ANALYSIS              = auto()

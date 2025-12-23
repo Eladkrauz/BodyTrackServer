@@ -104,6 +104,8 @@ class PipelineProcessor:
         self.retrieve_configurations()
         Logger.info("Initialized successfully")
 
+        self.feedbacks = []
+
     ############################################################################
     ############################## PUBLIC METHODS ##############################
     ############################################################################
@@ -159,6 +161,7 @@ class PipelineProcessor:
         - `history_data` (HistoryData): The container storing all session-state.
         """
         self.history_manager.mark_exercise_end(history_data)
+        print(self.feedbacks)
 
     ######################
     ### VALIDATE FRAME ###
@@ -452,7 +455,23 @@ class PipelineProcessor:
             )
 
         ### PIPELINE STEP >>> Combining feedback --- using FeedbackFormatter.
-        return self.feedback_formatter.construct_feedback(session_data)
+        feedback_result = self.feedback_formatter.construct_feedback(session_data)
+
+        if self._check_for_error(feedback_result): return feedback_result
+        Logger.debug("Successfully constructed feedback.")
+
+        # If the feedback is SILENT or VALID - increment frames since last feedback.
+        if feedback_result in (FeedbackCode.SILENT, FeedbackCode.VALID):
+            self.history_manager.increment_frames_since_last_feedback(history)
+            print("$\n$\n$\nNot sending feedback.\n$\n$\n$")
+        # Else - reset the counter and record the feedback to the current rep.
+        else:
+            self.history_manager.reset_frames_since_last_feedback(history)
+            self.history_manager.record_feedback_notified(history, feedback_result)
+            self.feedbacks.append(feedback_result)
+            print("$\n$\n$\n!!!!!!!!!!!!!!!!!!!!!!!!!!Sending feedback!\n$\n$\n$")
+
+        return feedback_result
 
     #####################################################################
     ############################## HELPERS ##############################

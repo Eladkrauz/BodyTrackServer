@@ -108,6 +108,7 @@ class ErrorCode(enum):
     DIMENSION_OF_ANGLE_IS_INVALID               = auto(), "The angle's dimension is invalid",                                                   None, False
     TOO_MANY_INVALID_ANGLES                     = auto(), "Too many invalid angles in the provided frame",                                      None, False
     CANT_CALCULATE_JOINTS_OF_UNSTALBE_FRAME     = auto(), "Tried to calculate joints for an unstable frame",                                    None, False
+    ANGLES_DICTIONARY_IS_EMPTY                  = auto(), "The angles dictionary is empty.",                                                    None, False
 
     # HistoryManager.
     HISTORY_MANAGER_INIT_ERROR                  = auto(), "Failed to initialize HistoryManager",                                                None, False
@@ -144,6 +145,7 @@ class ErrorCode(enum):
     NO_VALID_FRAME_DATA_IN_SESSION              = auto(), "No valid frame data found in session for phase detection.",                          None, False
     PHASE_UNDETERMINED_IN_FRAME                 = auto(), "The phase could not be determined for the provided frame.",                          None, False
     TRIED_TO_DETECT_FRAME_FOR_UNSTABLE_STATE    = auto(), "Tried to detect phase for a frame when the session is in an unstable state.",        None, False
+    PHASE_IS_NONE_IN_FRAME                      = auto(), "The detected phase in the provided frame is None.",                                  None, False
 
     # FeedbackFormatter.
     FEEDBACK_FORMATTER_INIT_ERROR               = auto(), "Failed to initialize FeedbackFormatter",                                             None,  True

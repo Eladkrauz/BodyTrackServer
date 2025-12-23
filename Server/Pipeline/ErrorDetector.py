@@ -1,37 +1,42 @@
-################################################################
-############### BODY TRACK // SERVER // PIPELINE ###############
-################################################################
-#################### CLASS: ErrorDetector ######################
-################################################################
+####################################################################
+################# BODY TRACK // SERVER // PIPELINE #################
+####################################################################
+###################### CLASS: ErrorDetector ########################
+####################################################################
 
 ###############
 ### IMPORTS ###
 ###############
-from __future__ import annotations
-from typing import Dict, TYPE_CHECKING, Any
+from typing import Dict, Any, List
 from math import isnan
 import inspect
 
-from Server.Data.Phase.PhaseType            import PhaseType
-from Server.Data.Session.ExerciseType       import ExerciseType
-from Server.Utilities.Error.ErrorHandler    import ErrorHandler
-from Server.Utilities.Error.ErrorCode       import ErrorCode
-from Server.Utilities.Logger                import Logger
-from Server.Data.Session.SessionData        import SessionData
-from Server.Data.Error.ErrorMappings        import ErrorMappings
-from Server.Data.Error.DetectedErrorCode    import DetectedErrorCode
-from Server.Data.History.HistoryData        import HistoryData
-from Server.Data.History.HistoryDictKey     import HistoryDictKey
+from Server.Data.Phase.PhaseType         import PhaseType
+from Server.Data.Session.ExerciseType    import ExerciseType
+from Server.Utilities.Error.ErrorHandler import ErrorHandler
+from Server.Utilities.Error.ErrorCode    import ErrorCode
+from Server.Utilities.Logger             import Logger
+from Server.Data.Session.SessionData     import SessionData
+from Server.Data.Error.ErrorMappings     import ErrorMappings
+from Server.Data.Error.DetectedErrorCode import DetectedErrorCode
+from Server.Data.History.HistoryData     import HistoryData
+from Server.Data.History.HistoryDictKey  import HistoryDictKey
+from Server.Data.Joints.JointAngle       import JointAngle, Joint
+from Server.Data.Phase.PhaseType         import PhaseType
+from Server.Data.Phase.PhaseDictKey      import PhaseDictKey
+from Server.Data.Pose.PositionSide       import PositionSide
     
 ############################
 ### ERROR DETECTOR CLASS ###
 ############################
 class ErrorDetector:
     """
+    ### Description:
     The `ErrorDetector` is responsible for **biomechanical validation**.
     It compares joint-angle values (computed by `JointAnalyzer`) against
     exercise-specific threshold ranges loaded from the configuration `JSON`.
 
+    ### Workflow:
     For every frame, the class:
     1. Receives `exercise_name`, current `phase`, and all joint `angles`.
     2. Locates the threshold ranges for this exercise + phase.
@@ -43,9 +48,8 @@ class ErrorDetector:
     5. Stops at the **first detected error**.
 
     • Returns a `DetectedErrorCode` (enum) indicating biomechanical error.
-    • Returns ErrorCodes for invalid states.
+    • Returns `ErrorCode` for invalid states.
     """
-
     #########################
     ### CLASS CONSTRUCTOR ###
     #########################
@@ -54,7 +58,6 @@ class ErrorDetector:
         ### Brief:
         The `__init__` method initializes the `ErrorDetector` instance.
         Loads all exercise thresholds from configuration.
-        Uses ErrorHandler on failure and initializes with empty thresholds.
         """
         try:
             self.retrieve_configurations()
@@ -83,59 +86,40 @@ class ErrorDetector:
         # Ensure last frame is valid.
         history:HistoryData = session.get_history()
 
+        # If history state is not OK, return NOT_READY_FOR_ANALYSIS.
         if not history.is_state_ok():
             Logger.debug("History state not OK.")
             return DetectedErrorCode.NOT_READY_FOR_ANALYSIS
-
+        
+        # If last frame is not actually valid, return NOT_READY_FOR_ANALYSIS.
         if not history.is_last_frame_actually_valid():
             Logger.debug("Last frame not actually valid.")
             return DetectedErrorCode.NOT_READY_FOR_ANALYSIS
-                
+
+        # Get current phase.      
         phase:PhaseType = history.get_phase_state() 
         if phase is None:
             ErrorHandler.handle(
-                error=ErrorCode.ERROR_DETECTOR_CONFIG_ERROR,
-                origin=inspect.currentframe(),
-                extra_info={"reason": "Phase is None"}
+                error=ErrorCode.PHASE_IS_NONE_IN_FRAME,
+                origin=inspect.currentframe()
             )
-            return ErrorCode.ERROR_DETECTOR_CONFIG_ERROR
+            return ErrorCode.PHASE_IS_NONE_IN_FRAME
         
+        # Get angles from last valid frame.
         angles:Dict[str, float] = history.get_last_valid_frame().get(HistoryDictKey.Frame.JOINTS)
         if not angles:
             ErrorHandler.handle(
-                error=ErrorCode.ERROR_DETECTOR_CONFIG_ERROR,
-                origin=inspect.currentframe(),
-                extra_info={"reason": "Angles dictionary is empty"}
+                error=ErrorCode.ANGLES_DICTIONARY_IS_EMPTY,
+                origin=inspect.currentframe()
             )
-            return ErrorCode.ERROR_DETECTOR_CONFIG_ERROR
+            return ErrorCode.ANGLES_DICTIONARY_IS_EMPTY
         
         exercise_type:ExerciseType = session.get_exercise_type()
-        
-        exercise_name = exercise_type.value
-        exercise_block = self.thresholds.get(exercise_name)
-        if not isinstance(exercise_block, dict):
-            ErrorHandler.handle(
-                error=ErrorCode.ERROR_DETECTOR_CONFIG_ERROR,
-                origin=inspect.currentframe(),
-                extra_info={
-                    "exercise": exercise_name,
-                    "reason": "Exercise config missing or invalid"
-                }
-            )
-            return ErrorCode.ERROR_DETECTOR_CONFIG_ERROR
+        exercise_name:str = exercise_type.value
+        exercise_block:Dict[str, Any] = self.thresholds.get(exercise_name)
 
-
-        phase_thresholds: Dict[str,Dict[str, Any]] = exercise_block.get(phase.name)
-        # A valid exercise may lack thresholds for this specific phase.
-        if not phase_thresholds:
-            ErrorHandler.handle(
-                error=ErrorCode.ERROR_DETECTOR_UNSUPPORTED_PHASE,
-                origin=inspect.currentframe(),
-                extra_info={"phase": phase.name}
-            )
-            return ErrorCode.ERROR_DETECTOR_UNSUPPORTED_PHASE
-        
         # Iterate angles in the exact order defined in JSON.
+        phase_thresholds: Dict[str,Dict[str, Any]] = exercise_block.get(phase.name)
         for angle_name, rules in phase_thresholds.items():
             # Angle missing from JointAnalyzer output.
             if angle_name not in angles:
@@ -147,7 +131,7 @@ class ErrorDetector:
                 ErrorHandler.handle(
                     error=ErrorCode.ERROR_DETECTOR_INVALID_ANGLE,
                     origin=inspect.currentframe(),
-                    extra_info={"angle": angle_name, "value": str(value)}
+                    extra_info={"Angle": angle_name, "Value": str(value)}
                 )
                 continue
 
@@ -213,3 +197,118 @@ class ErrorDetector:
             different_file=self.config_file_path,
             read_all=True
         )
+
+        # Validate the loaded configuration.
+        if not self._validate_exercise_config():
+            ErrorHandler.imidiate_abort(
+                error=ErrorCode.PHASE_THRESHOLDS_CONFIG_FILE_ERROR,
+                origin=inspect.currentframe()
+            )
+
+        Logger.info("Configurations retrieved and validated successfully.")
+
+    ################################
+    ### VALIDATE EXERCISE CONFIG ###
+    ################################
+    def _validate_exercise_config(self) -> bool:
+        """
+        ### Brief:
+        The `_validate_exercise_config` method validates the JSON dict of exercises configuration.
+
+        ### Returns:
+        - `True` if valid.
+        - `False` otherwise.
+        """
+        # Thresholds must be a non-empty dict.
+        if self.thresholds is None or not isinstance(self.thresholds, dict) or len(self.thresholds) == 0:
+            ErrorHandler.handle(
+                error=ErrorCode.ERROR_DETECTOR_CONFIG_ERROR,
+                origin=inspect.currentframe(),
+                extra_info={ "Config file": "is empty" }
+            )
+            return False
+        
+        # Iterating over the exercises configured in the thresholds config.
+        for exercise_name, config in self.thresholds.items():
+            try:
+                # Exercise must exist in ExerciseType.
+                exercise_type:ExerciseType = ExerciseType.get(exercise_name)
+                # Get Phase enum for this exercise.
+                phase_enum:PhaseType = PhaseType.get_phase_enum(exercise_type)
+            except ValueError:
+                ErrorHandler.handle(
+                    error=ErrorCode.EXERCISE_TYPE_DOES_NOT_EXIST,
+                    origin=inspect.currentframe(),
+                    extra_info={ "Unknown exercise": exercise_name }
+                ); return False
+            
+            for phase in phase_enum:
+                if PhaseType.is_none(phase): continue
+                if phase.name not in config:
+                    ErrorHandler.handle(
+                        error=ErrorCode.ERROR_DETECTOR_CONFIG_ERROR,
+                        origin=inspect.currentframe(),
+                        extra_info={ f"Missing phase block for exercise {exercise_name}": phase.name }
+                    ); return False
+            
+            for phase_name, joints in config.items():
+                if not isinstance(joints, dict):
+                    ErrorHandler.handle(
+                        error=ErrorCode.ERROR_DETECTOR_CONFIG_ERROR,
+                        origin=inspect.currentframe(),
+                        extra_info={ f"Invalid joints block for exercise {exercise_name}": joints }
+                    ); return False
+                
+                # Get allowed joint names for this exercise type.
+                joint_cls:JointAngle = JointAngle.exercise_type_to_joint_type(exercise_type)
+                allowed_joint_names:List[str] = [
+                    joint.name for joint in
+                    JointAngle.get_all_joints(
+                        cls_name=joint_cls,
+                        position_side=PositionSide.FRONT,
+                        extended_evaluation=True
+                    )
+                ]
+
+                for joint, limits in joints.items():
+                    # Joint must be valid.
+                    if joint not in allowed_joint_names:
+                        ErrorHandler.handle(
+                            error=ErrorCode.PHASE_THRESHOLDS_CONFIG_FILE_ERROR,
+                            origin=inspect.currentframe(),
+                            extra_info={ f"Unknown joint for {exercise_name}.{phase_name}": joint }
+                        ); return False
+                    
+                    # Limits must be a dict with min and max numeric values.
+                    if PhaseDictKey.MIN not in limits or PhaseDictKey.MAX not in limits:
+                        ErrorHandler.handle(
+                            error=ErrorCode.PHASE_THRESHOLDS_CONFIG_FILE_ERROR,
+                            origin=inspect.currentframe(),
+                            extra_info={ f"Missing min/max for {exercise_name}.{phase_name}.{joint}": limits }
+                        ); return False
+
+                    # Min must be numeric.
+                    if not isinstance(limits[PhaseDictKey.MIN], (int, float)):
+                        ErrorHandler.handle(
+                            error=ErrorCode.PHASE_THRESHOLDS_CONFIG_FILE_ERROR,
+                            origin=inspect.currentframe(),
+                            extra_info={ f"Non-numeric min for {exercise_name}.{phase_name}.{joint}": limits[PhaseDictKey.MIN] }
+                        ); return False
+
+                    # Max must be numeric.
+                    if not isinstance(limits[PhaseDictKey.MAX], (int, float)):
+                        ErrorHandler.handle(
+                            error=ErrorCode.PHASE_THRESHOLDS_CONFIG_FILE_ERROR,
+                            origin=inspect.currentframe(),
+                            extra_info={ f"Non-numeric max for {exercise_name}.{phase_name}.{joint}": limits[PhaseDictKey.MAX] }
+                        ); return False
+                    
+                    # Min must be less than or equal to Max.
+                    if limits[PhaseDictKey.MIN] > limits[PhaseDictKey.MAX]:
+                        ErrorHandler.handle(
+                            error=ErrorCode.PHASE_THRESHOLDS_CONFIG_FILE_ERROR,
+                            origin=inspect.currentframe(),
+                            extra_info={ f"Min greater than max for {exercise_name}.{phase_name}.{joint}": limits }
+                        ); return False
+
+        return True

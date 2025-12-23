@@ -179,7 +179,5 @@ class ConfigParameters:
         ###############
         # The number of top errors to include in the summary.
         NUMBER_OF_TOP_ERRORS                    = "number_of_top_errors"
-        # The penalty per error for grading.
-        PENALTY_PER_ERROR                       = "penalty_per_error"
         # The maximum grade achievable.
         MAX_GRADE                               = "max_grade"

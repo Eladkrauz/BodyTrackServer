@@ -61,13 +61,12 @@
       "phase_low_motion_threshold":           2
     },
     "feedback": {
-      "pose_quality_feedback_threshold":      0,
-      "biomechanical_feedback_threshold":     0,
-      "feedback_cooldown_frames":             0
+      "pose_quality_feedback_threshold":      10,
+      "biomechanical_feedback_threshold":     2,
+      "feedback_cooldown_frames":             15
     },
     "summary": {
       "number_of_top_errors":                 4,
-      "penalty_per_error":                    1.5,
       "max_grade":                            100
     }
 }

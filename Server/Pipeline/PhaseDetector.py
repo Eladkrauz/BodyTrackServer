@@ -1,8 +1,8 @@
-############################################################
-############# BODY TRACK // SERVER // PIPELINE #############
-############################################################
-################### CLASS: PhaseDetector ###################
-############################################################
+####################################################################
+################# BODY TRACK // SERVER // PIPELINE #################
+####################################################################
+###################### CLASS: PhaseDetector ########################
+####################################################################
 
 ###############
 ### IMPORTS ###
@@ -563,8 +563,6 @@ class PhaseDetector:
 
         Logger.info("Configurations retrieved and validated successfully.")
 
-    from enum import Enum
-
     ################################
     ### VALIDATE EXERCISE CONFIG ###
     ################################
@@ -644,9 +642,17 @@ class PhaseDetector:
                         extra_info={ f"Invalid joint rules for {exercise_name}.{phase_name}": joints }
                     ); return False
                 
-                # check joint -> (min,max)
+                # Get allowed joint names for this exercise type.
                 joint_cls:JointAngle = JointAngle.exercise_type_to_joint_type(exercise_type)
-                allowed_joint_names:set = { j.name for j in (joint_cls.CORE + joint_cls.EXTENDED) }
+                allowed_joint_names:List[str] = [
+                    joint.name for joint in
+                    JointAngle.get_all_joints(
+                        cls_name=joint_cls,
+                        position_side=PositionSide.FRONT,
+                        extended_evaluation=True
+                    )
+                ]
+
                 for joint, limits in joints.items():
                     # Joint must be valid.
                     if joint not in allowed_joint_names:

@@ -141,8 +141,7 @@ class SessionSummaryManager():
         try:
             from Server.Data.History.HistoryDictKey import HistoryDictKey
             total_duration = sum(rep[HistoryDictKey.Repetition.DURATION] for rep in reps)
-            return total_duration / len(reps) if reps else 0.0
-
+            return round(total_duration / len(reps) if reps else 0.0, 2)
         except Exception as e:
             ErrorHandler.handle(
                 error=ErrorCode.SUMMARY_MANAGER_INTERNAL_ERROR,
@@ -223,7 +222,7 @@ class SessionSummaryManager():
                 if rep_data[HistoryDictKey.Repetition.IS_CORRECT] is True:
                     rep_data[HistoryDictKey.Repetition.ERRORS] = []
 
-                return reps
+            return reps
         except Exception as e:
             ErrorHandler.handle(
                 error=ErrorCode.SUMMARY_MANAGER_INTERNAL_ERROR,

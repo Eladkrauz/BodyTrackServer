@@ -10,18 +10,19 @@
 from __future__ import annotations
 import inspect
 from datetime import datetime
-from typing import Dict, TYPE_CHECKING, Any
+from typing import Dict, TYPE_CHECKING, Any, Set, List
 from copy import deepcopy
 
-from Server.Data.Pose.PoseQuality        import PoseQuality
-from Server.Data.History.HistoryDictKey  import HistoryDictKey
-from Server.Data.History.HistoryData     import HistoryData
-from Server.Data.Error.DetectedErrorCode import DetectedErrorCode
-from Server.Data.Session.ExerciseType    import ExerciseType
-from Server.Data.Phase.PhaseType         import PhaseType
-from Server.Data.Pose.PoseLandmarks      import PoseLandmarksArray
-from Server.Data.Pose.PositionSide       import PositionSide
-from Server.Utilities.Logger             import Logger
+from Server.Data.Pose.PoseQuality          import PoseQuality
+from Server.Data.History.HistoryDictKey    import HistoryDictKey
+from Server.Data.History.HistoryData       import HistoryData
+from Server.Data.Error.DetectedErrorCode   import DetectedErrorCode
+from Server.Data.Session.ExerciseType      import ExerciseType
+from Server.Data.Phase.PhaseType           import PhaseType
+from Server.Data.Pose.PoseLandmarks        import PoseLandmarksArray
+from Server.Data.Pose.PositionSide         import PositionSide
+from Server.Utilities.Logger               import Logger
+from Server.Data.Response.FeedbackResponse import FeedbackCode
 
 if TYPE_CHECKING:
     from Server.Data.Pose.PoseQuality  import PoseQuality
@@ -92,7 +93,7 @@ class HistoryManager:
             }
 
             # Inserting and handling rolling window of the frames list.
-            frames_list:list = history_raw_dict[HistoryDictKey.FRAMES]
+            frames_list:List = history_raw_dict[HistoryDictKey.FRAMES]
             frames_list.append(new_frame)
             self._pop_frame_if_needed(history_data)
 
@@ -145,7 +146,7 @@ class HistoryManager:
             
             # If found - adding the error.
             if iterated_frame_id == frame_id:
-                frame_errors:list[str] = history_raw_dict[HistoryDictKey.FRAMES][i][HistoryDictKey.Frame.ERRORS]
+                frame_errors:List[str] = history_raw_dict[HistoryDictKey.FRAMES][i][HistoryDictKey.Frame.ERRORS]
                 frame_errors.append(error_to_add)
 
                 # Updating counters.
@@ -198,7 +199,7 @@ class HistoryManager:
                 HistoryDictKey.BadFrame.TIMESTAMP: datetime.now(),
                 HistoryDictKey.BadFrame.REASON:    invalid_reason.value
             }
-            bad_frames_log:list[Dict] = history_raw_dict[HistoryDictKey.BAD_FRAMES_LOG]
+            bad_frames_log:List[Dict] = history_raw_dict[HistoryDictKey.BAD_FRAMES_LOG]
             bad_frames_log.append(entry)
             self._pop_bad_frame_if_needed(history_data)
 
@@ -302,7 +303,7 @@ class HistoryManager:
         #######################################
         ### HANDLING REPETITION PROGRESSION ###
         #######################################
-        transition_order:list[str] = self.transition_order_per_exercise.get(exercise_type, [])
+        transition_order:List[str] = self.transition_order_per_exercise.get(exercise_type, [])
         initial_phase:PhaseType    = self.initial_phase_per_exercise.get(exercise_type, None)
         current_index:int          = history_data.get_current_transition_index()
 
@@ -363,14 +364,14 @@ class HistoryManager:
         now = datetime.now()
 
         # If we have a previous transition (it is not the first now) - compute duration.
-        transitions:list = history_raw_dict[HistoryDictKey.PHASE_TRANSITIONS]
+        transitions:List = history_raw_dict[HistoryDictKey.PHASE_TRANSITIONS]
         if transitions:
             last = transitions[-1]
             start_time:datetime = last[HistoryDictKey.PhaseTransition.TIMESTAMP]
             duration = (now - start_time).total_seconds()
 
             # Store finished phase duration entry.
-            phase_durations:list = history_raw_dict[HistoryDictKey.PHASE_DURATIONS]
+            phase_durations:List = history_raw_dict[HistoryDictKey.PHASE_DURATIONS]
             phase_durations.append({
                 HistoryDictKey.PhaseDuration.PHASE:       old_phase,
                 HistoryDictKey.PhaseDuration.START_TIME:  start_time,
@@ -431,7 +432,8 @@ class HistoryManager:
             new_rep = {
                 HistoryDictKey.CurrentRep.START_TIME: datetime.now(),
                 HistoryDictKey.CurrentRep.HAS_ERROR:  False,
-                HistoryDictKey.CurrentRep.ERRORS:     []
+                HistoryDictKey.CurrentRep.ERRORS:     [],
+                HistoryDictKey.CurrentRep.NOTIFIED:   set()
             }
 
             history_raw_dict[HistoryDictKey.CURRENT_REP] = new_rep
@@ -455,8 +457,30 @@ class HistoryManager:
             return
         else:
             history_raw_dict[HistoryDictKey.CURRENT_REP][HistoryDictKey.CurrentRep.HAS_ERROR] = True
-            errors_list:list[str] = history_raw_dict[HistoryDictKey.CURRENT_REP][HistoryDictKey.CurrentRep.ERRORS]
-            errors_list.append(error_to_add.name)
+            errors_set:List[str] = history_raw_dict[HistoryDictKey.CURRENT_REP][HistoryDictKey.CurrentRep.ERRORS]
+            errors_set.append(error_to_add.name)
+
+    ################################
+    ### RECORD FEEDBACK NOTIFIED ###
+    ################################
+    def record_feedback_notified(self, history_data:HistoryData, error_notified:FeedbackCode) -> None:
+        """
+        ### Brief:
+        The `record_feedback_notified` method records that a feedback has been notified
+        for the current repetition.
+
+        ### Arguments:
+        - `history_data` (HistoryData): The `HistoryData` instance to work with.
+        - `error_notified` (FeedbackCode): The feedback code that was notified.
+        """
+        history_raw_dict:Dict[str, Any] = self._get_raw_history_data(history_data)
+
+        if history_raw_dict[HistoryDictKey.CURRENT_REP] is None:
+            Logger.warning("Tried to add notified feedback to a None current rep.")
+            return
+        else:
+            notified_set:Set[str] = history_raw_dict[HistoryDictKey.CURRENT_REP][HistoryDictKey.CurrentRep.NOTIFIED]
+            notified_set.add(error_notified)
 
     #######################
     ### END CURRENT REP ###
@@ -477,7 +501,7 @@ class HistoryManager:
             ErrorHandler.handle(error=ErrorCode.TRIED_TO_END_A_NONE_REP, origin=inspect.currentframe())
         else:
             # Finishing current rep and inserting it to the completed reps list.
-            current_rep:dict = history_raw_dict[HistoryDictKey.CURRENT_REP]
+            current_rep:Dict[str, Any] = history_raw_dict[HistoryDictKey.CURRENT_REP]
             start_time:datetime = current_rep[HistoryDictKey.CurrentRep.START_TIME]
             end_time:datetime = datetime.now()
             completed_rep = {
@@ -487,7 +511,7 @@ class HistoryManager:
                 HistoryDictKey.Repetition.IS_CORRECT: not current_rep[HistoryDictKey.CurrentRep.HAS_ERROR],
                 HistoryDictKey.Repetition.ERRORS:     deepcopy(current_rep[HistoryDictKey.CurrentRep.ERRORS])
             }
-            repetitions:list[Dict[str, Any]] = history_raw_dict[HistoryDictKey.REPETITIONS]
+            repetitions:List[Dict[str, Any]] = history_raw_dict[HistoryDictKey.REPETITIONS]
             repetitions.append(completed_rep)
             history_raw_dict[HistoryDictKey.REP_COUNT] += 1
             history_raw_dict[HistoryDictKey.CURRENT_REP] = None
@@ -563,9 +587,9 @@ class HistoryManager:
             history_raw_dict[HistoryDictKey.EXERCISE_FINAL_DURATION] = total_duration
 
             # Finalize last open phase.
-            transitions:list = history_raw_dict[HistoryDictKey.PHASE_TRANSITIONS]
-            durations:list   = history_raw_dict[HistoryDictKey.PHASE_DURATIONS]
-            repetitions:list = history_raw_dict[HistoryDictKey.REPETITIONS]
+            transitions:List = history_raw_dict[HistoryDictKey.PHASE_TRANSITIONS]
+            durations:List   = history_raw_dict[HistoryDictKey.PHASE_DURATIONS]
+            repetitions:List = history_raw_dict[HistoryDictKey.REPETITIONS]
             
             if transitions:
                 last_transition = transitions[-1]
@@ -1067,8 +1091,8 @@ class HistoryManager:
                     }
                 )
             # Get transition order.
-            exercise_order:list[str] = exercise_config.get(PhaseDictKey.TRANSITION_ORDER, None)
-            exercise_phases:list[PhaseType] = []
+            exercise_order:List[str] = exercise_config.get(PhaseDictKey.TRANSITION_ORDER, None)
+            exercise_phases:List[PhaseType] = []
             if exercise_order is None:
                 ErrorHandler.handle(
                     error=ErrorCode.PHASE_THRESHOLDS_CONFIG_FILE_ERROR,

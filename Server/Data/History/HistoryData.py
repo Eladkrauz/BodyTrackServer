@@ -176,7 +176,7 @@ class HistoryData:
         `HistoryDictKey.Repetition.END_TIME`: `datetime`,
         `HistoryDictKey.Repetition.DURATION`: `float`,
         `HistoryDictKey.Repetition.IS_CORRECT`: `bool`,
-        `HistoryDictKey.Repetition.ERRORS`: `list[str]`
+        `HistoryDictKey.Repetition.ERRORS`: `List[str]`,
     }
 
     - Used for:
@@ -190,7 +190,8 @@ class HistoryData:
     {
         `HistoryDictKey.CurrentRep.START_TIME`: `datetime`,
         `HistoryDictKey.CurrentRep.HAS_ERROR`: `bool`,
-        `HistoryDictKey.CurrentRep.ERRORS`: `list[str]`
+        `HistoryDictKey.CurrentRep.ERRORS`: `List[str]`,
+        `HistoryDictKey.Repetition.NOTIFIED`: `set[FeedbackCode]`
     }
 
     ### Current Transition Index (`int`):
@@ -606,7 +607,7 @@ class HistoryData:
         ### Returns:
         An `int` indicating the number of frames since the last feedback sent.
         """
-        return self.history[HistoryDictKey.FRAMES_SINCE_LAST_FEEDBACK]
+        return round(self.history[HistoryDictKey.FRAMES_SINCE_LAST_FEEDBACK], 2)
 
     #############################
     ### GET EXERCISE DURATION ###

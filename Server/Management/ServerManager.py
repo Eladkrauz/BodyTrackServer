@@ -56,8 +56,8 @@ class ServerManager:
 
         # TestManager().test_with_enters(
         TestManager().test(
-            exercise_type=ExerciseType.SQUAT,
-            video_path="/Users/eladkrauz/Desktop/Videos/try4.mp4"
+            exercise_type=ExerciseType.BICEPS_CURL,
+            video_path="/Users/eladkrauz/Desktop/Videos/try6.mp4"
         )
 
         # Keep the main thread alive.

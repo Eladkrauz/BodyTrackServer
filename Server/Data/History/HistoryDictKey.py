@@ -67,6 +67,7 @@ class HistoryDictKey:
         START_TIME = "start_time"
         HAS_ERROR  = "has_error"
         ERRORS     = "errors"
+        NOTIFIED   = "notified"
 
     ##################
     ### REPETITION ###

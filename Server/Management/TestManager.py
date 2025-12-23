@@ -74,7 +74,9 @@ class TestManager:
         # Video setup.
         cap = cv2.VideoCapture(video_path)
         original_fps = cap.get(cv2.CAP_PROP_FPS)
+        print(f"Original FPS: {original_fps}")
         capture_interval = 1.0 / original_fps
+        print(f"Capture Interval: {capture_interval:.4f} seconds")
 
         # Sampling configuration (25% reduction).
         REDUCTION_RATIO = 0
