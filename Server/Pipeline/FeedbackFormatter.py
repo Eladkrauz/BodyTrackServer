@@ -103,16 +103,9 @@ class FeedbackFormatter:
             # Check biomechanical issues.
             if not current_state_ok:
                 return self._handle_pose_quality_feedback(history)
-
-            biomechanical_feedback:FeedbackCode = self._handle_biomechanical_feedback(history)
-            if biomechanical_feedback is not FeedbackCode.SILENT:
-                return biomechanical_feedback
+            else:
+                return self._handle_biomechanical_feedback(history)
             
-            valid_feedback: FeedbackCode = self._handle_valid_feedback(history)
-            if valid_feedback is not FeedbackCode.SILENT:
-                return valid_feedback
-            
-            return FeedbackCode.SILENT
         except Exception as e:
             ErrorHandler.handle(
                 error=ErrorCode.FEEDBACK_CONSTRUCTION_ERROR,
@@ -122,7 +115,6 @@ class FeedbackFormatter:
                     "Reason": str(e)
                 }
             )
-            return FeedbackCode.SILENT
 
 
     ####################################
@@ -152,7 +144,7 @@ class FeedbackFormatter:
             frames_since_last_valid:int = history.get_frames_since_last_valid()
             if frames_since_last_valid < self.pose_quality_feedback_threshold:
                 return FeedbackCode.SILENT
-            if not self._pose_quality_cooldown_passed():
+            if not self._cooldown_passed(history):
                 return FeedbackCode.SILENT
             
             
@@ -188,6 +180,8 @@ class FeedbackFormatter:
         - Find the most frequent biomechanical error.
         - If below biomechanical threshold → return `SILENT`.
         - Convert the selected error into a `FeedbackCode`.
+        - If that feedback code has already been issued in the current rep → return `SILENT`.
+        - Otherwise, return the feedback code.
 
         ### Arguments:
         - `history` (HistoryData): Provides biomechanical error streaks.
@@ -196,30 +190,28 @@ class FeedbackFormatter:
         - `FeedbackCode`: A biomechanical feedback code or `SILENT`.
         """
         try:            
+            current_rep : dict[str, any] = history.get_current_rep()
+            rep_errors:Dict[str, any] = current_rep[HistoryDictKey.CurrentRep.ERRORS]
+            if not rep_errors:
+                return FeedbackCode.VALID
+            if not self._cooldown_passed(history):
+                return FeedbackCode.SILENT
+            
             biomechanical_streaks:Dict[str, int] = history.get_error_streaks()
             if not biomechanical_streaks: return FeedbackCode.SILENT
             worst_error_streak:str = max(biomechanical_streaks, key=biomechanical_streaks.get)
-
-            current_rep : dict[str, any] = history.get_current_rep()
-            rep_errors:Dict[str, any] = current_rep[HistoryDictKey.CurrentRep.ERRORS]
-            if rep_errors is None:
-                return FeedbackCode.SILENT
-            if worst_error_streak in rep_errors:
-                return FeedbackCode.SILENT
-
+            
             if biomechanical_streaks[worst_error_streak] < self.biomechanical_feedback_threshold:
                 return FeedbackCode.SILENT
-            
-            if not self._biomechanical_cooldown_passed():
-                return FeedbackCode.SILENT
-            
-            current_rep : dict[str, any] = history.get_current_rep()
-            if current_rep.HistoryDictKey.CurrentRep.ERRORS is None:
-                return FeedbackCode.SILENT
-            
+                        
             
             detected_enum = DetectedErrorCode[worst_error_streak]
-            return FeedbackCode.from_detected_error(detected_enum)
+            notified_errors_in_rep : set[FeedbackCode] = current_rep[HistoryDictKey.CurrentRep.NOTIFIED_ERRORS]
+            feedback_code = FeedbackCode.from_detected_error(detected_enum)
+            if feedback_code in notified_errors_in_rep:
+                return FeedbackCode.SILENT
+            else:
+                return feedback_code
         
         except Exception as e:
             ErrorHandler.handle(
@@ -233,59 +225,16 @@ class FeedbackFormatter:
             return FeedbackCode.SILENT       
 
 
-    #############################
-    ### HANDLE VALID FEEDBACK ###   
-    #############################
-    def _handle_valid_feedback(self, history: HistoryData) -> FeedbackCode:
-        """
-        ### Brief:
-        The `_handle_valid_feedback` method determines whether positive
-        reinforcement feedback (VALID) should be issued.
-
-        ### Logic:
-        - If the state is not OK (pose-quality error exists) → VALID feedback is irrelevant.
-        - Check how many consecutive valid frames have occurred (`get_frames_since_last_invalid()`).
-        - If below threshold return `SILENT`.
-        - If cooldown period has not passed return `SILENT`.
-        - Otherwise return `FeedbackCode.VALID`.
-
-        ### Arguments:
-        - `history` (HistoryData): Provides valid frame streaks.
-
-        ### Returns:
-        - `FeedbackCode`: VALID feedback or `SILENT`.
-        """
-        try:
-            
-        except Exception as e:
-            ErrorHandler.handle(
-                error=ErrorCode.VALID_FEEDBACK_SELECTION_ERROR,
-                origin=inspect.currentframe(),
-                extra_info={
-                    "Exception": type(e).__name__,
-                    "Reason": "Unexpected failure during VALID feedback selection."
-                }
-            )
-            return FeedbackCode.SILENT
-    #####################################
-    ### IS ALLOWED TO RETURN FEEDBACK ###
-    #####################################
-    def _is_allowed_to_return_feedback(self, history:HistoryData) -> bool:
-        """
-        ### Brief:
-        The `_is_allowed_to_return_feedback` method evaluates whether the
-        cooldown period since the last feedback has passed.
-
-        ### Arguments:
-        - `history` (HistoryData): Holds cooldown counters.
-
-        ### Returns:
-        - `bool`: `True` if cooldown passed, otherwise `False`.
-        """
-        frames_since_last_feedback:int = history.get_frames_since_last_feedback()
-
-        if frames_since_last_feedback >= self.cooldown_frames: return True
-        else:                                                  return False
+    ############################
+    ### COOLDOWN EVALUATIONS ###
+    ############################
+    """
+    ### Brief:
+    The cooldown evaluation methods check whether enough frames have passed
+    since the last feedback was issued, based on the configured cooldown frames.
+    """
+    def _cooldown_passed(self, history: HistoryData) -> bool:
+        return history.get_frames_since_last_feedback() >= self.cooldown_frames
     
     ###############################
     ### RETRIEVE CONFIGURATIONS ###
@@ -306,10 +255,12 @@ class FeedbackFormatter:
                 ConfigParameters.Major.FEEDBACK,
                 ConfigParameters.Minor.BIO_FEEDBACK_THRESHOLD
             ])
-            self.cooldown_frames:int = ConfigLoader().get([
-                ConfigParameters.Major.FEEDBACK,
-                ConfigParameters.Minor.FEEDBACK_COOLDOWN_FRAMES
+
+            self.cooldown_frames: int = ConfigLoader.get([
+            ConfigParameters.Major.FEEDBACK,
+            ConfigParameters.Minor.COOLDOWN_FRAMES
             ])
+            
         except Exception as e:
             ErrorHandler.handle(
                 error=ErrorCode.FEEDBACK_CONFIG_RETRIEVAL_ERROR,

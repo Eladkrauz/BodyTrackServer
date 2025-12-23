@@ -150,7 +150,8 @@ class ErrorCode(enum):
     FEEDBACK_CONSTRUCTION_ERROR                 = auto(), "Error during feedback constructor",                                                  None, False
     POSE_QUALITY_FEEDBACK_SELECTION_ERROR       = auto(), "Error during pose quality feedback selection",                                       None, False
     BIOMECHANICAL_FEEDBACK_SELECTION_ERROR      = auto(), "Error during biomechanical feedback selection",                                      None, False
-
+    FEEDBACK_CONFIG_RETRIEVAL_ERROR             = auto(), "Error retrieving feedback configuration.",                                           None, False   
+    
     # SessionSummaryManager.
     SUMMARY_MANAGER_INIT_ERROR                  = auto(), "Failed to initialize SessionSummaryManager",                                         None,  True
     SUMMARY_MANAGER_CREATE_ERROR                = auto(), "Failed to create session summary",                                                   None, False
