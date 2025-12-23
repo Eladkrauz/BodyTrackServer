@@ -43,10 +43,7 @@ class ErrorDetector:
     5. Stops at the **first detected error**.
 
     • Returns a `DetectedErrorCode` (enum) indicating biomechanical error.
-    • Returns None if:
-        - All joints were valid.
-        - No biomechanical error was detected.
-        - Exercise/phase is unsupported.
+    • Returns ErrorCodes for invalid states.
     """
 
     #########################
@@ -59,8 +56,15 @@ class ErrorDetector:
         Loads all exercise thresholds from configuration.
         Uses ErrorHandler on failure and initializes with empty thresholds.
         """
-        self.retrieve_configurations()
-        Logger.info("Initialized successfully")
+        try:
+            self.retrieve_configurations()
+            Logger.info("Initialized successfully.")
+        except Exception as e:
+            ErrorHandler.handle(
+                error=ErrorCode.ERROR_DETECTOR_INIT_ERROR,
+                origin=inspect.currentframe(),
+                extra_info={"Exception": type(e).__name__, "Reason": str(e)}
+            )
 
     #####################
     ### DETECT ERRORS ###
@@ -78,35 +82,68 @@ class ErrorDetector:
         """
         # Ensure last frame is valid.
         history:HistoryData = session.get_history()
-        if not history.is_last_frame_actually_valid():
+
+        if not history.is_state_ok():
+            Logger.debug("History state not OK.")
             return DetectedErrorCode.NOT_READY_FOR_ANALYSIS
+
+        if not history.is_last_frame_actually_valid():
+            Logger.debug("Last frame not actually valid.")
+            return DetectedErrorCode.NOT_READY_FOR_ANALYSIS
+                
+        phase:PhaseType = history.get_phase_state() 
+        if phase is None:
+            ErrorHandler.handle(
+                error=ErrorCode.ERROR_DETECTOR_CONFIG_ERROR,
+                origin=inspect.currentframe(),
+                extra_info={"reason": "Phase is None"}
+            )
+            return ErrorCode.ERROR_DETECTOR_CONFIG_ERROR
         
-        exercise_type:ExerciseType = session.exercise_type
-        exercise_name = exercise_type.value
-        phase:PhaseType = history.get_phase_state()
         angles:Dict[str, float] = history.get_last_valid_frame().get(HistoryDictKey.Frame.JOINTS)
+        if not angles:
+            ErrorHandler.handle(
+                error=ErrorCode.ERROR_DETECTOR_CONFIG_ERROR,
+                origin=inspect.currentframe(),
+                extra_info={"reason": "Angles dictionary is empty"}
+            )
+            return ErrorCode.ERROR_DETECTOR_CONFIG_ERROR
+        
+        exercise_type:ExerciseType = session.get_exercise_type()
+        
+        exercise_name = exercise_type.value
+        exercise_block = self.thresholds.get(exercise_name)
+        if not isinstance(exercise_block, dict):
+            ErrorHandler.handle(
+                error=ErrorCode.ERROR_DETECTOR_CONFIG_ERROR,
+                origin=inspect.currentframe(),
+                extra_info={
+                    "exercise": exercise_name,
+                    "reason": "Exercise config missing or invalid"
+                }
+            )
+            return ErrorCode.ERROR_DETECTOR_CONFIG_ERROR
 
-        phase_thresholds:Dict[str, Any] = self.thresholds[exercise_name].get(phase.name)
 
+        phase_thresholds: Dict[str,Dict[str, Any]] = exercise_block.get(phase.name)
         # A valid exercise may lack thresholds for this specific phase.
         if not phase_thresholds:
+            ErrorHandler.handle(
+                error=ErrorCode.ERROR_DETECTOR_UNSUPPORTED_PHASE,
+                origin=inspect.currentframe(),
+                extra_info={"phase": phase.name}
+            )
             return ErrorCode.ERROR_DETECTOR_UNSUPPORTED_PHASE
-
+        
         # Iterate angles in the exact order defined in JSON.
         for angle_name, rules in phase_thresholds.items():
             # Angle missing from JointAnalyzer output.
             if angle_name not in angles:
-                ErrorHandler.handle(
-                    error=ErrorCode.ERROR_DETECTOR_INVALID_ANGLE,
-                    origin=inspect.currentframe(),
-                    extra_info={ "angle": angle_name }
-                )
                 continue
-
             value = angles[angle_name]
 
             # Invalid numeric value.
-            if value is None or isnan(value):
+            if not isinstance(value, (int, float)) or isnan(value):
                 ErrorHandler.handle(
                     error=ErrorCode.ERROR_DETECTOR_INVALID_ANGLE,
                     origin=inspect.currentframe(),
@@ -116,71 +153,42 @@ class ErrorDetector:
 
             # Below MINIMUM.
             if value < rules["min"]:
-                mapped = self._map_angle_to_error_low(exercise_type, angle_name)
+                mapped = ErrorMappings.get_error(
+                    exercise_type=exercise_type,
+                    phase=phase,
+                    angle_name=angle_name,
+                    is_high=False
+                )
                 if mapped is None:
                     # Mapping missing for valid angle.
                     ErrorHandler.handle(
                         error=ErrorCode.ERROR_DETECTOR_MAPPING_NOT_FOUND,
                         origin=inspect.currentframe(),
-                        extra_info={"angle": angle_name}
+                        extra_info={"angle": angle_name,
+                                    "reason": "No mapping for low value"}
                     )
                 return ErrorCode.ERROR_DETECTOR_MAPPING_NOT_FOUND if mapped is None else mapped
 
             # Above MAXIMUM.
             if value > rules["max"]:
-                mapped = self._map_angle_to_error_high(exercise_type, angle_name)
+                mapped = ErrorMappings.get_error(
+                    exercise_type=exercise_type,
+                    phase=phase,
+                    angle_name=angle_name,
+                    is_high=True
+                )
                 if mapped is None:
-                    Logger.debug(f"HIGH MAP: {ErrorMappings.SQUAT_ERROR_MAP_HIGH}")
                     ErrorHandler.handle(
                         error=ErrorCode.ERROR_DETECTOR_MAPPING_NOT_FOUND,
                         origin=inspect.currentframe(),
-                        extra_info={"angle": angle_name}
+                        extra_info={"angle": angle_name,
+                                    "reason": "No mapping for high value"}
                     )
                 return ErrorCode.ERROR_DETECTOR_MAPPING_NOT_FOUND if mapped is None else mapped
 
         # No biomechanical issues detected.
         return DetectedErrorCode.NO_BIOMECHANICAL_ERROR
-
-    ##############################
-    ### MAP ANGLE TO ERROR LOW ###
-    ##############################
-    def _map_angle_to_error_low(self, exercise:ExerciseType, angle_name:str) -> DetectedErrorCode | None:
-        """
-        ### Brief:
-        The `_map_angle_to_error_low` method maps an angle (below minimum range) to a biomechanical DetectedErrorCode.
-
-        ### Arguments:
-        - `exercise` (ExerciseType): The exercise being performed.
-        - `angle_name` (str): The name of the joint angle.
-
-        ### Returns:
-        - `DetectedErrorCode` (enum) if mapping exists.
-        - `None` if no mapping exists.
-        """
-        if   exercise is ExerciseType.SQUAT:         return ErrorMappings.SQUAT_ERROR_MAP_LOW.get(angle_name)
-        elif exercise is ExerciseType.BICEPS_CURL:   return ErrorMappings.BICEPS_CURL_ERROR_MAP_LOW.get(angle_name)
-        else:                                        return None
-
-    ###############################
-    ### MAP ANGLE TO ERROR HIGH ###
-    ###############################
-    def _map_angle_to_error_high(self, exercise:ExerciseType, angle_name:str) -> DetectedErrorCode | None:
-        """
-        ### Brief:
-        The `_map_angle_to_error_high` method maps an angle (above maximum range) to a biomechanical DetectedErrorCode.
-
-        ### Arguments:
-        - `exercise` (ExerciseType): The exercise being performed.
-        - `angle_name` (str): The name of the joint angle.
-
-        ### Returns:
-        - `DetectedErrorCode` (enum) if mapping exists.
-        - `None` if no mapping exists.
-        """
-        if   exercise is ExerciseType.SQUAT:         return ErrorMappings.SQUAT_ERROR_MAP_HIGH.get(angle_name)
-        elif exercise is ExerciseType.BICEPS_CURL:   return ErrorMappings.BICEPS_CURL_ERROR_MAP_HIGH.get(angle_name)
-        else:                                        return None
-
+        
     ###############################
     ### RETRIEVE CONFIGURATIONS ###
     ###############################

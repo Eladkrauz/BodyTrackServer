@@ -7,89 +7,226 @@
 ###############
 ### IMPORTS ###
 ###############
-from Server.Data.Joints.JointAngle import JointAngle
-from Server.Data.Error.DetectedErrorCode import DetectedErrorCode
+from __future__ import annotations
+from typing import Dict, Optional, Any
+
+from Server.Data.Session.ExerciseType     import ExerciseType
+from Server.Data.Phase.PhaseType          import PhaseType
+from Server.Data.Error.DetectedErrorCode  import DetectedErrorCode
+
 
 ############################
 ### ERROR MAPPINGS CLASS ###
 ############################
 class ErrorMappings:
     """
-    The `ErrorMappings` method holds all angle-to-error dictionaries used by ErrorDetector.
-    Maps each joint angle name (LOW/HIGH violation) to a DetectedErrorCode.
-    Exercise-specific, semantic mappings only.
+    The `ErrorMappings` class provides phase-aware mappings used by ErrorDetector.
+
+    Maps:
+        (exercise_type, phase, angle_name, direction) -> DetectedErrorCode
+
+    direction is "LOW" / "HIGH" (violation below min / above max).
     """
 
-    ###########################
-    ### SQUAT ERROR MAP LOW ###
-    ###########################
-    """
-    ### Description:
-    Low-angle violations for squat exercise           
-    """
-    SQUAT_ERROR_MAP_LOW = {
-        JointAngle.Squat.TRUNK_TILT.name:   DetectedErrorCode.SQUAT_CHEST_LEAN_FORWARD,
-        JointAngle.Squat.HIP_LINE.name:     DetectedErrorCode.SQUAT_NOT_DEEP_ENOUGH,
-        JointAngle.Squat.LEFT_HIP.name:     DetectedErrorCode.SQUAT_NOT_DEEP_ENOUGH,
-        JointAngle.Squat.RIGHT_HIP.name:    DetectedErrorCode.SQUAT_NOT_DEEP_ENOUGH,
-        JointAngle.Squat.LEFT_KNEE.name:    DetectedErrorCode.SQUAT_NOT_DEEP_ENOUGH,
-        JointAngle.Squat.RIGHT_KNEE.name:   DetectedErrorCode.SQUAT_NOT_DEEP_ENOUGH,
-        JointAngle.Squat.LEFT_ANKLE.name:   DetectedErrorCode.SQUAT_HEELS_OFF_GROUND,
-        JointAngle.Squat.RIGHT_ANKLE.name:  DetectedErrorCode.SQUAT_HEELS_OFF_GROUND,
-        JointAngle.Squat.KNEE_VALGUS.name:  DetectedErrorCode.SQUAT_KNEES_INWARD,
+    LOW  = "LOW"
+    HIGH = "HIGH"
+
+    #############################
+    ### SQUAT PHASE-AWARE MAP ###
+    #############################  
+    SQUAT_MAP = {
+
+        PhaseType.Squat.TOP: {
+            "trunk_tilt_angle": {
+                LOW:  DetectedErrorCode.SQUAT_TOP_TRUNK_TOO_FORWARD,
+                HIGH: DetectedErrorCode.SQUAT_TOP_TRUNK_TOO_BACKWARD
+            },
+            "hip_line_angle": {
+                LOW:  DetectedErrorCode.SQUAT_TOP_HIP_LINE_UNBALANCED,
+                HIGH: DetectedErrorCode.SQUAT_TOP_HIP_LINE_UNBALANCED
+            }
+        },
+
+        PhaseType.Squat.DOWN: {
+            "left_knee_angle": {
+                LOW:  DetectedErrorCode.SQUAT_DOWN_KNEE_TOO_STRAIGHT,
+                HIGH: DetectedErrorCode.SQUAT_DOWN_KNEE_TOO_BENT
+            },
+            "right_knee_angle": {
+                LOW:  DetectedErrorCode.SQUAT_DOWN_KNEE_TOO_STRAIGHT,
+                HIGH: DetectedErrorCode.SQUAT_DOWN_KNEE_TOO_BENT
+            },
+            "left_hip_angle": {
+                LOW:  DetectedErrorCode.SQUAT_DOWN_HIP_TOO_STRAIGHT,
+                HIGH: DetectedErrorCode.SQUAT_DOWN_HIP_TOO_BENT
+            },
+            "right_hip_angle": {
+                LOW:  DetectedErrorCode.SQUAT_DOWN_HIP_TOO_STRAIGHT,
+                HIGH: DetectedErrorCode.SQUAT_DOWN_HIP_TOO_BENT
+            }
+        },
+
+        PhaseType.Squat.HOLD: {
+            "left_hip_angle": {
+                LOW:  DetectedErrorCode.SQUAT_HOLD_HIP_NOT_DEEP_ENOUGH,
+                HIGH: DetectedErrorCode.SQUAT_HOLD_HIP_TOO_DEEP
+            },
+            "right_hip_angle": {
+                LOW:  DetectedErrorCode.SQUAT_HOLD_HIP_NOT_DEEP_ENOUGH,
+                HIGH: DetectedErrorCode.SQUAT_HOLD_HIP_TOO_DEEP
+            },
+            "knee_valgus_angle": {
+                LOW:  DetectedErrorCode.SQUAT_HOLD_KNEE_VALGUS,
+                HIGH: DetectedErrorCode.SQUAT_HOLD_KNEE_VALGUS
+            }
+        },
+
+        PhaseType.Squat.UP: {
+            "left_knee_angle": {
+                LOW:  DetectedErrorCode.SQUAT_UP_KNEE_COLLAPSE,
+                HIGH: DetectedErrorCode.SQUAT_UP_KNEE_COLLAPSE
+            },
+            "right_knee_angle": {
+                LOW:  DetectedErrorCode.SQUAT_UP_KNEE_COLLAPSE,
+                HIGH: DetectedErrorCode.SQUAT_UP_KNEE_COLLAPSE
+            },
+            "trunk_tilt_angle": {
+                LOW:  DetectedErrorCode.SQUAT_UP_TRUNK_TOO_FORWARD,
+                HIGH: DetectedErrorCode.SQUAT_UP_TRUNK_TOO_BACKWARD
+            }
+        }
+    }
+    
+
+    ###################################
+    ### BICEPS CURL PHASE-AWARE MAP ###
+    ###################################
+    BICEPS_CURL_MAP = {
+
+        PhaseType.BicepsCurl.REST: {
+
+            "left_elbow_angle": {
+                LOW:  DetectedErrorCode.CURL_REST_ELBOW_TOO_BENT,
+                HIGH: DetectedErrorCode.CURL_REST_ELBOW_TOO_STRAIGHT,
+            },
+            "right_elbow_angle": {
+                LOW:  DetectedErrorCode.CURL_REST_ELBOW_TOO_BENT,
+                HIGH: DetectedErrorCode.CURL_REST_ELBOW_TOO_STRAIGHT,
+            },
+
+            "left_shoulder_flexion_angle": {
+                LOW:  DetectedErrorCode.CURL_REST_SHOULDER_TOO_BACKWARD,
+                HIGH: DetectedErrorCode.CURL_REST_SHOULDER_TOO_FORWARD,
+            },
+            "right_shoulder_flexion_angle": {
+                LOW:  DetectedErrorCode.CURL_REST_SHOULDER_TOO_BACKWARD,
+                HIGH: DetectedErrorCode.CURL_REST_SHOULDER_TOO_FORWARD,
+            },
+        },
+
+        PhaseType.BicepsCurl.LIFTING: {
+
+            "left_elbow_angle": {
+                LOW:  DetectedErrorCode.CURL_LIFTING_ELBOW_TOO_STRAIGHT,
+                HIGH: DetectedErrorCode.CURL_LIFTING_ELBOW_TOO_BENT,
+            },
+            "right_elbow_angle": {
+                LOW:  DetectedErrorCode.CURL_LIFTING_ELBOW_TOO_STRAIGHT,
+                HIGH: DetectedErrorCode.CURL_LIFTING_ELBOW_TOO_BENT,
+            },
+
+            "left_shoulder_flexion_angle": {
+                LOW:  DetectedErrorCode.CURL_LIFTING_SHOULDER_TOO_BACKWARD,
+                HIGH: DetectedErrorCode.CURL_LIFTING_SHOULDER_TOO_FORWARD,
+            },
+            "right_shoulder_flexion_angle": {
+                LOW:  DetectedErrorCode.CURL_LIFTING_SHOULDER_TOO_BACKWARD,
+                HIGH: DetectedErrorCode.CURL_LIFTING_SHOULDER_TOO_FORWARD,
+            },
+        },
+
+        PhaseType.BicepsCurl.HOLD: {
+
+            "left_elbow_angle": {
+                LOW:  DetectedErrorCode.CURL_HOLD_ELBOW_TOO_OPEN,
+                HIGH: DetectedErrorCode.CURL_HOLD_ELBOW_TOO_CLOSED,
+            },
+            "right_elbow_angle": {
+                LOW:  DetectedErrorCode.CURL_HOLD_ELBOW_TOO_OPEN,
+                HIGH: DetectedErrorCode.CURL_HOLD_ELBOW_TOO_CLOSED,
+            },
+
+            "left_wrist_angle": {
+                LOW:  DetectedErrorCode.CURL_HOLD_WRIST_TOO_FLEXED,
+                HIGH: DetectedErrorCode.CURL_HOLD_WRIST_TOO_EXTENDED,
+            },
+            "right_wrist_angle": {
+                LOW:  DetectedErrorCode.CURL_HOLD_WRIST_TOO_FLEXED,
+                HIGH: DetectedErrorCode.CURL_HOLD_WRIST_TOO_EXTENDED,
+            },
+        },
+
+        PhaseType.BicepsCurl.LOWERING: {
+
+            "left_elbow_angle": {
+                LOW:  DetectedErrorCode.CURL_LOWERING_ELBOW_TOO_STRAIGHT,
+                HIGH: DetectedErrorCode.CURL_LOWERING_ELBOW_TOO_BENT,
+            },
+            "right_elbow_angle": {
+                LOW:  DetectedErrorCode.CURL_LOWERING_ELBOW_TOO_STRAIGHT,
+                HIGH: DetectedErrorCode.CURL_LOWERING_ELBOW_TOO_BENT,
+            },
+
+            "left_shoulder_flexion_angle": {
+                LOW:  DetectedErrorCode.CURL_LOWERING_SHOULDER_TOO_BACKWARD,
+                HIGH: DetectedErrorCode.CURL_LOWERING_SHOULDER_TOO_FORWARD,
+            },
+            "right_shoulder_flexion_angle": {
+                LOW:  DetectedErrorCode.CURL_LOWERING_SHOULDER_TOO_BACKWARD,
+                HIGH: DetectedErrorCode.CURL_LOWERING_SHOULDER_TOO_FORWARD,
+            },
+        }
     }
 
-    ############################
-    ### SQUAT ERROR MAP HIGH ###
-    ############################
+
+    ##############################################
+    ### MASTER MAP (ExerciseType -> Phase Map) ###
+    ##############################################
     """
-    ### Description:
-    High-angle violations for squat exercise           
+    The `MASTER_MAP` dictionary maps ExerciseType to its phase-aware error map.
     """
-    SQUAT_ERROR_MAP_HIGH = {
-        JointAngle.Squat.TRUNK_TILT.name:   DetectedErrorCode.SQUAT_BACK_ROUNDED,
-        JointAngle.Squat.HIP_LINE.name:     DetectedErrorCode.SQUAT_TOO_DEEP,
-        JointAngle.Squat.LEFT_HIP.name:     DetectedErrorCode.SQUAT_NOT_DEEP_ENOUGH,
-        JointAngle.Squat.RIGHT_HIP.name:    DetectedErrorCode.SQUAT_NOT_DEEP_ENOUGH,
-        JointAngle.Squat.LEFT_KNEE.name:    DetectedErrorCode.SQUAT_KNEES_INWARD,
-        JointAngle.Squat.RIGHT_KNEE.name:   DetectedErrorCode.SQUAT_KNEES_INWARD,
-        JointAngle.Squat.LEFT_ANKLE.name:   DetectedErrorCode.SQUAT_WEIGHT_FORWARD,
-        JointAngle.Squat.RIGHT_ANKLE.name:  DetectedErrorCode.SQUAT_WEIGHT_FORWARD,
-        JointAngle.Squat.KNEE_VALGUS.name:  DetectedErrorCode.SQUAT_KNEES_INWARD,
+    MASTER_MAP: Dict[ExerciseType, Dict[Any, Dict[str, Dict[str, DetectedErrorCode]]]] = {
+        ExerciseType.SQUAT:         SQUAT_MAP,
+        ExerciseType.BICEPS_CURL:   BICEPS_CURL_MAP,
     }
 
-    #################################
-    ### BICEPS CURL ERROR MAP LOW ###
-    #################################
-    """
-    ### Description:
-    Low-angle violations for biceps curl exercise           
-    """
-    BICEPS_CURL_ERROR_MAP_LOW = {
-        JointAngle.BicepsCurl.LEFT_ELBOW.name:            DetectedErrorCode.CURL_TOO_SHORT_TOP,
-        JointAngle.BicepsCurl.RIGHT_ELBOW.name:           DetectedErrorCode.CURL_TOO_SHORT_TOP,
-        JointAngle.BicepsCurl.LEFT_SHOULDER_FLEX.name:    DetectedErrorCode.CURL_ELBOWS_MOVING_BACKWARD,
-        JointAngle.BicepsCurl.RIGHT_SHOULDER_FLEX.name:   DetectedErrorCode.CURL_ELBOWS_MOVING_BACKWARD,
-        JointAngle.BicepsCurl.LEFT_SHOULDER_TORSO.name:   DetectedErrorCode.CURL_LEANING_FORWARD,
-        JointAngle.BicepsCurl.RIGHT_SHOULDER_TORSO.name:  DetectedErrorCode.CURL_LEANING_FORWARD,
-        JointAngle.BicepsCurl.LEFT_WRIST.name:            DetectedErrorCode.CURL_WRIST_NOT_NEUTRAL,
-        JointAngle.BicepsCurl.RIGHT_WRIST.name:           DetectedErrorCode.CURL_WRIST_NOT_NEUTRAL,
-    }
+    ##################
+    ### PUBLIC API ###
+    ##################
+    @classmethod
+    def get_error(
+        cls,
+        exercise_type: ExerciseType,
+        phase: PhaseType,
+        angle_name: str,
+        is_high: bool
+    ) -> Optional[DetectedErrorCode]:
+        """
+        The `get_error` method returns a DetectedErrorCode for (exercise, phase, angle, direction).
+        If no mapping exists -> returns None (caller may continue safely).
+        """
+        direction = cls.HIGH if is_high else cls.LOW
 
-    ##################################
-    ### BICEPS CURL ERROR MAP HIGH ###
-    ##################################
-    """
-    ### Description:
-    High-angle violations for biceps curl exercise           
-    """
-    BICEPS_CURL_ERROR_MAP_HIGH = {
-        JointAngle.BicepsCurl.LEFT_ELBOW.name:            DetectedErrorCode.CURL_NOT_FULL_FLEXION,
-        JointAngle.BicepsCurl.RIGHT_ELBOW.name:           DetectedErrorCode.CURL_NOT_FULL_FLEXION,
-        JointAngle.BicepsCurl.LEFT_SHOULDER_FLEX.name:    DetectedErrorCode.CURL_ELBOWS_MOVING_FORWARD,
-        JointAngle.BicepsCurl.RIGHT_SHOULDER_FLEX.name:   DetectedErrorCode.CURL_ELBOWS_MOVING_FORWARD,
-        JointAngle.BicepsCurl.LEFT_SHOULDER_TORSO.name:   DetectedErrorCode.CURL_LEANING_BACKWARD,
-        JointAngle.BicepsCurl.RIGHT_SHOULDER_TORSO.name:  DetectedErrorCode.CURL_LEANING_BACKWARD,
-        JointAngle.BicepsCurl.LEFT_WRIST.name:            DetectedErrorCode.CURL_WRIST_NOT_NEUTRAL,
-        JointAngle.BicepsCurl.RIGHT_WRIST.name:           DetectedErrorCode.CURL_WRIST_NOT_NEUTRAL,
-    }
+        exercise_map = cls.MASTER_MAP.get(exercise_type)
+        if not exercise_map:
+            return None
+
+        phase_map = exercise_map.get(phase)
+        if not phase_map:
+            return None
+
+        angle_map = phase_map.get(angle_name)
+        if not angle_map:
+            return None
+
+        return angle_map.get(direction)
