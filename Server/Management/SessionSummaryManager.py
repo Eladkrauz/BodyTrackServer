@@ -21,6 +21,7 @@ from Server.Data.Session.ErrorRecommendations import ErrorRecommendations
 from Server.Utilities.Logger                  import Logger
 from Server.Utilities.Error.ErrorHandler      import ErrorHandler
 from Server.Utilities.Error.ErrorCode         import ErrorCode
+from Server.Data.History.HistoryDictKey       import HistoryDictKey
 
 #####################################
 ### SUMMARY SESSION MANAGER CLASS ###
@@ -54,21 +55,7 @@ class SessionSummaryManager():
         - `max_grade`: the maximum possible session grade.
         """
         try:
-            self.number_of_top_errors:int = ConfigLoader().get([
-                ConfigParameters.Major.SUMMARY,
-                ConfigParameters.Minor.NUMBER_OF_TOP_ERRORS
-            ])
-
-            self.penalty:float = ConfigLoader().get([
-                ConfigParameters.Major.SUMMARY,
-                ConfigParameters.Minor.PENALTY_PER_ERROR
-            ])
-
-            self.max_grade:float = ConfigLoader().get([
-                ConfigParameters.Major.SUMMARY,
-                ConfigParameters.Minor.MAX_GRADE
-            ])
-
+            self.retrieve_configurations()
             Logger.info("Initialized successfully.")
 
         except Exception as e:
@@ -103,25 +90,27 @@ class SessionSummaryManager():
             * Recommendations
         """
         try:
-            history = session_data.get_history()
+            history:HistoryData                = session_data.get_history()
+            session_duration_seconds:float     = history.get_exercise_duration()
+            reps:List[Dict[str, Any]]          = history.get_rep_history()
+            average_rep_duration_seconds:float = self._average_rep_duration_seconds(reps)
+            aggregated_errors:Dict[str, int]   = self._aggregated_rep_errors(reps)
 
+            # Construct the SummaryResponse object.
             session_summary = SummaryResponse(
-                session_id=                     session_data.session_id.id,
-                exercise_type=                  session_data.exercise_type.value,
-                session_duration_seconds=       self._session_duration_seconds(history),
-                number_of_reps=                 history.get_rep_count(),
-                average_rep_duration_seconds=   self._average_rep_duration_seconds(history),
-                overall_grade                   =self._overall_grade(history),
-                rep_breakdown                   =self._rep_breakdown(history),
-                aggregated_errors               =self._aggregated_errors(history),
-                recommendations                 =self._recommendations(history)
+                session_id=                   session_data.session_id.id,
+                exercise_type=                session_data.exercise_type.value,
+                session_duration_seconds=     session_duration_seconds,
+                number_of_reps=               history.get_rep_count(),
+                average_rep_duration_seconds= average_rep_duration_seconds,
+                overall_grade=                self._overall_grade(reps),
+                rep_breakdown=                self._prepare_reps(reps),
+                aggregated_errors=            aggregated_errors,
+                recommendations=              self._recommendations(aggregated_errors)
             )
 
             Logger.info(f"Session summary created for session: {session_data.session_id}")
-            print("RETURNING")
-            print(session_summary)
             return session_summary
-
         except Exception as e:
             ErrorHandler.handle(
                 error=ErrorCode.SUMMARY_MANAGER_CREATE_ERROR,
@@ -133,35 +122,11 @@ class SessionSummaryManager():
                 }
             )
             return SummaryResponse.empty()  # fallback safe object if exists
-
-    ################################
-    ### SESSION DURATION SECONDS ###
-    ################################
-    def _session_duration_seconds(self, history: HistoryData) -> float | None:
-        """
-        ### Brief:
-        The `_session_duration_seconds` method computes the total duration of the session in seconds.
-
-        ### Arguments:
-        - `history` (HistoryData): Provides timestamps for session start and end.
-
-        ### Returns:
-        - `float`: Duration in seconds, or `None` if timestamps are incomplete.
-        """
-        try:
-            return history.get_exercise_duration()
-        except Exception as e:
-            ErrorHandler.handle(
-                error=ErrorCode.SUMMARY_MANAGER_INTERNAL_ERROR,
-                origin=inspect.currentframe(),
-                extra_info={"Exception": type(e), "Reason": str(e)}
-            )
-            return None
     
     ####################################
     ### AVERAGE REP DURATION SECONDS ###
     ####################################
-    def _average_rep_duration_seconds(self, history: HistoryData) -> float:
+    def _average_rep_duration_seconds(self, reps: List[Dict[str, Any]]) -> float:
         """
         ### Brief:
         The `_average_rep_duration_seconds` method computes the average duration of repetitions.
@@ -175,9 +140,8 @@ class SessionSummaryManager():
         # Calculate average rep duration
         try:
             from Server.Data.History.HistoryDictKey import HistoryDictKey
-            rep_list = history.get_rep_history()
-            total_duration = sum(rep[HistoryDictKey.Repetition.DURATION] for rep in rep_list)
-            return total_duration / len(rep_list) if rep_list else 0.0
+            total_duration = sum(rep[HistoryDictKey.Repetition.DURATION] for rep in reps)
+            return total_duration / len(reps) if reps else 0.0
 
         except Exception as e:
             ErrorHandler.handle(
@@ -190,33 +154,35 @@ class SessionSummaryManager():
     #####################
     ### OVERALL GRADE ###
     #####################
-    def _overall_grade(self, history: HistoryData) -> float:
+    def _overall_grade(self, reps:List[Dict[str, Any]]) -> float:
         """
         ### Brief:
         The `_overall_grade` method computes the overall performance grade for the session.
 
         ### The formula:
-        - `grade = max_grade - (total_errors * penalty)`
+        - Start with `max_grade`.
+        - For each incorrect rep, apply a penalty proportional to the number of errors.
+        - Ensure the final grade does not fall below `0`.
 
         ### Arguments:
-        - `history` (HistoryData): Provides error counters.
-
+        reps (List[Dict[str, Any]]): List of repetitions with correctness info.
         ### Returns:
         - `float`: The computed grade, never below 0.
         """
-        from Server.Data.Error.DetectedErrorCode import DetectedErrorCode
         try:
-            error_counters:Dict[str, int] = history.get_error_counters()
-            
-            if DetectedErrorCode.NO_BIOMECHANICAL_ERROR.name in error_counters:
-                error_counters.pop(DetectedErrorCode.NO_BIOMECHANICAL_ERROR.name)
-            if DetectedErrorCode.NOT_READY_FOR_ANALYSIS.name in error_counters:
-                error_counters.pop(DetectedErrorCode.NOT_READY_FOR_ANALYSIS.name)
+            # If there are no reps, return a grade of 0.0.
+            if not reps: return 0.0
 
-            total_errors = sum(error_counters.values())
-            grade = max(0.0, self.max_grade - (total_errors * self.penalty))
-            return grade
+            # Count incorrect reps.
+            incorrect_reps = sum(
+                1 for rep in reps
+                if rep.get(HistoryDictKey.Repetition.IS_CORRECT) is False
+            )
 
+            # Calculate grade based on incorrect reps.
+            correctness_ratio = 1.0 - (incorrect_reps / len(reps))
+            # Ensure grade is not negative.
+            return round(self.max_grade * correctness_ratio, 2)
         except Exception as e:
             ErrorHandler.handle(
                 error=ErrorCode.SUMMARY_MANAGER_INTERNAL_ERROR,
@@ -225,16 +191,16 @@ class SessionSummaryManager():
             )
             return 0.0
         
-    #####################
-    ### REP BREAKDOWN ###
-    #####################
-    def _rep_breakdown(self, history: HistoryData) -> List[Dict[str, Any]]:
+    ####################
+    ### PREPARE REPS ###
+    ####################
+    def _prepare_reps(self, reps: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
         ### Brief:
-        The `_rep_breakdown` method computes a detailed biomechanical breakdown for each repetition.
+        The `_prepare_reps` method computes a detailed biomechanical breakdown for each repetition.
 
         ### Arguments:
-        - `history` (HistoryData): Contains repetition-level information.
+        - `reps` (List[Dict[str, Any]]): List of repetitions with timestamps and error info.
 
         ### Returns:
         - `List[Dict[str, Any]]`: The list returned directly by `get_rep_history()`,
@@ -245,20 +211,19 @@ class SessionSummaryManager():
             * is_correct
             * errors
         """
-        from Server.Data.History.HistoryDictKey import HistoryDictKey
         try:
-            rep_history:List[Dict[str, Any]] = history.get_rep_history()
-            for rep_data in rep_history:
+            # Format timestamps and clean up errors for each rep.
+            for rep_data in reps:
                 start_time:datetime = rep_data[HistoryDictKey.Repetition.START_TIME]
-                end_time:datetime = rep_data[HistoryDictKey.Repetition.END_TIME]
+                end_time:datetime   = rep_data[HistoryDictKey.Repetition.END_TIME]
 
                 rep_data[HistoryDictKey.Repetition.START_TIME] = start_time.strftime("%H:%M:%S")
-                rep_data[HistoryDictKey.Repetition.END_TIME] = end_time.strftime("%H:%M:%S")
+                rep_data[HistoryDictKey.Repetition.END_TIME]   = end_time.strftime("%H:%M:%S")
 
                 if rep_data[HistoryDictKey.Repetition.IS_CORRECT] is True:
                     rep_data[HistoryDictKey.Repetition.ERRORS] = []
-                
-                return rep_history
+
+                return reps
         except Exception as e:
             ErrorHandler.handle(
                 error=ErrorCode.SUMMARY_MANAGER_INTERNAL_ERROR,
@@ -267,23 +232,37 @@ class SessionSummaryManager():
             )
             return []
         
-    #########################
-    ### AGGREGATED ERRORS ###
-    #########################
-    def _aggregated_errors(self, history: HistoryData) -> Dict[str, int]:
+    #############################
+    ### AGGREGATED REP ERRORS ###
+    #############################
+    def _aggregated_rep_errors(self, reps:List[Dict[str, Any]]) -> Dict[str, int]:
         """
         ### Brief:
-        The `_aggregated_errors` method aggregates the total number of
+        The `_aggregated_rep_errors` method aggregates the total number of
         each biomechanical error detected during the session.
 
         ### Arguments:
-        - `history` (HistoryData): Maintains error counters.
+        - `reps` (List[Dict[str, Any]]): List of repetitions with error info.
 
         ### Returns:
         - `Dict[str, int]`: Mapping from error name → count.
         """
         try:
-            return history.get_error_counters()
+            aggregated_errors:Dict[str, int] = {}
+
+            # Aggregate errors across all repetitions.
+            for rep_data in reps:
+                if rep_data[HistoryDictKey.Repetition.ERRORS] is None: continue
+
+                repetitions_errors:List[str] = rep_data[HistoryDictKey.Repetition.ERRORS]
+                for error in repetitions_errors:
+                    if error in aggregated_errors:
+                        aggregated_errors[error] += 1
+                    else:
+                        aggregated_errors[error] = 1
+            
+            # Return the final aggregated errors dictionary.
+            return aggregated_errors
         except Exception as e:
             ErrorHandler.handle(
                 error=ErrorCode.SUMMARY_MANAGER_INTERNAL_ERROR,
@@ -295,43 +274,47 @@ class SessionSummaryManager():
     #######################
     ### RECOMMENDATIONS ###
     #######################
-    def _recommendations(self, history: HistoryData) -> List[str]:
+    def _recommendations(self, aggregated_errors:Dict[str, int]) -> List[str]:
         """
         ### Brief:
         The `_recommendations` method generates recommendations based on
         biomechanical errors detected.
 
         ### Logic:
-        1. Converts error keys (strings) → `DetectedErrorCode` enums.
-        2. Filters out irrelevant errors (such as NO_BIOMECHANICAL_ERROR).
-        3. Sorts errors by frequency (highest first).
-        4. Retrieves human-readable recommendation text from `ErrorRecommendations`.
-        5. Returns only the top N errors (configured value).
+        - Sort errors by frequency.
+        - Retrieve human-readable recommendations for the top N errors.
 
         ### Arguments:
-        - `history` (HistoryData): Includes error counters collected throughout the session.
+        - `aggregated_errors` (Dict[str, int]): Includes error counters collected throughout the session.
 
         ### Returns:
         - `List[str]`: readable recommendations based on top biomechanical mistakes.
         """
         try:
-            error_counters:Dict[str, int] = history.get_error_counters()
-            typing_errors = {}
-            for error, count in error_counters.items():
-                enum_key:DetectedErrorCode = DetectedErrorCode[error] 
-                typing_errors[enum_key] = count
-            
-            filtered_errors = {}
-            irrelevant_errors = (DetectedErrorCode.NO_BIOMECHANICAL_ERROR, DetectedErrorCode.NOT_READY_FOR_ANALYSIS)
-            for error, count in typing_errors.items():
-                if count > 0 and error not in irrelevant_errors:
-                    filtered_errors[error] = count
+            # Sort errors by frequency in descending order.
+            sorted_errors = sorted(
+                aggregated_errors.items(),
+                key=lambda item: item[1],
+                reverse=True
+            )
 
-            sorted_errors = sorted(filtered_errors.items(), key=lambda item: item[1], reverse=True)
             recommendations = []
-            for error, _ in sorted_errors[:self.number_of_top_errors]:
-                recommendation = ErrorRecommendations.get_recommendation(error)
-                recommendations.append(recommendation)
+            count = 0
+            # Iterate through sorted errors to get recommendations.
+            for error_name, _ in sorted_errors:
+                # Limit to top N errors.
+                if count >= self.number_of_top_errors: break
+                count += 1
+                try:
+                    # Convert error name to enum.
+                    enum_error = DetectedErrorCode[error_name]
+                    recommendations.append(
+                        # Get human-readable recommendation.
+                        ErrorRecommendations.get_recommendation(enum_error)
+                    )
+                except KeyError:
+                    continue
+            
             return recommendations
         except Exception as e:
             ErrorHandler.handle(
@@ -340,3 +323,26 @@ class SessionSummaryManager():
                 extra_info={"Exception": type(e), "Reason": str(e)}
             )
             return []
+        
+    ############################################################################
+    ############################## CONFIGURATIONS ##############################
+    ############################################################################
+        
+    ###############################
+    ### RETRIEVE CONFIGURATIONS ###
+    ############################### 
+    def retrieve_configurations(self) -> None:
+        """
+        ### Brief:
+        The `retrieve_configurations` method gets the updated configurations from the
+        configuration file.
+        """
+        self.number_of_top_errors:int = ConfigLoader().get([
+            ConfigParameters.Major.SUMMARY,
+            ConfigParameters.Minor.NUMBER_OF_TOP_ERRORS
+        ])
+
+        self.max_grade:float = ConfigLoader().get([
+            ConfigParameters.Major.SUMMARY,
+            ConfigParameters.Minor.MAX_GRADE
+        ])

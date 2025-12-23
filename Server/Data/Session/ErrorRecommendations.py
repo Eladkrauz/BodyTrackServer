@@ -34,48 +34,124 @@ class ErrorRecommendations:
     """
     _default_message = "Maintain controlled, stable movement and proper form."
     _recommenations_map:Dict[DetectedErrorCode, str] = {
-        ####################
-        ### SQUAT ERRORS ###
-        ####################
-        DetectedErrorCode.SQUAT_NOT_DEEP_ENOUGH: 
-            "Try lowering your hips slightly more to increase squat depth.",
-        DetectedErrorCode.SQUAT_TOO_DEEP: 
-            "You are squatting too deep — stop a bit higher to reduce knee load.",
-        DetectedErrorCode.SQUAT_KNEES_INWARD: 
-            "Keep your knees outward while squatting to maintain proper alignment.",
-        DetectedErrorCode.SQUAT_KNEES_OUTWARD: 
-            "Avoid pushing your knees too far out — aim to keep them aligned with your feet.",
-        DetectedErrorCode.SQUAT_HEELS_OFF_GROUND: 
-            "Try keeping your heels firmly on the ground throughout the movement.",
-        DetectedErrorCode.SQUAT_WEIGHT_FORWARD: 
-            "Your weight is shifting forward — try sitting back with your hips.",
-        DetectedErrorCode.SQUAT_CHEST_LEAN_FORWARD: 
-            "Keep your chest more upright during the squat.",
-        DetectedErrorCode.SQUAT_BACK_ROUNDED: 
-            "Straighten your back and engage your core to avoid rounding.",
-        DetectedErrorCode.SQUAT_HIP_SHIFT_LEFT:
-            "Your hips are shifting left — aim to distribute your weight evenly.",
-        DetectedErrorCode.SQUAT_HIP_SHIFT_RIGHT:
-            "Your hips are shifting right — try to keep the movement centered.",
+        ########################
+        ### SQUAT – TOP PHASE ###
+        ########################
+        DetectedErrorCode.SQUAT_TOP_TRUNK_TOO_FORWARD:
+            "Keep your torso more upright at the top of the squat.",
 
-        ##########################
-        ### BICEPS CURL ERRORS ###
-        ##########################
-        DetectedErrorCode.CURL_TOO_SHORT_TOP:
-            "Try squeezing more at the top for a full contraction.",
-        DetectedErrorCode.CURL_NOT_FULL_FLEXION:
-            "Lift your arm higher to achieve full flexion.",
-        DetectedErrorCode.CURL_ELBOWS_MOVING_FORWARD:
-            "Keep your elbows close to your body — avoid pushing them forward.",
-        DetectedErrorCode.CURL_ELBOWS_MOVING_BACKWARD:
-            "Avoid pulling your elbows backward — keep them stable.",
-        DetectedErrorCode.CURL_LEANING_FORWARD:
-            "Stand more upright — avoid leaning forward.",
-        DetectedErrorCode.CURL_LEANING_BACKWARD:
-            "Avoid leaning backward — stabilize your torso.",
-        DetectedErrorCode.CURL_WRIST_NOT_NEUTRAL:
-            "Keep your wrist straight to avoid unnecessary stress.",
+        DetectedErrorCode.SQUAT_TOP_TRUNK_TOO_BACKWARD:
+            "Avoid leaning backward — keep your torso stacked over your hips.",
 
+        DetectedErrorCode.SQUAT_TOP_HIP_LINE_UNBALANCED:
+            "Distribute your weight evenly between both hips at the top position.",
+
+
+        #########################
+        ### SQUAT – DOWN PHASE ###
+        #########################
+        DetectedErrorCode.SQUAT_DOWN_KNEE_TOO_STRAIGHT:
+            "Allow your knees to bend more as you descend.",
+
+        DetectedErrorCode.SQUAT_DOWN_KNEE_TOO_BENT:
+            "Control the descent — avoid collapsing too quickly into the bottom.",
+
+        DetectedErrorCode.SQUAT_DOWN_HIP_TOO_STRAIGHT:
+            "Sit back more with your hips as you lower.",
+
+        DetectedErrorCode.SQUAT_DOWN_HIP_TOO_BENT:
+            "Slow the descent and avoid dropping too deep too fast.",
+
+
+        #########################
+        ### SQUAT – HOLD PHASE ###
+        #########################
+        DetectedErrorCode.SQUAT_HOLD_HIP_NOT_DEEP_ENOUGH:
+            "Lower your hips slightly more to reach proper squat depth.",
+
+        DetectedErrorCode.SQUAT_HOLD_HIP_TOO_DEEP:
+            "Rise slightly — avoid sinking too deep at the bottom.",
+
+        DetectedErrorCode.SQUAT_HOLD_KNEE_VALGUS:
+            "Push your knees outward to prevent them from collapsing inward.",
+
+
+        #######################
+        ### SQUAT – UP PHASE ###
+        #######################
+        DetectedErrorCode.SQUAT_UP_KNEE_COLLAPSE:
+            "Maintain knee alignment as you stand up.",
+
+        DetectedErrorCode.SQUAT_UP_TRUNK_TOO_FORWARD:
+            "Lift your chest as you rise from the squat.",
+
+        DetectedErrorCode.SQUAT_UP_TRUNK_TOO_BACKWARD:
+            "Avoid leaning back — stand up tall and controlled.",
+
+
+        ################################
+        ### BICEPS CURL – REST PHASE ###
+        ################################
+        DetectedErrorCode.CURL_REST_ELBOW_TOO_BENT:
+            "Fully extend your arms at the bottom of the curl.",
+
+        DetectedErrorCode.CURL_REST_ELBOW_TOO_STRAIGHT:
+            "Maintain a slight natural bend in your elbows.",
+
+        DetectedErrorCode.CURL_REST_SHOULDER_TOO_FORWARD:
+            "Pull your shoulders back and keep them stable.",
+
+        DetectedErrorCode.CURL_REST_SHOULDER_TOO_BACKWARD:
+            "Relax your shoulders — avoid excessive retraction.",
+
+
+        ###################################
+        ### BICEPS CURL – LIFTING PHASE ###
+        ###################################
+        DetectedErrorCode.CURL_LIFTING_ELBOW_TOO_STRAIGHT:
+            "Bend your elbows more as you lift the weight.",
+
+        DetectedErrorCode.CURL_LIFTING_ELBOW_TOO_BENT:
+            "Control the lift — avoid over-curling too early.",
+
+        DetectedErrorCode.CURL_LIFTING_SHOULDER_TOO_FORWARD:
+            "Keep your shoulders back while lifting.",
+
+        DetectedErrorCode.CURL_LIFTING_SHOULDER_TOO_BACKWARD:
+            "Avoid pulling your shoulders backward during the lift.",
+
+
+        ################################
+        ### BICEPS CURL – HOLD PHASE ###
+        ################################
+        DetectedErrorCode.CURL_HOLD_ELBOW_TOO_OPEN:
+            "Squeeze more at the top of the curl.",
+
+        DetectedErrorCode.CURL_HOLD_ELBOW_TOO_CLOSED:
+            "Avoid over-contracting — hold a strong but controlled position.",
+
+        DetectedErrorCode.CURL_HOLD_WRIST_TOO_FLEXED:
+            "Keep your wrist neutral — avoid bending it inward.",
+
+        DetectedErrorCode.CURL_HOLD_WRIST_TOO_EXTENDED:
+            "Relax your wrist slightly — avoid bending it backward.",
+
+
+        ###################################
+        ### BICEPS CURL – LOWERING PHASE ###
+        ###################################
+        DetectedErrorCode.CURL_LOWERING_ELBOW_TOO_STRAIGHT:
+            "Control the lowering — do not lock your elbows.",
+
+        DetectedErrorCode.CURL_LOWERING_ELBOW_TOO_BENT:
+            "Extend your arms more as you lower the weight.",
+
+        DetectedErrorCode.CURL_LOWERING_SHOULDER_TOO_FORWARD:
+            "Keep your shoulders stable while lowering.",
+
+        DetectedErrorCode.CURL_LOWERING_SHOULDER_TOO_BACKWARD:
+            "Avoid pulling your shoulders backward on the way down.",
+    
         #####################
         ### SPECIAL CASES ###
         #####################
