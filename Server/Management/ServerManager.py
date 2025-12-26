@@ -55,11 +55,11 @@ class ServerManager:
         Logger.info("##############################################")
 
         # TestManager().test_with_enters(
-        TestManager().test(
-            exercise_type=ExerciseType.BICEPS_CURL,
-            video_path="/Users/eladkrauz/Desktop/Videos/try6.mp4"
-        )
+        # TestManager().test(
+        #     exercise_type=ExerciseType.BICEPS_CURL,
+        #     video_path="/Users/eladkrauz/Desktop/Videos/try6.mp4"
+        # )
 
         # Keep the main thread alive.
         # Commented out to prevent infinite loop during testing.
-        # while True: time.sleep(5)
+        while True: time.sleep(5)
