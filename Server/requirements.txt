@@ -3,3 +3,5 @@ gunicorn
 mediapipe
 opencv-python
 numpy
+flask-cors
+psutil
