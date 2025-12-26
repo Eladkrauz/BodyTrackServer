@@ -81,15 +81,6 @@ class PoseAnalyzer:
                     elif os.path.isdir(full_path):
                         shutil.rmtree(full_path)
 
-            self.enable_visualization = self.log_level == "DEBUG"
-            self.debug_output_dir = "/Users/eladkrauz/Desktop/OUTPUT"
-            os.makedirs(self.debug_output_dir, exist_ok=True)
-            clear_directory(self.debug_output_dir)
-
-            self.debug_frame_sent_to_media_pipe = "/Users/eladkrauz/Desktop/INPUT"
-            os.makedirs(self.debug_frame_sent_to_media_pipe, exist_ok=True)
-            clear_directory(self.debug_frame_sent_to_media_pipe)
-
             Logger.info("Initialized successfully.")
         except ValueError as e:
             ErrorHandler.handle(
@@ -349,25 +340,6 @@ class PoseAnalyzer:
         try:
             # Run MediaPipe Pose.
             result = self.pose.process(preprocessing_result)
-
-            # Optional visualization.
-            if self.enable_visualization:
-                if self.enable_visualization and result.pose_landmarks is not None:
-                    try:
-                        vis_frame = frame_data.content.copy()   # original BGR frame
-                        self._draw_pose(vis_frame, result.pose_landmarks)
-
-                        output_path = os.path.join(
-                            self.debug_output_dir,
-                            f"session_{frame_data.session_id}_frame_{frame_data.frame_id}.jpg"
-                        )
-
-                        cv2.imwrite(output_path, vis_frame)
-
-                    except Exception as e:
-                        Logger.warning(
-                            f"Failed to save debug frame {frame_data.frame_id}: {type(e).__name__}"
-                        )
 
             # Convert results to NormalizedLandmarkList.
             pose_landmarks = getattr(result, "pose_landmarks", None)

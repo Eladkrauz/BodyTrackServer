@@ -70,7 +70,7 @@ def get_project_origin(exc:BaseException) -> Tuple[Optional[str], str]:
 
     class_name is None for module-level functions or static methods.
     """
-    project_root = "/Users/eladkrauz/Desktop/Final Project/BodyTrack"
+    project_root = "BodyTrack/Server"
     project_root = os.path.abspath(project_root)
     tb: Optional[TracebackType] = exc.__traceback__
 

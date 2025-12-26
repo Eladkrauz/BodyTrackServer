@@ -31,7 +31,7 @@
       "retrieve_configuration_minutes":       10   
     },
     "log": {
-      "logger_path":                          "Server/Files/Logs/ServerLogger.log",
+      "logger_path":                          "/home/bodytrack/BodyTrack/Server/Files/Logs/ServerLogger.log",
       "logger_name":                          "BodyTrackLogger",
       "archive_dir_name":                     "Archive",
       "log_level":                            "DEBUG"
