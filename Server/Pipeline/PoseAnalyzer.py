@@ -10,7 +10,6 @@
 import cv2, inspect, os
 import numpy as np
 import mediapipe as mp
-from mediapipe.framework.formats import landmark_pb2
 from typing import Optional
 
 from Utilities.Config.ConfigLoader     import ConfigLoader
@@ -371,7 +370,7 @@ class PoseAnalyzer:
                         )
 
             # Convert results to NormalizedLandmarkList.
-            pose_landmarks:Optional[landmark_pb2.NormalizedLandmarkList] = getattr(result, "pose_landmarks", None)
+            pose_landmarks = getattr(result, "pose_landmarks", None)
             if pose_landmarks is None:
                 ErrorHandler.handle(
                     error=ErrorCode.FRAME_ANALYSIS_ERROR,
