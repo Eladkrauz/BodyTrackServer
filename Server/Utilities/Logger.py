@@ -58,7 +58,7 @@ class Logger:
             # Create the archived log file.
             base_name = os.path.splitext(os.path.basename(self.logger_path))[0]
             extension = os.path.splitext(self.logger_path)[1]  # .log
-            archived_file = os.path.join(self.archive_dir, f"{base_name}_{datetime.now().strftime("%d-%m-%Y_%H-%M")}{extension}")
+            archived_file = os.path.join(self.archive_dir, f"{base_name}_{datetime.now().strftime('%d-%m-%Y_%H-%M')}{extension}")
             os.rename(self.logger_path, archived_file)
 
         self.logger = logging.getLogger(self.logger_name)
