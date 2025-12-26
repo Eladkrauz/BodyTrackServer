@@ -30,7 +30,22 @@ class ConfigLoader:
     - The configuration file path is written hard coded in the class constructor.
     """
     _instance = None # Singleton instance.
-    _config_path = "Server/Files/Config/ServerConfiguration.JSON"
+
+    # Directory of ConfigLoader.py.
+    _base_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # Go up TWO levels to reach /Server.
+    _server_root = os.path.abspath(
+        os.path.join(_base_dir, "..", "..")
+    )
+
+    # Final absolute path to the config file.
+    _config_path = os.path.join(
+        _server_root,
+        "Files",
+        "Config",
+        "ServerConfiguration.JSON"
+    )
 
     #########################
     ### CLASS CONSTRUCTOR ###
@@ -200,6 +215,14 @@ class ConfigLoader:
         - Called on initialization (`__init__`) to retrieve the main configuration file content.
         - Can be called in runtime also to retrieve content of different configuration files.
         """
+        # Final absolute path to the config file
+        file_path = os.path.join(
+            cls._server_root,
+            "Files",
+            "Config",
+            file_path
+        )
+
         if not os.path.exists(file_path):
             raise FileNotFoundError()
 

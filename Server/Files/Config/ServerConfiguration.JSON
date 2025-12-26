@@ -54,10 +54,10 @@
       "min_valid_joint_ratio":                0.7
     },
     "error": {
-      "error_thresholds_config_file":         "Server/Files/Config/ErrorThresholds.JSON"
+      "error_thresholds_config_file":         "ErrorThresholds.JSON"
     },
     "phase": {
-      "phase_thresholds_config_file":         "Server/Files/Config/PhaseThresholds.JSON",
+      "phase_thresholds_config_file":         "PhaseThresholds.JSON",
       "phase_low_motion_threshold":           2
     },
     "feedback": {
