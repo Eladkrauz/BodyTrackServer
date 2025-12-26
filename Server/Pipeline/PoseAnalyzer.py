@@ -10,7 +10,6 @@
 import cv2, inspect, os
 import numpy as np
 import mediapipe as mp
-from mediapipe import solutions
 from mediapipe.framework.formats import landmark_pb2
 from typing import Optional
 
@@ -22,7 +21,7 @@ from Utilities.Logger                  import Logger
 from Data.Session.FrameData            import FrameData
 from Data.Pose.PoseLandmarks           import PoseLandmark, PoseLandmarksArray
 
-Pose = solutions.pose
+Pose = mp.solutions.pose
 
 ###########################
 ### POSE ANALYZER CLASS ###
