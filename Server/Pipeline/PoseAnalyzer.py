@@ -14,13 +14,13 @@ import mediapipe.python.solutions.pose as Pose
 from mediapipe.framework.formats import landmark_pb2
 from typing import Optional
 
-from Server.Utilities.Config.ConfigLoader     import ConfigLoader
-from Server.Utilities.Config.ConfigParameters import ConfigParameters
-from Server.Utilities.Error.ErrorHandler      import ErrorHandler
-from Server.Utilities.Error.ErrorCode         import ErrorCode
-from Server.Utilities.Logger                  import Logger
-from Server.Data.Session.FrameData            import FrameData
-from Server.Data.Pose.PoseLandmarks           import PoseLandmark, PoseLandmarksArray
+from Utilities.Config.ConfigLoader     import ConfigLoader
+from Utilities.Config.ConfigParameters import ConfigParameters
+from Utilities.Error.ErrorHandler      import ErrorHandler
+from Utilities.Error.ErrorCode         import ErrorCode
+from Utilities.Logger                  import Logger
+from Data.Session.FrameData            import FrameData
+from Data.Pose.PoseLandmarks           import PoseLandmark, PoseLandmarksArray
 
 ###########################
 ### POSE ANALYZER CLASS ###

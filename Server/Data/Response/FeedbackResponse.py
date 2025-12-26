@@ -11,8 +11,8 @@ from enum import Enum as enum
 from enum import auto
 from typing import Dict, Any, Optional
 from dataclasses import dataclass
-from Server.Data.Pose.PoseQuality import PoseQuality
-from Server.Data.Error.DetectedErrorCode import DetectedErrorCode
+from Data.Pose.PoseQuality import PoseQuality
+from Data.Error.DetectedErrorCode import DetectedErrorCode
 
 
 ####################################

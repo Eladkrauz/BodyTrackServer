@@ -1,4 +1,4 @@
-from Server.Management.ServerManager import ServerManager
+from Management.ServerManager import ServerManager
 from datetime import datetime
 import traceback, os, time, threading, traceback
 from types import TracebackType

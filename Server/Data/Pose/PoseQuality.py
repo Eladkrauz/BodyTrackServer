@@ -45,7 +45,7 @@ class PoseQuality(enum):
         - `ErrorCode` or `None`: The corresponding error code for the given pose quality,
           or `None` if the quality is `OK`.
         """
-        from Server.Utilities.Error.ErrorCode import ErrorCode
+        from Utilities.Error.ErrorCode import ErrorCode
         if   pose_quality is PoseQuality.NO_PERSON:      return ErrorCode.NO_PERSON_DETECTED_IN_FRAME
         elif pose_quality is PoseQuality.PARTIAL_BODY:   return ErrorCode.PARTIAL_BODY_IN_FRAME
         elif pose_quality is PoseQuality.TOO_FAR:        return ErrorCode.TOO_FAR_IN_FRAME

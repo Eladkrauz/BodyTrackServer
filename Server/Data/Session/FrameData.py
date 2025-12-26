@@ -9,7 +9,7 @@
 ###############
 from dataclasses import dataclass
 import numpy as np
-from Server.Utilities.SessionIdGenerator import SessionId
+from Utilities.SessionIdGenerator import SessionId
 
 ########################
 ### FRAME DATA CLASS ###
@@ -46,8 +46,8 @@ class FrameData:
         - Leaves deeper checks (shape, channels) to `PoseAnalyzer`.
         """
         if self.content is None:
-            from Server.Utilities.Error.ErrorHandler import ErrorHandler
-            from Server.Utilities.Error.ErrorCode import ErrorCode
+            from Utilities.Error.ErrorHandler import ErrorHandler
+            from Utilities.Error.ErrorCode import ErrorCode
             import inspect
             ErrorHandler.handle(
                 error=ErrorCode.FRAME_INITIAL_VALIDATION_FAILED,
@@ -57,8 +57,8 @@ class FrameData:
             raise ValueError("Invalid FrameData: content is None.")
 
         if not isinstance(self.content, np.ndarray):
-            from Server.Utilities.Error.ErrorHandler import ErrorHandler
-            from Server.Utilities.Error.ErrorCode import ErrorCode
+            from Utilities.Error.ErrorHandler import ErrorHandler
+            from Utilities.Error.ErrorCode import ErrorCode
             import inspect
             ErrorHandler.handle(
                 error=ErrorCode.FRAME_INITIAL_VALIDATION_FAILED,
@@ -67,7 +67,7 @@ class FrameData:
             )
             raise TypeError("Invalid FrameData: content is not a NumPy array.")
 
-        from Server.Utilities.Logger import Logger
+        from Utilities.Logger import Logger
         Logger.debug(f"FrameData {self.frame_id} (Session {self.session_id.id}) validated successfully.")
 
     #################

@@ -13,33 +13,33 @@ import numpy as np
 from typing import Dict, Any
 
 # Utilities.
-from Server.Utilities.SessionIdGenerator      import SessionId
-from Server.Utilities.Error.ErrorHandler      import ErrorHandler
-from Server.Utilities.Error.ErrorCode         import ErrorCode
-from Server.Utilities.Logger                  import Logger
+from Utilities.SessionIdGenerator      import SessionId
+from Utilities.Error.ErrorHandler      import ErrorHandler
+from Utilities.Error.ErrorCode         import ErrorCode
+from Utilities.Logger                  import Logger
 
 # Pipeline.
-from Server.Pipeline.PoseAnalyzer             import PoseAnalyzer
-from Server.Pipeline.PositionSideDetector     import PositionSideDetector
-from Server.Pipeline.PoseQualityManager       import PoseQualityManager
-from Server.Pipeline.JointAnalyzer            import JointAnalyzer, CalculatedJoints
-from Server.Pipeline.PhaseDetector            import PhaseDetector
-from Server.Pipeline.HistoryManager           import HistoryManager
-from Server.Pipeline.ErrorDetector            import ErrorDetector
-from Server.Pipeline.FeedbackFormatter        import FeedbackFormatter
+from Pipeline.PoseAnalyzer             import PoseAnalyzer
+from Pipeline.PositionSideDetector     import PositionSideDetector
+from Pipeline.PoseQualityManager       import PoseQualityManager
+from Pipeline.JointAnalyzer            import JointAnalyzer, CalculatedJoints
+from Pipeline.PhaseDetector            import PhaseDetector
+from Pipeline.HistoryManager           import HistoryManager
+from Pipeline.ErrorDetector            import ErrorDetector
+from Pipeline.FeedbackFormatter        import FeedbackFormatter
 
 # Data.
-from Server.Data.Session.SessionData          import SessionData
-from Server.Data.Session.FrameData            import FrameData
-from Server.Data.Session.AnalyzingState       import AnalyzingState
-from Server.Data.Pose.PoseQuality             import PoseQuality
-from Server.Data.Pose.PoseLandmarks           import PoseLandmarksArray
-from Server.Data.History.HistoryData          import HistoryData
-from Server.Data.Response.CalibrationResponse import CalibrationCode
-from Server.Data.Response.FeedbackResponse    import FeedbackCode
-from Server.Data.Error.DetectedErrorCode      import DetectedErrorCode
-from Server.Data.Phase.PhaseType              import PhaseType
-from Server.Data.Pose.PositionSide            import PositionSide
+from Data.Session.SessionData          import SessionData
+from Data.Session.FrameData            import FrameData
+from Data.Session.AnalyzingState       import AnalyzingState
+from Data.Pose.PoseQuality             import PoseQuality
+from Data.Pose.PoseLandmarks           import PoseLandmarksArray
+from Data.History.HistoryData          import HistoryData
+from Data.Response.CalibrationResponse import CalibrationCode
+from Data.Response.FeedbackResponse    import FeedbackCode
+from Data.Error.DetectedErrorCode      import DetectedErrorCode
+from Data.Phase.PhaseType              import PhaseType
+from Data.Pose.PositionSide            import PositionSide
 
 ################################
 ### PIPELINE PROCESSOR CLASS ###
@@ -504,8 +504,8 @@ class PipelineProcessor:
         The `retrieve_configurations` method loads the updated configurations from the
         configuration file.
         """
-        from Server.Utilities.Config.ConfigLoader import ConfigLoader
-        from Server.Utilities.Config.ConfigParameters import ConfigParameters
+        from Utilities.Config.ConfigLoader import ConfigLoader
+        from Utilities.Config.ConfigParameters import ConfigParameters
 
         # Number of active session initialization OK frames.
         self.num_of_min_init_ok_frames = ConfigLoader.get([

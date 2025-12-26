@@ -9,7 +9,7 @@
 ###############
 import threading, queue, requests, time, cv2, json, base64
 import numpy as np
-from Server.Data.Session.ExerciseType import ExerciseType
+from Data.Session.ExerciseType import ExerciseType
 
 ######################
 ### ENDPOINT CLASS ###

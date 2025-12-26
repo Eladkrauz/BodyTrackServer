@@ -12,12 +12,12 @@ from datetime import datetime
 from typing import Any, Dict, Optional, List, TYPE_CHECKING
 from copy import deepcopy
 
-from Server.Data.History.HistoryDictKey import HistoryDictKey
-from Server.Data.Pose.PositionSide      import PositionSide
-from Server.Data.Pose.PoseQuality       import PoseQuality
+from Data.History.HistoryDictKey import HistoryDictKey
+from Data.Pose.PositionSide      import PositionSide
+from Data.Pose.PoseQuality       import PoseQuality
 
 if TYPE_CHECKING:
-    from Server.Data.Phase.PhaseType import PhaseType
+    from Data.Phase.PhaseType import PhaseType
 
 ##########################
 ### HISTORY DATA CLASS ###

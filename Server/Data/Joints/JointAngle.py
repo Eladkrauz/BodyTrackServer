@@ -9,9 +9,9 @@
 ###############
 from dataclasses import dataclass
 
-from Server.Data.Pose.PoseLandmarks   import PoseLandmark
-from Server.Data.Session.ExerciseType import ExerciseType
-from Server.Data.Pose.PositionSide    import PositionSide
+from Data.Pose.PoseLandmarks   import PoseLandmark
+from Data.Session.ExerciseType import ExerciseType
+from Data.Pose.PositionSide    import PositionSide
 
 ########################
 ### JOINT DATA CLASS ###
@@ -108,8 +108,8 @@ class JointAngle:
         if exercise_type is ExerciseType.SQUAT:         return JointAngle.Squat
         if exercise_type is ExerciseType.BICEPS_CURL:   return JointAngle.BicepsCurl
         else:
-            from Server.Utilities.Error.ErrorHandler import ErrorHandler
-            from Server.Utilities.Error.ErrorCode import ErrorCode
+            from Utilities.Error.ErrorHandler import ErrorHandler
+            from Utilities.Error.ErrorCode import ErrorCode
             import inspect
             ErrorHandler.handle(error=ErrorCode.EXERCISE_TYPE_DOES_NOT_EXIST, origin=inspect.currentframe())
         return None
@@ -139,8 +139,8 @@ class JointAngle:
         elif position_side.is_front():   return cls_name.CORE
         elif position_side.is_unkwown(): return cls_name.CORE
         else:
-            from Server.Utilities.Error.ErrorHandler import ErrorHandler
-            from Server.Utilities.Error.ErrorCode import ErrorCode
+            from Utilities.Error.ErrorHandler import ErrorHandler
+            from Utilities.Error.ErrorCode import ErrorCode
             import inspect
             ErrorHandler.handle(error=ErrorCode.POSITION_SIDE_DOES_NOT_EXIST, origin=inspect.currentframe())
         return []
@@ -170,8 +170,8 @@ class JointAngle:
         elif position_side.is_front():   return cls_name.EXTENDED
         elif position_side.is_unkwown(): return []
         else:
-            from Server.Utilities.Error.ErrorHandler import ErrorHandler
-            from Server.Utilities.Error.ErrorCode import ErrorCode
+            from Utilities.Error.ErrorHandler import ErrorHandler
+            from Utilities.Error.ErrorCode import ErrorCode
             import inspect
             ErrorHandler.handle(error=ErrorCode.POSITION_SIDE_DOES_NOT_EXIST, origin=inspect.currentframe())
         return []

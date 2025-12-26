@@ -11,8 +11,8 @@ import sys, inspect
 from os.path import basename
 from types import FrameType
 
-from Server.Utilities.Logger import Logger as Logger
-from Server.Utilities.Error.ErrorCode import ErrorCode
+from Utilities.Logger import Logger as Logger
+from Utilities.Error.ErrorCode import ErrorCode
 
 ###########################
 ### ERROR HANDLER CLASS ###
@@ -55,8 +55,8 @@ class ErrorHandler:
         ### Explanation:
         After importing the `ErrorHandler` and `ErrorCode`, call `handle` this way:
         ```
-        from Server.Utilities.Error.ErrorHandler import ErrorHandler
-        from Server.Utilities.Error.ErrorCode import ErrorCode
+        from Utilities.Error.ErrorHandler import ErrorHandler
+        from Utilities.Error.ErrorCode import ErrorCode
         ErrorHandler.handle(
             error=ErrorCode.ERROR_TYPE,
             origin=inpsect.currentframe(),

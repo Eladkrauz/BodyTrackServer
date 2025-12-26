@@ -11,20 +11,20 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Dict, Set, Any, List
 import inspect
 
-from Server.Utilities.Error.ErrorHandler      import ErrorHandler
-from Server.Utilities.Error.ErrorCode         import ErrorCode
-from Server.Utilities.Config.ConfigLoader     import ConfigLoader
-from Server.Utilities.Config.ConfigParameters import ConfigParameters
-from Server.Utilities.Logger                  import Logger
-from Server.Data.Session.SessionData          import SessionData
-from Server.Data.Error.DetectedErrorCode      import DetectedErrorCode
-from Server.Data.Pose.PoseQuality             import PoseQuality
-from Server.Data.Response.FeedbackResponse    import FeedbackCode
-from Server.Data.Session                      import SessionData
-from Server.Data.History.HistoryDictKey       import HistoryDictKey
+from Utilities.Error.ErrorHandler      import ErrorHandler
+from Utilities.Error.ErrorCode         import ErrorCode
+from Utilities.Config.ConfigLoader     import ConfigLoader
+from Utilities.Config.ConfigParameters import ConfigParameters
+from Utilities.Logger                  import Logger
+from Data.Session.SessionData          import SessionData
+from Data.Error.DetectedErrorCode      import DetectedErrorCode
+from Data.Pose.PoseQuality             import PoseQuality
+from Data.Response.FeedbackResponse    import FeedbackCode
+from Data.Session                      import SessionData
+from Data.History.HistoryDictKey       import HistoryDictKey
 
 if TYPE_CHECKING:
-    from Server.Data.History.HistoryData import HistoryData
+    from Data.History.HistoryData import HistoryData
 
 ################################
 ### FEEDBACK FORMATTER CLASS ###

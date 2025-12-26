@@ -237,8 +237,8 @@ class Logger:
         The `retrieve_configurations` method gets the updated configurations from the
         configuration file.
         """
-        from Server.Utilities.Config.ConfigLoader import ConfigLoader
-        from Server.Utilities.Config.ConfigParameters import ConfigParameters
+        from Utilities.Config.ConfigLoader import ConfigLoader
+        from Utilities.Config.ConfigParameters import ConfigParameters
 
         self.logger_path = ConfigLoader.get([
             ConfigParameters.Major.LOG,

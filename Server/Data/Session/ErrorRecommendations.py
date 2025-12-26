@@ -8,7 +8,7 @@
 ### IMPORTS ###
 ###############
 from typing import Dict
-from Server.Data.Error.DetectedErrorCode import DetectedErrorCode
+from Data.Error.DetectedErrorCode import DetectedErrorCode
 
 #############################
 ### ERROR RECOMMENDATIONS ###

@@ -8,9 +8,9 @@
 ### IMPORTS ###
 ###############
 import uuid, inspect
-from Server.Utilities.Error.ErrorHandler import ErrorHandler
-from Server.Utilities.Error.ErrorCode import ErrorCode
-from Server.Utilities.Logger import Logger
+from Utilities.Error.ErrorHandler import ErrorHandler
+from Utilities.Error.ErrorCode import ErrorCode
+from Utilities.Logger import Logger
 from dataclasses import dataclass
 
 ########################

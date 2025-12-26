@@ -12,15 +12,15 @@ import math, inspect
 import numpy as np
 from typing import Dict, Any
 
-from Server.Utilities.Logger             import Logger
-from Server.Utilities.Error.ErrorHandler import ErrorHandler
-from Server.Utilities.Error.ErrorCode    import ErrorCode
-from Server.Data.Pose.PoseLandmarks      import PoseLandmarksArray
-from Server.Data.Session.SessionData     import SessionData
-from Server.Data.Joints.JointAngle       import JointAngle, Joint
-from Server.Data.Pose.PositionSide       import PositionSide
-from Server.Data.History.HistoryData     import HistoryData
-from Server.Data.Session.AnalyzingState  import AnalyzingState
+from Utilities.Logger             import Logger
+from Utilities.Error.ErrorHandler import ErrorHandler
+from Utilities.Error.ErrorCode    import ErrorCode
+from Data.Pose.PoseLandmarks      import PoseLandmarksArray
+from Data.Session.SessionData     import SessionData
+from Data.Joints.JointAngle       import JointAngle, Joint
+from Data.Pose.PositionSide       import PositionSide
+from Data.History.HistoryData     import HistoryData
+from Data.Session.AnalyzingState  import AnalyzingState
 
 ###############################
 ### CALCULATED JOINTS ALIAS ###
@@ -507,8 +507,8 @@ class JointAnalyzer:
         The `retrieve_configurations` method gets the updated configurations from the
         configuration file.
         """
-        from Server.Utilities.Config.ConfigLoader import ConfigLoader
-        from Server.Utilities.Config.ConfigParameters import ConfigParameters
+        from Utilities.Config.ConfigLoader import ConfigLoader
+        from Utilities.Config.ConfigParameters import ConfigParameters
 
         self.visibility_threshold = ConfigLoader.get([
             ConfigParameters.Major.JOINTS,

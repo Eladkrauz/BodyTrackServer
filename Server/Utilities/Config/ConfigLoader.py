@@ -11,9 +11,9 @@ import json, os, inspect
 from json import JSONDecodeError
 from typing import Dict, List
 
-from Server.Utilities.Error.ErrorHandler import ErrorHandler
-from Server.Utilities.Error.ErrorCode import ErrorCode
-from Server.Utilities.Config.ConfigParameters import ConfigParameters
+from Utilities.Error.ErrorHandler import ErrorHandler
+from Utilities.Error.ErrorCode import ErrorCode
+from Utilities.Config.ConfigParameters import ConfigParameters
 
 ###########################
 ### CONFIG LOADER CLASS ###

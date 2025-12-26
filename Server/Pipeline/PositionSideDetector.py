@@ -12,15 +12,15 @@ import inspect
 import numpy as np
 from typing import List
 
-from Server.Utilities.Logger                  import Logger
-from Server.Utilities.Error.ErrorHandler      import ErrorHandler
-from Server.Utilities.Error.ErrorCode         import ErrorCode
-from Server.Utilities.Config.ConfigLoader     import ConfigLoader
-from Server.Utilities.Config.ConfigParameters import ConfigParameters
+from Utilities.Logger                  import Logger
+from Utilities.Error.ErrorHandler      import ErrorHandler
+from Utilities.Error.ErrorCode         import ErrorCode
+from Utilities.Config.ConfigLoader     import ConfigLoader
+from Utilities.Config.ConfigParameters import ConfigParameters
 
-from Server.Data.Pose.PositionSide            import PositionSide
-from Server.Data.Pose.PoseLandmarks           import LeftLandmark, RightLandmark
-from Server.Data.Session.ExerciseType         import ExerciseType
+from Data.Pose.PositionSide            import PositionSide
+from Data.Pose.PoseLandmarks           import LeftLandmark, RightLandmark
+from Data.Session.ExerciseType         import ExerciseType
 
 #####################################
 ### POSITION SIDE DETECTOR CLASS ####

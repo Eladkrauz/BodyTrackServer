@@ -10,8 +10,8 @@
 from __future__ import annotations
 from enum import Enum as enum
 from enum import auto
-from Server.Data.Session.ExerciseType import ExerciseType
-from Server.Utilities.Error.ErrorCode import ErrorCode
+from Data.Session.ExerciseType import ExerciseType
+from Utilities.Error.ErrorCode import ErrorCode
 
 ########################
 ### PHASE TYPE CLASS ###

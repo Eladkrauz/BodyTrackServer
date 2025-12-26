@@ -10,10 +10,10 @@
 from __future__ import annotations
 from typing import Dict, Any
 
-from Server.Data.Session.ExerciseType     import ExerciseType
-from Server.Data.Phase.PhaseType          import PhaseType
-from Server.Data.Error.DetectedErrorCode  import DetectedErrorCode
-from Server.Data.Joints.JointAngle        import JointAngle
+from Data.Session.ExerciseType     import ExerciseType
+from Data.Phase.PhaseType          import PhaseType
+from Data.Error.DetectedErrorCode  import DetectedErrorCode
+from Data.Joints.JointAngle        import JointAngle
 
 ############################
 ### ERROR MAPPINGS CLASS ###

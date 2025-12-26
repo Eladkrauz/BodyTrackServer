@@ -11,18 +11,18 @@ import numpy as np
 import inspect
 from typing import List, Set, Dict, Any
 
-from Server.Utilities.Error.ErrorHandler import ErrorHandler
-from Server.Utilities.Error.ErrorCode    import ErrorCode
-from Server.Utilities.Logger             import Logger
+from Utilities.Error.ErrorHandler import ErrorHandler
+from Utilities.Error.ErrorCode    import ErrorCode
+from Utilities.Logger             import Logger
 
-from Server.Data.Session.SessionData     import SessionData
-from Server.Data.Session.ExerciseType    import ExerciseType
-from Server.Data.Pose.PoseLandmarks      import PoseLandmarksArray, PoseLandmark
-from Server.Data.Pose.PoseQuality        import PoseQuality
-from Server.Data.Pose.PositionSide       import PositionSide
-from Server.Data.History.HistoryData     import HistoryData
-from Server.Data.History.HistoryDictKey  import HistoryDictKey
-from Server.Data.Joints.JointAngle       import JointAngle, Joint
+from Data.Session.SessionData     import SessionData
+from Data.Session.ExerciseType    import ExerciseType
+from Data.Pose.PoseLandmarks      import PoseLandmarksArray, PoseLandmark
+from Data.Pose.PoseQuality        import PoseQuality
+from Data.Pose.PositionSide       import PositionSide
+from Data.History.HistoryData     import HistoryData
+from Data.History.HistoryDictKey  import HistoryDictKey
+from Data.Joints.JointAngle       import JointAngle, Joint
 
 ####################################
 ### POSE QUALITY MANAGER CLASS #####
@@ -362,8 +362,8 @@ class PoseQualityManager:
         The `retrieve_configurations` method fetches configuration parameters
         related to pose quality evaluation from the configuration loader.
         """
-        from Server.Utilities.Config.ConfigLoader import ConfigLoader
-        from Server.Utilities.Config.ConfigParameters import ConfigParameters
+        from Utilities.Config.ConfigLoader import ConfigLoader
+        from Utilities.Config.ConfigParameters import ConfigParameters
 
         self.stability_threshold:float = ConfigLoader.get([
             ConfigParameters.Major.POSE,

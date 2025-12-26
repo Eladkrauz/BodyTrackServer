@@ -10,18 +10,18 @@
 from typing import Dict, Any, List, Set
 import inspect
 
-from Server.Utilities.Error.ErrorCode    import ErrorCode
-from Server.Utilities.Error.ErrorHandler import ErrorHandler
-from Server.Utilities.Logger             import Logger
+from Utilities.Error.ErrorCode    import ErrorCode
+from Utilities.Error.ErrorHandler import ErrorHandler
+from Utilities.Logger             import Logger
 
-from Server.Data.Session.ExerciseType    import ExerciseType
-from Server.Data.Session.SessionData     import SessionData
-from Server.Data.Phase.PhaseType         import PhaseType
-from Server.Data.Phase.PhaseDictKey      import PhaseDictKey
-from Server.Data.Joints.JointAngle       import JointAngle, Joint
-from Server.Data.History.HistoryDictKey  import HistoryDictKey
-from Server.Data.History.HistoryData     import HistoryData
-from Server.Data.Pose.PositionSide       import PositionSide
+from Data.Session.ExerciseType    import ExerciseType
+from Data.Session.SessionData     import SessionData
+from Data.Phase.PhaseType         import PhaseType
+from Data.Phase.PhaseDictKey      import PhaseDictKey
+from Data.Joints.JointAngle       import JointAngle, Joint
+from Data.History.HistoryDictKey  import HistoryDictKey
+from Data.History.HistoryData     import HistoryData
+from Data.Pose.PositionSide       import PositionSide
 
 ###################
 ### RULES ALIAS ###
@@ -528,8 +528,8 @@ class PhaseDetector:
         The `retrieve_configurations` method gets the updated configurations from the
         configuration file.
         """
-        from Server.Utilities.Config.ConfigLoader import ConfigLoader
-        from Server.Utilities.Config.ConfigParameters import ConfigParameters
+        from Utilities.Config.ConfigLoader import ConfigLoader
+        from Utilities.Config.ConfigParameters import ConfigParameters
 
         # Load phase low motion threshold.
         self.phase_low_motion_threshold:int = ConfigLoader.get(

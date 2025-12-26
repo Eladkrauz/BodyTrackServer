@@ -10,12 +10,12 @@
 from threading import Thread
 import time
 
-from Server.Communication.FlaskServer         import FlaskServer
-from Server.Utilities.Logger                  import Logger
-from Server.Utilities.Config.ConfigLoader     import ConfigLoader
-from Server.Utilities.Config.ConfigParameters import ConfigParameters
-from Server.Management.TestManager            import TestManager
-from Server.Data.Session.ExerciseType         import ExerciseType
+from Communication.FlaskServer         import FlaskServer
+from Utilities.Logger                  import Logger
+from Utilities.Config.ConfigLoader     import ConfigLoader
+from Utilities.Config.ConfigParameters import ConfigParameters
+from Management.TestManager            import TestManager
+from Data.Session.ExerciseType         import ExerciseType
 
 ############################
 ### SERVER MANAGER CLASS ###

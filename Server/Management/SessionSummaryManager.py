@@ -11,17 +11,17 @@ from typing import Dict, Any, List
 import inspect
 from datetime import datetime
 
-from Server.Data.Response.SummaryResponse     import SummaryResponse
-from Server.Data.Session.SessionData          import SessionData
-from Server.Data.History.HistoryData          import HistoryData
-from Server.Utilities.Config.ConfigLoader     import ConfigLoader
-from Server.Utilities.Config.ConfigParameters import ConfigParameters
-from Server.Data.Error.DetectedErrorCode      import DetectedErrorCode
-from Server.Data.Session.ErrorRecommendations import ErrorRecommendations
-from Server.Utilities.Logger                  import Logger
-from Server.Utilities.Error.ErrorHandler      import ErrorHandler
-from Server.Utilities.Error.ErrorCode         import ErrorCode
-from Server.Data.History.HistoryDictKey       import HistoryDictKey
+from Data.Response.SummaryResponse     import SummaryResponse
+from Data.Session.SessionData          import SessionData
+from Data.History.HistoryData          import HistoryData
+from Utilities.Config.ConfigLoader     import ConfigLoader
+from Utilities.Config.ConfigParameters import ConfigParameters
+from Data.Error.DetectedErrorCode      import DetectedErrorCode
+from Data.Session.ErrorRecommendations import ErrorRecommendations
+from Utilities.Logger                  import Logger
+from Utilities.Error.ErrorHandler      import ErrorHandler
+from Utilities.Error.ErrorCode         import ErrorCode
+from Data.History.HistoryDictKey       import HistoryDictKey
 
 #####################################
 ### SUMMARY SESSION MANAGER CLASS ###
@@ -139,7 +139,7 @@ class SessionSummaryManager():
         """
         # Calculate average rep duration
         try:
-            from Server.Data.History.HistoryDictKey import HistoryDictKey
+            from Data.History.HistoryDictKey import HistoryDictKey
             total_duration = sum(rep[HistoryDictKey.Repetition.DURATION] for rep in reps)
             return round(total_duration / len(reps) if reps else 0.0, 2)
         except Exception as e:

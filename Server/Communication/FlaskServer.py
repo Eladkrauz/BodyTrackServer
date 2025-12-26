@@ -17,16 +17,16 @@ import numpy as np
 from threading import Thread
 import os
 
-from Server.Communication.HttpCodes           import HttpCodes
-from Server.Management.SessionManager         import SessionManager
-from Server.Utilities.Logger                  import Logger
-from Server.Utilities.Error.ErrorHandler      import ErrorHandler
-from Server.Utilities.Error.ErrorCode         import ErrorCode, ErrorResponse
-from Server.Communication.Communication       import Communication
-from Server.Data.Response.ManagementResponse  import ManagementResponse, ManagementCode
-from Server.Data.Response.FeedbackResponse    import FeedbackResponse
-from Server.Data.Response.CalibrationResponse import CalibrationResponse
-from Server.Data.Response.SummaryResponse     import SummaryResponse
+from Communication.HttpCodes           import HttpCodes
+from Management.SessionManager         import SessionManager
+from Utilities.Logger                  import Logger
+from Utilities.Error.ErrorHandler      import ErrorHandler
+from Utilities.Error.ErrorCode         import ErrorCode, ErrorResponse
+from Communication.Communication       import Communication
+from Data.Response.ManagementResponse  import ManagementResponse, ManagementCode
+from Data.Response.FeedbackResponse    import FeedbackResponse
+from Data.Response.CalibrationResponse import CalibrationResponse
+from Data.Response.SummaryResponse     import SummaryResponse
 
 ##########################
 ### FLASK SERVER CLASS ###
@@ -627,7 +627,7 @@ class FlaskServer:
         Logger.info("##### SERVER IS SHUTTING DOWN #####")
         Logger.info("###################################")
 
-        from Server.Data.Response.ManagementResponse import ManagementCode
+        from Data.Response.ManagementResponse import ManagementCode
         response = jsonify(Communication.construct_response(
                 ManagementResponse(management_code=ManagementCode.SERVER_IS_BEING_SHUTDOWN)
             )), HttpCodes.OK

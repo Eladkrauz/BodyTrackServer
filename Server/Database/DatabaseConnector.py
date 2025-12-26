@@ -13,9 +13,9 @@ from datetime import datetime
 import inspect
 from typing import Optional, List, Dict
 
-from Server.Utilities.Logger import Logger
-from Server.Utilities.Error.ErrorHandler import ErrorHandler
-from Server.Utilities.Error.ErrorCode import ErrorCode
+from Utilities.Logger import Logger
+from Utilities.Error.ErrorHandler import ErrorHandler
+from Utilities.Error.ErrorCode import ErrorCode
 
 Base = declarative_base()
 

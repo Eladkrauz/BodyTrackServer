@@ -9,10 +9,10 @@
 ###############
 from typing import Dict, Any
 
-from Server.Utilities.Error.ErrorCode import ErrorCode, ErrorResponse, ErrorResponseDict
-from Server.Data.Response.FeedbackResponse import FeedbackResponse, FeedbackResponseDict
-from Server.Data.Response.CalibrationResponse import CalibrationResponse, CalibrationResponseDict
-from Server.Data.Response.ManagementResponse import ManagementResponse, ManagementResponseDict
+from Utilities.Error.ErrorCode import ErrorCode, ErrorResponse, ErrorResponseDict
+from Data.Response.FeedbackResponse import FeedbackResponse, FeedbackResponseDict
+from Data.Response.CalibrationResponse import CalibrationResponse, CalibrationResponseDict
+from Data.Response.ManagementResponse import ManagementResponse, ManagementResponseDict
 
 ################################
 ### PING RESPONSE DICT ALIAS ###

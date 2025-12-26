@@ -13,20 +13,20 @@ from datetime import datetime
 from typing import Dict, TYPE_CHECKING, Any, Set, List
 from copy import deepcopy
 
-from Server.Data.Pose.PoseQuality          import PoseQuality
-from Server.Data.History.HistoryDictKey    import HistoryDictKey
-from Server.Data.History.HistoryData       import HistoryData
-from Server.Data.Error.DetectedErrorCode   import DetectedErrorCode
-from Server.Data.Session.ExerciseType      import ExerciseType
-from Server.Data.Phase.PhaseType           import PhaseType
-from Server.Data.Pose.PoseLandmarks        import PoseLandmarksArray
-from Server.Data.Pose.PositionSide         import PositionSide
-from Server.Utilities.Logger               import Logger
-from Server.Data.Response.FeedbackResponse import FeedbackCode
+from Data.Pose.PoseQuality          import PoseQuality
+from Data.History.HistoryDictKey    import HistoryDictKey
+from Data.History.HistoryData       import HistoryData
+from Data.Error.DetectedErrorCode   import DetectedErrorCode
+from Data.Session.ExerciseType      import ExerciseType
+from Data.Phase.PhaseType           import PhaseType
+from Data.Pose.PoseLandmarks        import PoseLandmarksArray
+from Data.Pose.PositionSide         import PositionSide
+from Utilities.Logger               import Logger
+from Data.Response.FeedbackResponse import FeedbackCode
 
 if TYPE_CHECKING:
-    from Server.Data.Pose.PoseQuality  import PoseQuality
-    from Server.Data.Joints.JointAngle import JointAngle
+    from Data.Pose.PoseQuality  import PoseQuality
+    from Data.Joints.JointAngle import JointAngle
 
 #############################
 ### HISTORY MANAGER CLASS ###
@@ -115,8 +115,8 @@ class HistoryManager:
             self._reset_bad_frame_counters(history_data)
 
         except Exception as e:
-            from Server.Utilities.Error.ErrorHandler import ErrorHandler
-            from Server.Utilities.Error.ErrorCode import ErrorCode
+            from Utilities.Error.ErrorHandler import ErrorHandler
+            from Utilities.Error.ErrorCode import ErrorCode
             ErrorHandler.handle(
                 error=ErrorCode.HISTORY_MANAGER_INTERNAL_ERROR,
                 origin=inspect.currentframe(),
@@ -165,8 +165,8 @@ class HistoryManager:
                 return
         
         # If arrived here - did not find the frame in the list (probably it is too old).
-        from Server.Utilities.Error.ErrorHandler import ErrorHandler
-        from Server.Utilities.Error.ErrorCode import ErrorCode
+        from Utilities.Error.ErrorHandler import ErrorHandler
+        from Utilities.Error.ErrorCode import ErrorCode
         ErrorHandler.handle(
             error=ErrorCode.CANT_FIND_FRAME_IN_FRAMES_WINDOW,
             origin=inspect.currentframe()
@@ -223,8 +223,8 @@ class HistoryManager:
                     history_raw_dict[HistoryDictKey.IS_CAMERA_STABLE] = False
 
         except Exception as e:
-            from Server.Utilities.Error.ErrorHandler import ErrorHandler
-            from Server.Utilities.Error.ErrorCode import ErrorCode
+            from Utilities.Error.ErrorHandler import ErrorHandler
+            from Utilities.Error.ErrorCode import ErrorCode
             ErrorHandler.handle(
                 error=ErrorCode.HISTORY_MANAGER_INTERNAL_ERROR,
                 origin=inspect.currentframe(),
@@ -251,8 +251,8 @@ class HistoryManager:
 
         initial_phase:PhaseType = self.initial_phase_per_exercise.get(exercise_type, None)
         if initial_phase is None:
-            from Server.Utilities.Error.ErrorHandler import ErrorHandler
-            from Server.Utilities.Error.ErrorCode import ErrorCode
+            from Utilities.Error.ErrorHandler import ErrorHandler
+            from Utilities.Error.ErrorCode import ErrorCode
             ErrorHandler.handle(
                 error=ErrorCode.HISTORY_MANAGER_INTERNAL_ERROR,
                 origin=inspect.currentframe(),
@@ -308,8 +308,8 @@ class HistoryManager:
         current_index:int          = history_data.get_current_transition_index()
 
         if not transition_order or initial_phase is None or current_index is None:
-            from Server.Utilities.Error.ErrorHandler import ErrorHandler
-            from Server.Utilities.Error.ErrorCode import ErrorCode
+            from Utilities.Error.ErrorHandler import ErrorHandler
+            from Utilities.Error.ErrorCode import ErrorCode
             ErrorHandler.handle(
                 error=ErrorCode.HISTORY_MANAGER_INTERNAL_ERROR,
                 origin=inspect.currentframe(),
@@ -425,8 +425,8 @@ class HistoryManager:
         history_raw_dict:Dict[str, Any] = self._get_raw_history_data(history_data)
 
         if history_raw_dict[HistoryDictKey.CURRENT_REP] is not None:
-            from Server.Utilities.Error.ErrorHandler import ErrorHandler
-            from Server.Utilities.Error.ErrorCode import ErrorCode
+            from Utilities.Error.ErrorHandler import ErrorHandler
+            from Utilities.Error.ErrorCode import ErrorCode
             ErrorHandler.handle(error=ErrorCode.TRIED_TO_START_REP_WHILE_HAVE_ONE, origin=inspect.currentframe())
         else:
             new_rep = {
@@ -496,8 +496,8 @@ class HistoryManager:
         history_raw_dict:Dict[str, Any] = self._get_raw_history_data(history_data)
 
         if history_raw_dict[HistoryDictKey.CURRENT_REP] is None:
-            from Server.Utilities.Error.ErrorHandler import ErrorHandler
-            from Server.Utilities.Error.ErrorCode import ErrorCode
+            from Utilities.Error.ErrorHandler import ErrorHandler
+            from Utilities.Error.ErrorCode import ErrorCode
             ErrorHandler.handle(error=ErrorCode.TRIED_TO_END_A_NONE_REP, origin=inspect.currentframe())
         else:
             # Finishing current rep and inserting it to the completed reps list.
@@ -536,8 +536,8 @@ class HistoryManager:
         if history_raw_dict[HistoryDictKey.EXERCISE_START_TIME] is None:
             history_raw_dict[HistoryDictKey.EXERCISE_START_TIME] = datetime.now()
         else:
-            from Server.Utilities.Error.ErrorHandler import ErrorHandler
-            from Server.Utilities.Error.ErrorCode import ErrorCode
+            from Utilities.Error.ErrorHandler import ErrorHandler
+            from Utilities.Error.ErrorCode import ErrorCode
             ErrorHandler.handle(
                 error=ErrorCode.EXERCISE_START_TIME_ALREADY_SET,
                 origin=inspect.currentframe(),
@@ -560,8 +560,8 @@ class HistoryManager:
         try:
             # Prevent multiple calls.
             if history_raw_dict[HistoryDictKey.EXERCISE_END_TIME] is not None:
-                from Server.Utilities.Error.ErrorHandler import ErrorHandler
-                from Server.Utilities.Error.ErrorCode import ErrorCode
+                from Utilities.Error.ErrorHandler import ErrorHandler
+                from Utilities.Error.ErrorCode import ErrorCode
                 ErrorHandler.handle(
                     error=ErrorCode.EXERCISE_END_TIME_ALREADY_SET,
                     origin=inspect.currentframe(),
@@ -624,8 +624,8 @@ class HistoryManager:
                 history_raw_dict[HistoryDictKey.CURRENT_REP] = None
 
         except Exception as e:
-            from Server.Utilities.Error.ErrorHandler import ErrorHandler
-            from Server.Utilities.Error.ErrorCode import ErrorCode
+            from Utilities.Error.ErrorHandler import ErrorHandler
+            from Utilities.Error.ErrorCode import ErrorCode
 
             ErrorHandler.handle(
                 error=ErrorCode.HISTORY_MANAGER_INTERNAL_ERROR,
@@ -647,8 +647,8 @@ class HistoryManager:
         history_raw_dict:Dict[str, Any] = self._get_raw_history_data(history_data)
 
         if history_raw_dict[HistoryDictKey.PAUSE_SESSION_TIMESTAMP] is not None:
-            from Server.Utilities.Error.ErrorHandler import ErrorHandler
-            from Server.Utilities.Error.ErrorCode import ErrorCode
+            from Utilities.Error.ErrorHandler import ErrorHandler
+            from Utilities.Error.ErrorCode import ErrorCode
             ErrorHandler.handle(
                 error=ErrorCode.HISTORY_MANAGER_INTERNAL_ERROR,
                 origin=inspect.currentframe(),
@@ -673,8 +673,8 @@ class HistoryManager:
 
         pause_timestamp:datetime = history_raw_dict[HistoryDictKey.PAUSE_SESSION_TIMESTAMP]
         if pause_timestamp is None:
-            from Server.Utilities.Error.ErrorHandler import ErrorHandler
-            from Server.Utilities.Error.ErrorCode import ErrorCode
+            from Utilities.Error.ErrorHandler import ErrorHandler
+            from Utilities.Error.ErrorCode import ErrorCode
             ErrorHandler.handle(
                 error=ErrorCode.HISTORY_MANAGER_INTERNAL_ERROR,
                 origin=inspect.currentframe(),
@@ -867,8 +867,8 @@ class HistoryManager:
             while len(history_raw_dict[HistoryDictKey.FRAMES]) > self.frames_rolling_window_size:
                 history_raw_dict[HistoryDictKey.FRAMES].pop(0)
         except IndexError as e:
-            from Server.Utilities.Error.ErrorHandler import ErrorHandler
-            from Server.Utilities.Error.ErrorCode import ErrorCode
+            from Utilities.Error.ErrorHandler import ErrorHandler
+            from Utilities.Error.ErrorCode import ErrorCode
             ErrorHandler.handle(
                 error=ErrorCode.ERROR_WITH_HANDLING_FRAMES_LIST,
                 origin=inspect.currentframe(),
@@ -895,8 +895,8 @@ class HistoryManager:
             while len(history_raw_dict[HistoryDictKey.BAD_FRAMES_LOG]) > self.bad_frame_log_size:
                 history_raw_dict[HistoryDictKey.BAD_FRAMES_LOG].pop(0)
         except IndexError as e:
-            from Server.Utilities.Error.ErrorHandler import ErrorHandler
-            from Server.Utilities.Error.ErrorCode import ErrorCode
+            from Utilities.Error.ErrorHandler import ErrorHandler
+            from Utilities.Error.ErrorCode import ErrorCode
             ErrorHandler.handle(
                 error=ErrorCode.ERROR_WITH_HANDLING_BAD_FRAMES_LIST,
                 origin=inspect.currentframe(),
@@ -975,10 +975,10 @@ class HistoryManager:
         The `retrieve_configurations` method gets the updated configurations from the
         configuration file.
         """
-        from Server.Utilities.Config.ConfigLoader import ConfigLoader
-        from Server.Utilities.Config.ConfigParameters import ConfigParameters
-        from Server.Utilities.Error.ErrorHandler import ErrorHandler
-        from Server.Utilities.Error.ErrorCode import ErrorCode
+        from Utilities.Config.ConfigLoader import ConfigLoader
+        from Utilities.Config.ConfigParameters import ConfigParameters
+        from Utilities.Error.ErrorHandler import ErrorHandler
+        from Utilities.Error.ErrorCode import ErrorCode
 
         # Reading frames rolling window size.
         self.frames_rolling_window_size:int = ConfigLoader.get([
@@ -1077,7 +1077,7 @@ class HistoryManager:
         self.transition_order_per_exercise:Dict[ExerciseType, Any] = {}
         self.initial_phase_per_exercise:Dict[ExerciseType, PhaseType]    = {}
 
-        from Server.Data.Phase.PhaseDictKey import PhaseDictKey
+        from Data.Phase.PhaseDictKey import PhaseDictKey
         for exercise_type in ExerciseType:
             # Get exercise configuration.
             exercise_config:Dict[str, Any] = thresholds.get(exercise_type.value, None)

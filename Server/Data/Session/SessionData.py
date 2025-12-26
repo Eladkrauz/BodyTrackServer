@@ -12,11 +12,11 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from threading import RLock
 
-from Server.Utilities.SessionIdGenerator import SessionId
-from Server.Data.Session.ExerciseType    import ExerciseType
-from Server.Data.Session.SessionStatus   import SessionStatus
-from Server.Data.Session.AnalyzingState  import AnalyzingState
-from Server.Data.History.HistoryData     import HistoryData
+from Utilities.SessionIdGenerator import SessionId
+from Data.Session.ExerciseType    import ExerciseType
+from Data.Session.SessionStatus   import SessionStatus
+from Data.Session.AnalyzingState  import AnalyzingState
+from Data.History.HistoryData     import HistoryData
 
 ##########################
 ### SESSION DATA CLASS ###
@@ -66,8 +66,8 @@ class SessionData:
         try:
             self.history = HistoryData()
         except Exception as e:
-            from Server.Utilities.Error.ErrorHandler import ErrorHandler
-            from Server.Utilities.Error.ErrorCode import ErrorCode
+            from Utilities.Error.ErrorHandler import ErrorHandler
+            from Utilities.Error.ErrorCode import ErrorCode
             import inspect
             ErrorHandler.handle(
                 error=ErrorCode.HISTORY_MANAGER_INIT_ERROR,
@@ -100,8 +100,8 @@ class SessionData:
             elif  session_status is SessionStatus.PAUSED:     self.time['paused']     = now
             elif  session_status is SessionStatus.ENDED:      self.time['ended']      = now
             else:
-                from Server.Utilities.Error.ErrorHandler import ErrorHandler
-                from Server.Utilities.Error.ErrorCode import ErrorCode
+                from Utilities.Error.ErrorHandler import ErrorHandler
+                from Utilities.Error.ErrorCode import ErrorCode
                 import inspect
                 ErrorHandler.handle(error=ErrorCode.SESSION_STATUS_IS_NOT_RECOGNIZED, origin=inspect.currentframe())
 

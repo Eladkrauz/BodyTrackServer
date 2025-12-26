@@ -14,28 +14,28 @@ from threading import RLock
 from datetime  import datetime
 
 # Utilities.
-from Server.Utilities.SessionIdGenerator      import SessionIdGenerator, SessionId
-from Server.Utilities.Error.ErrorHandler      import ErrorHandler
-from Server.Utilities.Error.ErrorCode         import ErrorCode, ErrorResponse
-from Server.Utilities.Logger                  import Logger
+from Utilities.SessionIdGenerator      import SessionIdGenerator, SessionId
+from Utilities.Error.ErrorHandler      import ErrorHandler
+from Utilities.Error.ErrorCode         import ErrorCode, ErrorResponse
+from Utilities.Logger                  import Logger
 
 # Pipeline.
-from Server.Pipeline.PipelineProcessor        import PipelineProcessor
+from Pipeline.PipelineProcessor        import PipelineProcessor
 
 # Data.
-from Server.Data.Session.SessionStatus        import SessionStatus
-from Server.Data.Session.SearchType           import SearchType
-from Server.Data.Session.ExerciseType         import ExerciseType
-from Server.Data.Session.SessionData          import SessionData
-from Server.Data.Session.FrameData            import FrameData
-from Server.Data.Session.AnalyzingState       import AnalyzingState
-from Server.Data.Response.FeedbackResponse    import FeedbackCode, FeedbackResponse
-from Server.Data.Response.ManagementResponse  import ManagementCode, ManagementResponse
-from Server.Data.Response.CalibrationResponse import CalibrationCode, CalibrationResponse
-from Server.Data.Response.SummaryResponse     import SummaryResponse
+from Data.Session.SessionStatus        import SessionStatus
+from Data.Session.SearchType           import SearchType
+from Data.Session.ExerciseType         import ExerciseType
+from Data.Session.SessionData          import SessionData
+from Data.Session.FrameData            import FrameData
+from Data.Session.AnalyzingState       import AnalyzingState
+from Data.Response.FeedbackResponse    import FeedbackCode, FeedbackResponse
+from Data.Response.ManagementResponse  import ManagementCode, ManagementResponse
+from Data.Response.CalibrationResponse import CalibrationCode, CalibrationResponse
+from Data.Response.SummaryResponse     import SummaryResponse
 
 # Management.
-from Server.Management.SessionSummaryManager  import SessionSummaryManager
+from Management.SessionSummaryManager  import SessionSummaryManager
 
 #############################
 ### SESSION MANAGER CLASS ###
@@ -789,8 +789,8 @@ class SessionManager:
         The `retrieve_configurations` method gets the updated configurations from the
         configuration file.
         """
-        from Server.Utilities.Config.ConfigLoader import ConfigLoader
-        from Server.Utilities.Config.ConfigParameters import ConfigParameters
+        from Utilities.Config.ConfigLoader import ConfigLoader
+        from Utilities.Config.ConfigParameters import ConfigParameters
 
         # Refresh the configuration data.
         ConfigLoader.refresh()

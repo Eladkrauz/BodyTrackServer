@@ -9,7 +9,7 @@
 ###############
 from enum import Enum as enum
 from typing import List
-from Server.Data.Session.ExerciseType import ExerciseType
+from Data.Session.ExerciseType import ExerciseType
 
 ################################
 ### POSITION SIDE ENUM CLASS ###

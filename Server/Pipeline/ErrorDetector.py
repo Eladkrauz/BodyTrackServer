@@ -11,20 +11,20 @@ from typing import Dict, Any, List
 from math import isnan
 import inspect
 
-from Server.Data.Phase.PhaseType         import PhaseType
-from Server.Data.Session.ExerciseType    import ExerciseType
-from Server.Utilities.Error.ErrorHandler import ErrorHandler
-from Server.Utilities.Error.ErrorCode    import ErrorCode
-from Server.Utilities.Logger             import Logger
-from Server.Data.Session.SessionData     import SessionData
-from Server.Data.Error.ErrorMappings     import ErrorMappings
-from Server.Data.Error.DetectedErrorCode import DetectedErrorCode
-from Server.Data.History.HistoryData     import HistoryData
-from Server.Data.History.HistoryDictKey  import HistoryDictKey
-from Server.Data.Joints.JointAngle       import JointAngle, Joint
-from Server.Data.Phase.PhaseType         import PhaseType
-from Server.Data.Phase.PhaseDictKey      import PhaseDictKey
-from Server.Data.Pose.PositionSide       import PositionSide
+from Data.Phase.PhaseType         import PhaseType
+from Data.Session.ExerciseType    import ExerciseType
+from Utilities.Error.ErrorHandler import ErrorHandler
+from Utilities.Error.ErrorCode    import ErrorCode
+from Utilities.Logger             import Logger
+from Data.Session.SessionData     import SessionData
+from Data.Error.ErrorMappings     import ErrorMappings
+from Data.Error.DetectedErrorCode import DetectedErrorCode
+from Data.History.HistoryData     import HistoryData
+from Data.History.HistoryDictKey  import HistoryDictKey
+from Data.Joints.JointAngle       import JointAngle, Joint
+from Data.Phase.PhaseType         import PhaseType
+from Data.Phase.PhaseDictKey      import PhaseDictKey
+from Data.Pose.PositionSide       import PositionSide
     
 ############################
 ### ERROR DETECTOR CLASS ###
@@ -182,8 +182,8 @@ class ErrorDetector:
         The `retrieve_configurations` method gets the updated configurations from the
         configuration file.
         """
-        from Server.Utilities.Config.ConfigLoader import ConfigLoader
-        from Server.Utilities.Config.ConfigParameters import ConfigParameters
+        from Utilities.Config.ConfigLoader import ConfigLoader
+        from Utilities.Config.ConfigParameters import ConfigParameters
 
         self.config_file_path = ConfigLoader.get(
             key=[
