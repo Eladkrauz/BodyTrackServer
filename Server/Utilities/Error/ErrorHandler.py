@@ -107,7 +107,7 @@ class ErrorHandler:
 
         full_message += f"\nOrigin: File - {basename(origin.f_code.co_filename)} | Function - {origin.f_code.co_name} | Line - {origin.f_lineno}"
 
-        if error.critical: # If critical is True, log as critical and exit the program.
+        if error.is_critical: # If critical is True, log as critical and exit the program.
             full_message += "\nThis error is not recoverable."
             if do_not_log or not Logger.critical(full_message):
                 print(full_message)

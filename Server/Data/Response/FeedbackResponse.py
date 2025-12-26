@@ -7,7 +7,7 @@
 ###############
 ### IMPORTS ###
 ###############
-from enum import Enum as enum
+from enum import IntEnum
 from enum import auto
 from typing import Dict, Any, Optional
 from dataclasses import dataclass
@@ -23,7 +23,7 @@ FeedbackResponseDict = Dict[str, Any]
 ################################
 ### FEEDBACK CODE ENUM CLASS ###
 ################################
-class FeedbackCode(enum):
+class FeedbackCode(IntEnum):
     """
     ### Description:
     The `FeedbackCode` enum class represents all possible feedback codes
@@ -40,70 +40,116 @@ class FeedbackCode(enum):
     #####################
     ### SYSTEM STATES ###
     #####################
-    VALID                           = auto(), ""
-    SILENT                          = auto(), ""
+    VALID                               = auto()
+    SILENT                              = auto()
 
     ###########################
     ### POSE QUALITY ERRORS ###
     ###########################
-    NO_PERSON                       = auto(), "I can't see you please step into the frame."
-    PARTIAL_BODY                    = auto(), "Move back a bit. I need to see your full body."
-    TOO_FAR                         = auto(), "You're too far away step closer."
-    UNSTABLE                        = auto(), "The camera view is unstable try holding your position."
+    NO_PERSON                           = auto()
+    PARTIAL_BODY                        = auto()
+    TOO_FAR                             = auto()
+    UNSTABLE                            = auto()
 
     ####################
     ### SQUAT ERRORS ###
     ####################
-    SQUAT_TOP_TRUNK_TOO_FORWARD        = auto(), "Keep your chest more upright at the top."
-    SQUAT_TOP_TRUNK_TOO_BACKWARD       = auto(), "Avoid leaning backward at the top."
-    SQUAT_TOP_HIP_LINE_UNBALANCED      = auto(), "Keep your hips level."
+    SQUAT_TOP_TRUNK_TOO_FORWARD         = auto()
+    SQUAT_TOP_TRUNK_TOO_BACKWARD        = auto()
+    SQUAT_TOP_HIP_LINE_UNBALANCED       = auto()
 
-    SQUAT_DOWN_KNEE_TOO_STRAIGHT       = auto(), "Bend your knees more as you go down."
-    SQUAT_DOWN_KNEE_TOO_BENT           = auto(), "Don't bend your knees too much on the way down."
-    SQUAT_DOWN_HIP_TOO_STRAIGHT        = auto(), "Sit back more into the squat."
-    SQUAT_DOWN_HIP_TOO_BENT            = auto(), "Don't drop too quickly into the squat."
+    SQUAT_DOWN_KNEE_TOO_STRAIGHT        = auto()
+    SQUAT_DOWN_KNEE_TOO_BENT            = auto()
+    SQUAT_DOWN_HIP_TOO_STRAIGHT         = auto()
+    SQUAT_DOWN_HIP_TOO_BENT             = auto()
 
-    SQUAT_HOLD_HIP_NOT_DEEP_ENOUGH     = auto(), "Go a bit deeper in the squat."
-    SQUAT_HOLD_HIP_TOO_DEEP            = auto(), "You're going too deep rise slightly."
-    SQUAT_HOLD_KNEE_VALGUS             = auto(), "Keep your knees aligned over your toes."
+    SQUAT_HOLD_HIP_NOT_DEEP_ENOUGH      = auto()
+    SQUAT_HOLD_HIP_TOO_DEEP             = auto()
+    SQUAT_HOLD_KNEE_VALGUS              = auto()
 
-    SQUAT_UP_KNEE_COLLAPSE             = auto(), "Avoid letting your knees collapse inward."
-    SQUAT_UP_TRUNK_TOO_FORWARD         = auto(), "Lift your chest as you stand up."
-    SQUAT_UP_TRUNK_TOO_BACKWARD        = auto(), "Don't lean backward as you rise."
-
+    SQUAT_UP_KNEE_COLLAPSE              = auto()
+    SQUAT_UP_TRUNK_TOO_FORWARD          = auto()
+    SQUAT_UP_TRUNK_TOO_BACKWARD         = auto()
 
     ##########################
     ### BICEPS CURL ERRORS ###
     ##########################
-    CURL_REST_ELBOW_TOO_BENT            = auto(), "Fully extend your arms at the bottom."
-    CURL_REST_ELBOW_TOO_STRAIGHT        = auto(), "Maintain slight tension don't lock out."
-    CURL_REST_SHOULDER_TOO_FORWARD      = auto(), "Relax your shoulders don't push them forward."
-    CURL_REST_SHOULDER_TOO_BACKWARD     = auto(), "Keep your shoulders neutral."
+    CURL_REST_ELBOW_TOO_BENT            = auto()
+    CURL_REST_ELBOW_TOO_STRAIGHT        = auto()
+    CURL_REST_SHOULDER_TOO_FORWARD      = auto()
+    CURL_REST_SHOULDER_TOO_BACKWARD     = auto()
 
-    CURL_LIFTING_ELBOW_TOO_STRAIGHT     = auto(), "Bend your elbows more as you lift."
-    CURL_LIFTING_ELBOW_TOO_BENT         = auto(), "Control the lift avoid over-bending."
-    CURL_LIFTING_SHOULDER_TOO_FORWARD   = auto(), "Don't swing your shoulders forward."
-    CURL_LIFTING_SHOULDER_TOO_BACKWARD  = auto(), "Avoid leaning back during the curl."
+    CURL_LIFTING_ELBOW_TOO_STRAIGHT     = auto()
+    CURL_LIFTING_ELBOW_TOO_BENT         = auto()
+    CURL_LIFTING_SHOULDER_TOO_FORWARD   = auto()
+    CURL_LIFTING_SHOULDER_TOO_BACKWARD  = auto()
 
-    CURL_HOLD_ELBOW_TOO_OPEN            = auto(), "Bring your elbows in slightly."
-    CURL_HOLD_ELBOW_TOO_CLOSED          = auto(), "Open your elbows slightly at the top."
-    CURL_HOLD_WRIST_TOO_FLEXED          = auto(), "Keep your wrists neutral."
-    CURL_HOLD_WRIST_TOO_EXTENDED        = auto(), "Avoid bending your wrists backward."
+    CURL_HOLD_ELBOW_TOO_OPEN            = auto()
+    CURL_HOLD_ELBOW_TOO_CLOSED          = auto()
+    CURL_HOLD_WRIST_TOO_FLEXED          = auto()    
+    CURL_HOLD_WRIST_TOO_EXTENDED        = auto()    
 
-    CURL_LOWERING_ELBOW_TOO_STRAIGHT    = auto(), "Lower the weight with control."
-    CURL_LOWERING_ELBOW_TOO_BENT        = auto(), "Extend your arms more as you lower."
-    CURL_LOWERING_SHOULDER_TOO_FORWARD  = auto(), "Don't lean forward while lowering."
-    CURL_LOWERING_SHOULDER_TOO_BACKWARD = auto(), "Control your posture on the way down."
+    CURL_LOWERING_ELBOW_TOO_STRAIGHT    = auto()
+    CURL_LOWERING_ELBOW_TOO_BENT        = auto()
+    CURL_LOWERING_SHOULDER_TOO_FORWARD  = auto()
+    CURL_LOWERING_SHOULDER_TOO_BACKWARD = auto()
 
-    ###########
-    ### NEW ###
-    ###########
-    def __new__(cls, code, description):
-        obj = object.__new__(cls)
-        obj._value_ = code
-        obj.description = description
-        return obj
-    
+    #################
+    ### MESSAGE ###
+    #################
+    @property
+    def description(self) -> str:
+        return {
+            # System states
+            FeedbackCode.VALID:                                 "",
+            FeedbackCode.SILENT:                                "",
+
+            # Pose quality
+            FeedbackCode.NO_PERSON:                             "I can't see you please step into the frame.",
+            FeedbackCode.PARTIAL_BODY:                          "Move back a bit. I need to see your full body.",
+            FeedbackCode.TOO_FAR:                               "You're too far away step closer.",
+            FeedbackCode.UNSTABLE:                              "The camera view is unstable try holding your position.",
+
+            # Squat
+            FeedbackCode.SQUAT_TOP_TRUNK_TOO_FORWARD:           "Keep your chest more upright at the top.",
+            FeedbackCode.SQUAT_TOP_TRUNK_TOO_BACKWARD:          "Avoid leaning backward at the top.",
+            FeedbackCode.SQUAT_TOP_HIP_LINE_UNBALANCED:         "Keep your hips level.",
+
+            FeedbackCode.SQUAT_DOWN_KNEE_TOO_STRAIGHT:          "Bend your knees more as you go down.",
+            FeedbackCode.SQUAT_DOWN_KNEE_TOO_BENT:              "Don't bend your knees too much on the way down.",
+            FeedbackCode.SQUAT_DOWN_HIP_TOO_STRAIGHT:           "Sit back more into the squat.",
+            FeedbackCode.SQUAT_DOWN_HIP_TOO_BENT:               "Don't drop too quickly into the squat.",
+
+            FeedbackCode.SQUAT_HOLD_HIP_NOT_DEEP_ENOUGH:        "Go a bit deeper in the squat.",
+            FeedbackCode.SQUAT_HOLD_HIP_TOO_DEEP:               "You're going too deep rise slightly.",
+            FeedbackCode.SQUAT_HOLD_KNEE_VALGUS:                "Keep your knees aligned over your toes.",
+
+            FeedbackCode.SQUAT_UP_KNEE_COLLAPSE:                "Avoid letting your knees collapse inward.",
+            FeedbackCode.SQUAT_UP_TRUNK_TOO_FORWARD:            "Lift your chest as you stand up.",
+            FeedbackCode.SQUAT_UP_TRUNK_TOO_BACKWARD:           "Don't lean backward as you rise.",
+
+            # Biceps curl
+            FeedbackCode.CURL_REST_ELBOW_TOO_BENT:              "Fully extend your arms at the bottom.",
+            FeedbackCode.CURL_REST_ELBOW_TOO_STRAIGHT:          "Maintain slight tension don't lock out.",
+            FeedbackCode.CURL_REST_SHOULDER_TOO_FORWARD:        "Relax your shoulders don't push them forward.",
+            FeedbackCode.CURL_REST_SHOULDER_TOO_BACKWARD:       "Keep your shoulders neutral.",
+
+            FeedbackCode.CURL_LIFTING_ELBOW_TOO_STRAIGHT:       "Bend your elbows more as you lift.",
+            FeedbackCode.CURL_LIFTING_ELBOW_TOO_BENT:           "Control the lift avoid over-bending.",
+            FeedbackCode.CURL_LIFTING_SHOULDER_TOO_FORWARD:     "Don't swing your shoulders forward.",
+            FeedbackCode.CURL_LIFTING_SHOULDER_TOO_BACKWARD:    "Avoid leaning back during the curl.",
+            
+            FeedbackCode.CURL_HOLD_ELBOW_TOO_OPEN:              "Bring your elbows in slightly.",
+            FeedbackCode.CURL_HOLD_ELBOW_TOO_CLOSED:            "Open your elbows slightly at the top.",
+            FeedbackCode.CURL_HOLD_WRIST_TOO_FLEXED:            "Keep your wrists neutral.",
+            FeedbackCode.CURL_HOLD_WRIST_TOO_EXTENDED:          "Avoid bending your wrists backward.",
+            
+            FeedbackCode.CURL_LOWERING_ELBOW_TOO_STRAIGHT:      "Lower the weight with control.",
+            FeedbackCode.CURL_LOWERING_ELBOW_TOO_BENT:          "Extend your arms more as you lower.",
+            FeedbackCode.CURL_LOWERING_SHOULDER_TOO_FORWARD:    "Don't lean forward while lowering.",
+            FeedbackCode.CURL_LOWERING_SHOULDER_TOO_BACKWARD:   "Control your posture on the way down.",
+        }[self]
+
     #########################
     ### FROM POSE QUALITY ###
     #########################

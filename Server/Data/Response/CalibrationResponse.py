@@ -20,17 +20,31 @@ CalibrationResponseDict = Dict[str, Any]
 ###################################
 ### CALIBRATION CODE ENUM CLASS ###
 ###################################
-class CalibrationCode(enum):
-    USER_VISIBILITY_IS_VALID           = auto(), "Initial frame visibility checking is valid."
-    USER_VISIBILITY_IS_UNDER_CHECKING  = auto(), "Initial frame visibility checking is in process."
-    USER_POSITIONING_IS_VALID          = auto(), "Initial frame positioning checking is valid."
-    USER_POSITIONING_IS_UNDER_CHECKING = auto(), "Initial frame positioning checking is in process."
+from enum import IntEnum, auto
 
-    def __new__(cls, code, description):
-        obj = object.__new__(cls)
-        obj._value_ = code
-        obj.description = description
-        return obj
+###################################
+### CALIBRATION CODE ENUM CLASS ###
+###################################
+class CalibrationCode(IntEnum):
+    """
+    ### Description:
+    The `CalibrationCode` enum class defines various calibration status codes
+    related to user visibility and positioning checks.
+    """
+    USER_VISIBILITY_IS_VALID           = auto()
+    USER_VISIBILITY_IS_UNDER_CHECKING  = auto()
+    USER_POSITIONING_IS_VALID          = auto()
+    USER_POSITIONING_IS_UNDER_CHECKING = auto()
+
+    @property
+    def description(self) -> str:
+        return {
+            CalibrationCode.USER_VISIBILITY_IS_VALID:           "Initial frame visibility checking is valid.",
+            CalibrationCode.USER_VISIBILITY_IS_UNDER_CHECKING:  "Initial frame visibility checking is in process.",
+            CalibrationCode.USER_POSITIONING_IS_VALID:          "Initial frame positioning checking is valid.",
+            CalibrationCode.USER_POSITIONING_IS_UNDER_CHECKING: "Initial frame positioning checking is in process.",
+        }[self]
+
 
 @dataclass
 ##################################

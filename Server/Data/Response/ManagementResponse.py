@@ -7,7 +7,7 @@
 ###############
 ### IMPORTS ###
 ###############
-from enum import Enum as enum
+from enum import IntEnum
 from enum import auto
 from typing import Dict, Any, Optional
 from dataclasses import dataclass
@@ -20,23 +20,32 @@ ManagementResponseDict = Dict[str, Any]
 ##################################
 ### MANAGEMENT CODE ENUM CLASS ###
 ##################################
-class ManagementCode(enum):
-    CLIENT_REGISTERED_SUCCESSFULLY      = auto(), "The client was registered successfully."
-    CLIENT_SESSION_IS_REGISTERED        = auto(), "The client's session is registered."
-    CLIENT_SESSION_IS_ACTIVE            = auto(), "The client's session is active."
-    CLIENT_SESSION_IS_PAUSED            = auto(), "The client's session is paused."
-    CLIENT_SESSION_IS_RESUMED           = auto(), "The client's session is resumed."
-    CLIENT_SESSION_IS_ENDED             = auto(), "The client's session is ended."
-    CLIENT_SESSION_IS_UNREGISTERED      = auto(), "The client's session is unregistered."
-    CLIENT_SESSION_IS_NOT_IN_SYSTEM     = auto(), "The client's session is not in the system."
-    SERVER_IS_BEING_SHUTDOWN            = auto(), "The server is being shutdown."
-    CONFIGURATION_UPDATED_SUCCESSFULLY  = auto(), "The configuration was updated successfully."
+class ManagementCode(IntEnum):
+    CLIENT_REGISTERED_SUCCESSFULLY     = auto()
+    CLIENT_SESSION_IS_REGISTERED       = auto()
+    CLIENT_SESSION_IS_ACTIVE           = auto()
+    CLIENT_SESSION_IS_PAUSED           = auto()
+    CLIENT_SESSION_IS_RESUMED          = auto()
+    CLIENT_SESSION_IS_ENDED            = auto()
+    CLIENT_SESSION_IS_UNREGISTERED     = auto()
+    CLIENT_SESSION_IS_NOT_IN_SYSTEM    = auto()
+    SERVER_IS_BEING_SHUTDOWN           = auto()
+    CONFIGURATION_UPDATED_SUCCESSFULLY = auto()
 
-    def __new__(cls, code, description):
-        obj = object.__new__(cls)
-        obj._value_ = code
-        obj.description = description
-        return obj
+    @property
+    def description(self) -> str:
+        return {
+            ManagementCode.CLIENT_REGISTERED_SUCCESSFULLY:      "The client was registered successfully.",
+            ManagementCode.CLIENT_SESSION_IS_REGISTERED:        "The client's session is registered.",
+            ManagementCode.CLIENT_SESSION_IS_ACTIVE:            "The client's session is active.",
+            ManagementCode.CLIENT_SESSION_IS_PAUSED:            "The client's session is paused.",
+            ManagementCode.CLIENT_SESSION_IS_RESUMED:           "The client's session is resumed.",
+            ManagementCode.CLIENT_SESSION_IS_ENDED:             "The client's session is ended.",
+            ManagementCode.CLIENT_SESSION_IS_UNREGISTERED:      "The client's session is unregistered.",
+            ManagementCode.CLIENT_SESSION_IS_NOT_IN_SYSTEM:     "The client's session is not in the system.",
+            ManagementCode.SERVER_IS_BEING_SHUTDOWN:            "The server is being shutdown.",
+            ManagementCode.CONFIGURATION_UPDATED_SUCCESSFULLY:  "The configuration was updated successfully.",
+        }[self]
 
 @dataclass
 #################################
