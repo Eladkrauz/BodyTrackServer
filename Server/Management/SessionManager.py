@@ -122,7 +122,14 @@ class SessionManager:
                     "Provided": provided_type
                 }
             )
-            return ErrorResponse(ErrorCode.EXERCISE_TYPE_DOES_NOT_EXIST)
+            return ErrorResponse(
+                error_code=ErrorCode.EXERCISE_TYPE_DOES_NOT_EXIST,
+                extra_info={
+                    "Sent from:": client_info.get('id', 'N/A'), 
+                    "Supported exercises are": self.supported_exercises,
+                    "Provided": provided_type
+                }
+            )
 
         # Searching if the client exists already.
         session_status:SessionStatus = self._search(key=client_info['ip'], search_type=SearchType.IP, include_ended=False)
