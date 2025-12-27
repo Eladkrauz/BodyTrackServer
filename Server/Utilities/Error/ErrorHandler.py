@@ -7,7 +7,8 @@
 ###############
 ### IMPORTS ###
 ###############
-import sys, inspect
+import sys
+from typing import Any, Dict
 from os.path import basename
 from types import FrameType
 
@@ -44,51 +45,62 @@ class ErrorHandler:
     def handle(cls, error:ErrorCode, origin:FrameType, extra_info:dict = None, do_not_log=False) -> None:
         """
         ### Brief:
-        The `handle` method gets error information and logs it into the system logger.
+        The `handle` method processes an `ErrorCode` instance and logs a formatted,
+        human-readable error message into the system logger.
+
+        This method is responsible **only for logging and control-flow decisions**.
+        It does **not** construct or return an `ErrorResponse` object.
 
         ### Arguments:
-        - `error`: The error from `ErrorCode` enum class.
-        - `origin`: The origin of the error. Use `inspect.currentframe()` to get the origin.
-        - `extra_info`: An extra dictionary, can be added as extra information to the information of the error. Defaults to None.
-        - `do_not_log`: A boolean indicating if to log the error or not. Defaults to False (meaning: log the error).
+        - `error` (`ErrorCode`):
+            A valid error code from the `ErrorCode` enum describing the failure.
+        - `origin` (`FrameType`):
+            The origin of the error. Use `inspect.currentframe()` to capture the
+            file name, function name, and line number.
+        - `extra_info` (`dict`, optional):
+            Runtime-provided contextual information to enrich the error message.
+            This data is merged with any static `extra_info` defined on the
+            `ErrorCode` itself.
+        - `do_not_log` (`bool`, optional):
+            If set to `True`, suppresses logging via the system logger.
+            Defaults to `False`.
 
-        ### Explanation:
-        After importing the `ErrorHandler` and `ErrorCode`, call `handle` this way:
-        ```
+        ### Behavior:
+        - Builds a formatted error message using:
+            - The numeric error code
+            - The error description
+            - Static `extra_info` defined on the `ErrorCode` (if any)
+            - Runtime `extra_info` provided by the caller (if any)
+            - Origin metadata (file, function, line)
+        - Static and runtime `extra_info` are merged **without mutating** the
+        `ErrorCode` enum instance.
+        - If the error is marked as critical:
+            - Logs the message as critical
+            - Terminates the application
+        - Otherwise:
+            - Logs the message as a recoverable error
+            - Execution continues
+
+        ### Usage Example:
+        ```python
         from Utilities.Error.ErrorHandler import ErrorHandler
         from Utilities.Error.ErrorCode import ErrorCode
+        import inspect
+
         ErrorHandler.handle(
-            error=ErrorCode.ERROR_TYPE,
-            origin=inpsect.currentframe(),
+            error=ErrorCode.INVALID_SESSION_ID,
+            origin=inspect.currentframe(),
             extra_info={
-                "More info": "...",
-                "Even more info": "..."
-            }, # Can be ignored.
-            do_not_log=False, # Ignore this argument. Only for internal use.
-            do_not_abort=False, # Ignore this argument too.
+                "session_id": "abc123",
+                "client_ip": "192.168.1.10"
+            }
         )
         ```
-        This is how a valid `ErrorCode` looks like:
-        ```
-        ERROR_NAME = (
-            error_opcode, # An integer representing the error code.
-            error_reason, # A string representing the error reason.
-            extra_info,   # A dict containing extra info about the error. Can be None.
-            abort         # A bool value. If True the system aborts after logging the error
-        )
-        ```
-        For example:
-        ```
-        USER_ALREADY_EXISTS = (
-            105,                                      # The opcode is 105.
-            "The user already exists in the system.", # The reason for the error.
-            None,                                     # No extra information.
-            False                                     # The system won't abort.
-        )
-        ```
+
         ### Notes:
-        - `do_not_log`, `do_not_abort` and `extra_info` can be ignored and not sent as parameters.
-        - Please make sure `extra_info` does not contain keys the same as the keys inside `ErrorCode.ERROR_TYPE` you sent.
+        - This method **must not mutate** `ErrorCode` enum instances.
+        - `extra_info` is intended for logging and diagnostics only.
+        - Response serialization is handled elsewhere (e.g., Flask response layer).
         """
         if not isinstance(error, ErrorCode):
             raise TypeError("The provided error is not a valid ErrorCode object.")
@@ -96,13 +108,12 @@ class ErrorHandler:
         full_message = f"[Error {str(error.value)}] {error.description}"
 
         # Updating the extra info.
-        if error.extra_info is None and extra_info is not None:
-            error.extra_info = extra_info
-        elif error.extra_info is not None and extra_info is not None:
-            error.extra_info.update(extra_info)
+        extra_info_to_log:Dict[str, Any] = {}
+        if error.extra_info is not None: extra_info_to_log.update(error.extra_info)
+        if extra_info is not None:       extra_info_to_log.update(extra_info)
 
-        if error.extra_info: # If extra info is provided, add it to the message.
-            for key, value in error.extra_info.items():
+        if extra_info_to_log: # If extra info is provided, add it to the message.
+            for key, value in extra_info_to_log.items():
                 full_message += f"\n{key}: {value}"
 
         full_message += f"\nOrigin: File - {basename(origin.f_code.co_filename)} | Function - {origin.f_code.co_name} | Line - {origin.f_lineno}"
