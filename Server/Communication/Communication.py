@@ -129,5 +129,6 @@ class Communication:
         """
         return {
             "message_type":  MessageType.RESPONSE,
-            "response_type": Response.PING
+            "response_type": Response.PING,
+            "description":   "Pong"
         }
