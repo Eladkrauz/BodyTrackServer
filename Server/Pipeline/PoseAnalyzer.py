@@ -71,16 +71,6 @@ class PoseAnalyzer:
             # Works together with mp_drawing to render pose annotations consistently.
             self.mp_drawing_styles = mp.solutions.drawing_styles
 
-            import os
-            import shutil
-            def clear_directory(path):
-                for name in os.listdir(path):
-                    full_path = os.path.join(path, name)
-                    if os.path.isfile(full_path) or os.path.islink(full_path):
-                        os.unlink(full_path)
-                    elif os.path.isdir(full_path):
-                        shutil.rmtree(full_path)
-
             Logger.info("Initialized successfully.")
         except ValueError as e:
             ErrorHandler.handle(
@@ -254,14 +244,6 @@ class PoseAnalyzer:
         # Resize the frame.
         try:
             frame_content = self._resize_with_aspect_ratio(frame_content, self.frame_width, self.frame_height)
-            vis_frame = frame_content.copy()   # original BGR frame
-
-            output_path = os.path.join(
-                self.debug_frame_sent_to_media_pipe,
-                f"session_frame.jpg"
-            )
-
-            cv2.imwrite(output_path, vis_frame)
         except cv2.error as e:
             ErrorHandler.handle(
                 error=ErrorCode.FRAME_PREPROCESSING_ERROR,
