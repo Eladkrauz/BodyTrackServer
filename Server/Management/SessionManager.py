@@ -75,8 +75,8 @@ class SessionManager:
         # Tasks.
         self._cleanup_thread = threading.Thread(target=self._cleanup_task, daemon=True)
         self._config_retrieve_thread = threading.Thread(target=self._retrieve_config_task, daemon=True)
-        # self._cleanup_thread.start()
-        # self._config_retrieve_thread.start()
+        self._cleanup_thread.start()
+        self._config_retrieve_thread.start()
 
         # Done initializing.
         Logger.info("Initialized successfully")

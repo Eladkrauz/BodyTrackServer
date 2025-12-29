@@ -23,12 +23,12 @@
       "low_motion_angle_degrees_threshold":   3.0
     },
     "tasks": {
-      "cleanup_interval_minutes":             10,
-      "max_registration_minutes":             10,
-      "max_inactive_minutes":                 3,
-      "max_pause_minutes":                    10,
-      "max_ended_retention":                  30,
-      "retrieve_configuration_minutes":       10   
+      "cleanup_interval_minutes":             1,
+      "max_registration_minutes":             2,
+      "max_inactive_minutes":                 1,
+      "max_pause_minutes":                    2,
+      "max_ended_retention":                  5,
+      "retrieve_configuration_minutes":       60   
     },
     "log": {
       "logger_path":                          "/home/bodytrack/BodyTrack/Server/Files/Logs/ServerLogger.log",
