@@ -9,10 +9,11 @@
 ###############
 from typing import Dict, Any
 
-from Utilities.Error.ErrorCode import ErrorCode, ErrorResponse, ErrorResponseDict
-from Data.Response.FeedbackResponse import FeedbackResponse, FeedbackResponseDict
+from Utilities.Error.ErrorCode         import ErrorCode, ErrorResponse, ErrorResponseDict
+from Data.Response.FeedbackResponse    import FeedbackResponse, FeedbackResponseDict
 from Data.Response.CalibrationResponse import CalibrationResponse, CalibrationResponseDict
-from Data.Response.ManagementResponse import ManagementResponse, ManagementResponseDict
+from Data.Response.ManagementResponse  import ManagementResponse, ManagementResponseDict
+from Data.Response.SummaryResponse     import SummaryResponse
 
 ################################
 ### PING RESPONSE DICT ALIAS ###
@@ -35,7 +36,8 @@ class Response:
     MANAGEMENT  = 2
     CALIBRATION = 3
     FEEDBACK    = 4
-    UNKNOWN     = 5
+    SUMMARY     = 5
+    UNKNOWN     = 6
 
 class Communication:  
     ######################
@@ -82,7 +84,7 @@ class Communication:
     ##########################
     @classmethod
     def construct_response(
-        cls, response:ManagementResponse | CalibrationResponse | FeedbackResponse
+        cls, response:ManagementResponse | CalibrationResponse | FeedbackResponse | SummaryResponse
     ) -> ManagementResponseDict | CalibrationResponseDict | FeedbackResponseDict:
         """
         ### Brief:
@@ -106,6 +108,7 @@ class Communication:
         if   isinstance(response, ManagementResponse):  response_type = Response.MANAGEMENT
         elif isinstance(response, CalibrationResponse): response_type = Response.CALIBRATION
         elif isinstance(response, FeedbackResponse):    response_type = Response.FEEDBACK
+        elif isinstance(response, SummaryResponse):     response_type = Response.SUMMARY
         else:                                           response_type = Response.UNKNOWN
     
         to_return = {
