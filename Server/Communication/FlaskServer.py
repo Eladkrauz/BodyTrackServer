@@ -71,7 +71,7 @@ class FlaskServer:
             self.app.add_url_rule("/register/new/session",   view_func=self._register_new_session,   methods=["POST"])
             self.app.add_url_rule("/unregister/session",     view_func=self._unregister_session,     methods=["POST"])
             self.app.add_url_rule("/start/session",          view_func=self._start_session,          methods=["POST"])
-            self.app.add_url_rule("/start_analysis",         view_func=self._start_session,          methods=["POST"])  # Alias for backward compatibility.
+            self.app.add_url_rule("/start/analysis",         view_func=self._start_session,          methods=["POST"])  # Alias for backward compatibility.
             self.app.add_url_rule("/pause/session",          view_func=self._pause_session,          methods=["POST"])
             self.app.add_url_rule("/resume/session",         view_func=self._resume_session,         methods=["POST"])
             self.app.add_url_rule("/end/session",            view_func=self._end_session,            methods=["POST"])

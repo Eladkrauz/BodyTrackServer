@@ -423,7 +423,7 @@ class SessionManager:
             history['position_side'] = history['position_side'].name
             with open(f"home/bodytrack/BodyTrack/Server/Files/Logs/SessionDebug/{session_id.id}.json", "w", encoding="utf-8") as f:
                 json.dump(history, f, indent=4, ensure_ascii=False)
-                
+
             return ManagementResponse(ManagementCode.CLIENT_SESSION_IS_ENDED)
             
         # If the session is not active or paused.
@@ -436,6 +436,9 @@ class SessionManager:
     ############################## FRAME ANALYSIS ##############################
     ############################################################################
 
+    ######################
+    ### START ANALYSIS ###
+    ######################
     def start_analysis(self, session_id:str) -> ManagementResponse | ErrorResponse:
         """
         ### Brief:
