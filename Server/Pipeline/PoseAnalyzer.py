@@ -383,10 +383,7 @@ class PoseAnalyzer:
                     }
                 )
                 return ErrorCode.FRAME_ANALYSIS_ERROR
-
-            Logger.debug(f"Extracted {landmarks_array.shape[0]} landmarks "
-                        f"from frame {frame_data.frame_id} (Session {frame_data.session_id}).")
-            
+                        
             # Returning the output landmarks array.
             return landmarks_array
         except TypeError as e:

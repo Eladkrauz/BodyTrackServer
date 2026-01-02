@@ -186,7 +186,13 @@ class FeedbackFormatter:
         try:
             # Get current rep data.
             current_rep:Dict[str, Any] = history.get_current_rep()
+            if not current_rep:
+                Logger.debug("No current rep data available. Returning SILENT feedback.")
+                return FeedbackCode.SILENT
+            
+            # Get biomechanical errors in current rep.
             rep_errors:List[str] = current_rep[HistoryDictKey.CurrentRep.ERRORS]
+            
             # If no biomechanical errors, return VALID.
             if not rep_errors:
                 Logger.debug("No biomechanical errors detected in current rep. Returning VALID feedback.")

@@ -129,7 +129,7 @@ class JointAnalyzer:
                         left_point=landmarks[left_point],
                         right_point=landmarks[right_point]
                     )
-                    Logger.debug(f"Calculated angle for joint {joint.name}: {calculated_angle}, with landmarks {left_point} ({landmarks[left_point]}), {right_point} ({landmarks[right_point]})")
+
                 elif len(joint.landmarks) == JointAngle.THREE_POINT_JOINT:
                     landmark_1, landmark_2, landmark_3 = joint.landmarks
                     calculated_angle = self._calculate_angle(
@@ -138,7 +138,7 @@ class JointAnalyzer:
                         landmark_2=landmarks[landmark_2],
                         landmark_3=landmarks[landmark_3]
                     )
-                    Logger.debug(f"Calculated angle for joint {joint.name}: {calculated_angle}, with landmarks {landmark_1} ({landmarks[landmark_1]}), {landmark_2} ({landmarks[landmark_2]}), {landmark_3} ({landmarks[landmark_3]})")
+
                 else:
                     ErrorHandler.handle(
                         error=ErrorCode.DIMENSION_OF_ANGLE_IS_INVALID,
@@ -371,7 +371,6 @@ class JointAnalyzer:
         - Angle calculation failed cause one/more of the vectors validation failed.
         """
         if dimension is True:
-            Logger.debug("Calculating angle in 3D space.")
             # Calculating the first vector.
             vector_1 = self._vector(landmark_2, landmark_1)
             if vector_1 is None:
@@ -403,7 +402,6 @@ class JointAnalyzer:
                 return ErrorCode.ANGLE_CALCULATION_FAILED
             
         else:
-            Logger.debug("Calculating angle in 2D space.")
             try:
                 # Extracting XY coordinates of the landmarks.
                 p1 = landmark_1[:2]
