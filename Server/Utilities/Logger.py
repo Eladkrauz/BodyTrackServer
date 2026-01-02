@@ -7,7 +7,7 @@
 ###############
 ### IMPORTS ###
 ###############
-import logging, os, inspect
+import logging, os, inspect, json
 from datetime import datetime
 
 class Logger:
@@ -240,22 +240,45 @@ class Logger:
         from Utilities.Config.ConfigLoader import ConfigLoader
         from Utilities.Config.ConfigParameters import ConfigParameters
 
-        self.logger_path = ConfigLoader.get([
+        self.logger_path:str = ConfigLoader.get([
             ConfigParameters.Major.LOG,
             ConfigParameters.Minor.LOGGER_PATH
         ])
-        self.logger_name = ConfigLoader.get([
+        self.logger_name:str = ConfigLoader.get([
             ConfigParameters.Major.LOG,
             ConfigParameters.Minor.LOGGER_NAME
         ])
-        self.archive_dir = ConfigLoader.get([
+        self.archive_dir:str = ConfigLoader.get([
             ConfigParameters.Major.LOG,
             ConfigParameters.Minor.ARCHIVE_DIR_NAME
         ])
-        self.log_level = ConfigLoader.get([
+        self.log_level:str = ConfigLoader.get([
             ConfigParameters.Major.LOG,
             ConfigParameters.Minor.LOG_LEVEL
         ])
+        self.debug_sessions_dir:str = ConfigLoader.get([
+            ConfigParameters.Major.LOG,
+            ConfigParameters.Minor.DEBUG_DIR_NAME
+        ])
+
+    ############################
+    ### SAVE DEBUG JSON FILE ###
+    ############################
+    @classmethod
+    def save_debug_json_file(cls, file_name:str, content:dict) -> None:
+        """
+        ### Brief:
+        The `save_debug_json_file` method saves a debug JSON file
+        into the debug sessions directory.
+
+        ### Arguments:
+        - `file_name` (str): The name of the JSON file to save (without extension).
+        - `content` (dict): The content to save into the JSON file.
+        """
+        logger_path:str = cls.logger_path
+        logger_dir = logger_path.removesuffix("/ServerLogger.log")
+        with open(f"{logger_dir}/{cls.debug_sessions_dir}/{file_name}.json", "w", encoding="utf-8") as f:
+            json.dump(content, f, indent=4, ensure_ascii=False)
 
     ##################
     ### WHO CALLED ###

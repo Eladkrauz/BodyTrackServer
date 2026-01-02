@@ -8,7 +8,7 @@
 ### IMPORTS ###
 ###############
 # Python libraries.
-import inspect, threading, time, psutil, os, json
+import inspect, threading, time, psutil, os
 import numpy   as np
 from threading import RLock
 from datetime  import datetime
@@ -416,13 +416,15 @@ class SessionManager:
             with session_data.lock:
                 self.pipeline_processor.end(session_data.get_history())
                 session_data.set_analyzing_state(AnalyzingState.DONE)
-            
-            # For debug: save session full history into a JSON file.
-            with open(f"{self.debug_sessions_dir}/{session_id.id}.json", "w", encoding="utf-8") as f:
-                history = session_data.get_history().history
-                history['position_side'] = history['position_side'].name
-                json.dump(history, f, indent=4, ensure_ascii=False)
-                
+
+            # For debugging.
+            from copy import deepcopy
+            history = deepcopy(session_data.get_history().history)
+            history['position_side'] = history['position_side'].name
+            Logger.save_debug_json_file(
+                file_name=session_id.id,
+                content=history
+            )
             return ManagementResponse(ManagementCode.CLIENT_SESSION_IS_ENDED)
             
         # If the session is not active or paused.
@@ -879,11 +881,6 @@ class SessionManager:
             ConfigParameters.Minor.RETRIEVE_CONFIGURATION_MINUTES
         ])
         Logger.info(f"Retrieve configuration minutes: {self.retrieve_configuration_minutes}")
-
-        self.debug_sessions_dir = ConfigLoader.get([
-            ConfigParameters.Major.LOG,
-            ConfigParameters.Minor.DEBUG_DIR_NAME
-        ])
 
         # Run PipelineProcessor configuration retrieval.
         self.pipeline_processor.retrieve_configurations()
