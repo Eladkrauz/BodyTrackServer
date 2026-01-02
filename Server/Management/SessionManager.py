@@ -421,7 +421,7 @@ class SessionManager:
             from copy import deepcopy
             history = deepcopy(session_data.get_history().history)
             history['position_side'] = history['position_side'].name
-            with open(f"home/bodytrack/BodyTrack/Server/Files/Logs/SessionDebug/{session_id.id}.json", "w", encoding="utf-8") as f:
+            with open(f"/home/bodytrack/BodyTrack/Server/Files/Logs/SessionDebug/{session_id.id}.json", "w", encoding="utf-8") as f:
                 json.dump(history, f, indent=4, ensure_ascii=False)
 
             return ManagementResponse(ManagementCode.CLIENT_SESSION_IS_ENDED)
