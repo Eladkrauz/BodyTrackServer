@@ -271,10 +271,6 @@ class SessionManager:
                     self.current_active_sessions += 1
                     session_data.set_extended_evaluation(extended_evaluation)
 
-                    # Marking exercise started in the history.
-                    with session_data.lock:
-                        self.pipeline_processor.start(session_data.get_history())
-
                     return ManagementResponse(ManagementCode.CLIENT_SESSION_IS_ACTIVE)
 
         # If the client is not registered or already started - it can't start the session.
@@ -433,6 +429,35 @@ class SessionManager:
     ############################################################################
     ############################## FRAME ANALYSIS ##############################
     ############################################################################
+
+    def start_analysis(self, session_id:str) -> ManagementResponse | ErrorResponse:
+        """
+        ### Brief:
+        The `start_analysis` method initializes the analysis pipeline for a given session.
+        
+        ### Arguments:
+        - `session_id` (str): The session ID as a string.
+        
+        ### Returns:
+        - `ManagementResponse`: If the analysis pipeline was started successfully.
+        - `ErrorResponse`: If the session ID is invalid or if an error occurs during initialization.
+        """
+        # Checking if the session id is valid and packing it.
+        session_id:SessionId = self.id_generator.pack_string_to_session_id(session_id) 
+        if session_id is None:
+            return ErrorResponse(ErrorCode.INVALID_SESSION_ID)
+        
+        # Retrieving the session data.
+        with self.sessions_lock:
+            session_data:SessionData = self.sessions.get(session_id)
+            if session_data is None:
+                return ErrorResponse(ErrorCode.CLIENT_NOT_IN_SYSTEM)
+        
+        # Initializing the analysis pipeline for the session.
+        with session_data.lock:
+            self.pipeline_processor.start(session_data.get_history())
+        
+        return ManagementResponse(ManagementCode.SESSION_IS_STARTING)
         
     #####################
     ### ANALYZE FRAME ###

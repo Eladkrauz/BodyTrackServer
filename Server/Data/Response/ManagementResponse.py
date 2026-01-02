@@ -31,6 +31,7 @@ class ManagementCode(IntEnum):
     CLIENT_SESSION_IS_NOT_IN_SYSTEM    = auto()
     SERVER_IS_BEING_SHUTDOWN           = auto()
     CONFIGURATION_UPDATED_SUCCESSFULLY = auto()
+    SESSION_IS_STARTING                = auto()
 
     @property
     def description(self) -> str:
@@ -45,6 +46,7 @@ class ManagementCode(IntEnum):
             ManagementCode.CLIENT_SESSION_IS_NOT_IN_SYSTEM:     "The client's session is not in the system.",
             ManagementCode.SERVER_IS_BEING_SHUTDOWN:            "The server is being shutdown.",
             ManagementCode.CONFIGURATION_UPDATED_SUCCESSFULLY:  "The configuration was updated successfully.",
+            ManagementCode.SESSION_IS_STARTING:                 "The session is starting."
         }[self]
 
 @dataclass
