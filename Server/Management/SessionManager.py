@@ -421,6 +421,9 @@ class SessionManager:
             from copy import deepcopy
             history = deepcopy(session_data.get_history().history)
             history['position_side'] = history['position_side'].name
+            for key, value in session_data.get_history().history.items():
+                if not isinstance(value, (int, float, str, bool, type(None))):
+                    history.pop(key)
             with open(f"/home/bodytrack/BodyTrack/Server/Files/Logs/SessionDebug/{session_id.id}.json", "w", encoding="utf-8") as f:
                 json.dump(history, f, indent=4, ensure_ascii=False)
 
