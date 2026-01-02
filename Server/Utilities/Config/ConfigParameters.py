@@ -115,6 +115,8 @@ class ConfigParameters:
         ARCHIVE_DIR_NAME                        = "archive_dir_name"
         # The log level.
         LOG_LEVEL                               = "log_level"
+        # The name of the debug directory.
+        DEBUG_DIR_NAME                          = "debug_dir_name"
 
         ############
         ### POSE ###

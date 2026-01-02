@@ -15,8 +15,8 @@
       "num_of_min_init_correct_phase":        4
     },
     "history": {
-      "frames_rolling_window_size":           50,
-      "bad_frame_log_size":                   200,
+      "frames_rolling_window_size":           1000,
+      "bad_frame_log_size":                   1000,
       "recovery_ok_threshold":                4,
       "bad_stability_limit":                  5,
       "max_consecutive_invalid_before_abort": 60,
@@ -34,7 +34,8 @@
       "logger_path":                          "/home/bodytrack/BodyTrack/Server/Files/Logs/ServerLogger.log",
       "logger_name":                          "BodyTrackLogger",
       "archive_dir_name":                     "Archive",
-      "log_level":                            "DEBUG"
+      "log_level":                            "DEBUG",
+      "debug_dir_name":                       "SessionDebug"
     },
     "pose": {
       "stability_threshold":                  0.015,
