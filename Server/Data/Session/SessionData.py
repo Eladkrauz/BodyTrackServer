@@ -17,6 +17,9 @@ from Data.Session.ExerciseType    import ExerciseType
 from Data.Session.SessionStatus   import SessionStatus
 from Data.Session.AnalyzingState  import AnalyzingState
 from Data.History.HistoryData     import HistoryData
+from Server.Data.Debbug.FrameTrace import FrameTrace
+from Server.Data.Debbug.FrameEvent import FrameEvent
+
 
 ##########################
 ### SESSION DATA CLASS ###
@@ -54,6 +57,7 @@ class SessionData:
     analyzing_state:AnalyzingState      = field(default=AnalyzingState.INIT)
     lock:RLock                          = field(default_factory=RLock, init=False, repr=False)
     session_status:SessionStatus        = field(default=SessionStatus.REGISTERED)
+    frame_traces:Dict[int, FrameTrace] = field(default_factory=dict, repr=False)
 
     #################
     ### POST INIT ###
@@ -248,3 +252,36 @@ class SessionData:
         """
         self.session_status = session_status
         self.update_time_stamp(session_status)
+
+    #######################
+    ### ADD FRAME EVENT ###
+    #######################
+    def add_frame_event(
+        self,
+        frame_id: int,
+        stage: str,
+        success: bool,
+        result_type: str,
+        result: Dict[str, Any],
+        info: Optional[Dict[str, Any]] = None
+    ) -> None:
+        trace = self.frame_traces.setdefault(
+            frame_id,
+            FrameTrace(frame_id=frame_id)
+        )
+
+        trace.events.append(
+            FrameEvent(
+                stage=stage,
+                success=success,
+                result_type=result_type,
+                result=result,
+                info=info
+            )
+        )
+
+    def frame_traces_to_dict(self) -> Dict[str, Any]:
+        return {
+            str(fid): trace.to_dict()
+            for fid, trace in self.frame_traces.items()
+        }
