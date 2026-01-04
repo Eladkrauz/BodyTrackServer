@@ -139,7 +139,7 @@ class FeedbackCode(IntEnum):
             FeedbackCode.CURL_LIFTING_SHOULDER_TOO_FORWARD:     "Don't swing your shoulders forward.",
             FeedbackCode.CURL_LIFTING_SHOULDER_TOO_BACKWARD:    "Avoid leaning back during the curl.",
             
-            FeedbackCode.CURL_HOLD_ELBOW_TOO_OPEN:              "Bring your elbows in slightly.",
+            FeedbackCode.CURL_HOLD_ELBOW_TOO_OPEN:              "Bend your elbows a bit more at the top.",
             FeedbackCode.CURL_HOLD_ELBOW_TOO_CLOSED:            "Open your elbows slightly at the top.",
             FeedbackCode.CURL_HOLD_WRIST_TOO_FLEXED:            "Keep your wrists neutral.",
             FeedbackCode.CURL_HOLD_WRIST_TOO_EXTENDED:          "Avoid bending your wrists backward.",

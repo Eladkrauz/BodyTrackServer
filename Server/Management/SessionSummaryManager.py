@@ -90,11 +90,12 @@ class SessionSummaryManager():
             * Recommendations
         """
         try:
-            history:HistoryData                = session_data.get_history()
-            session_duration_seconds:float     = history.get_exercise_duration()
-            reps:List[Dict[str, Any]]          = history.get_rep_history()
-            average_rep_duration_seconds:float = self._average_rep_duration_seconds(reps)
-            aggregated_errors:Dict[str, int]   = self._aggregated_rep_errors(reps)
+            history:HistoryData                 = session_data.get_history()
+            session_duration_seconds:float      = history.get_exercise_duration()
+            reps:List[Dict[str, Any]]           = history.get_rep_history()
+            average_rep_duration_seconds:float  = self._average_rep_duration_seconds(reps)
+            reps_breakdown:List[Dict[str, Any]] = self._prepare_reps(reps)
+            aggregated_errors:Dict[str, int]    = self._aggregated_rep_errors(reps_breakdown)
 
             # Construct the SummaryResponse object.
             session_summary = SummaryResponse(
@@ -104,7 +105,7 @@ class SessionSummaryManager():
                 number_of_reps=               history.get_rep_count(),
                 average_rep_duration_seconds= average_rep_duration_seconds,
                 overall_grade=                self._overall_grade(reps),
-                rep_breakdown=                self._prepare_reps(reps),
+                rep_breakdown=                reps_breakdown,
                 aggregated_errors=            aggregated_errors,
                 recommendations=              self._recommendations(aggregated_errors)
             )
@@ -221,6 +222,10 @@ class SessionSummaryManager():
 
                 if rep_data[HistoryDictKey.Repetition.IS_CORRECT] is True:
                     rep_data[HistoryDictKey.Repetition.ERRORS] = []
+                else:
+                    errors: List[str] = rep_data[HistoryDictKey.Repetition.ERRORS] or []
+                    # Remove duplicates while keeping type List[str]
+                    rep_data[HistoryDictKey.Repetition.ERRORS] = list(set(errors))
 
             return reps
         except Exception as e:
@@ -248,7 +253,6 @@ class SessionSummaryManager():
         """
         try:
             aggregated_errors:Dict[str, int] = {}
-
             # Aggregate errors across all repetitions.
             for rep_data in reps:
                 if rep_data[HistoryDictKey.Repetition.ERRORS] is None: continue
