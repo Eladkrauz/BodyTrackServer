@@ -8,7 +8,7 @@
 ### IMPORTS ###
 ###############
 # Python libraries.
-import inspect, threading, time, psutil, os
+import inspect, threading, time, psutil, os, json
 import numpy   as np
 from threading import RLock
 from datetime  import datetime
@@ -271,10 +271,6 @@ class SessionManager:
                     self.current_active_sessions += 1
                     session_data.set_extended_evaluation(extended_evaluation)
 
-                    # Marking exercise started in the history.
-                    with session_data.lock:
-                        self.pipeline_processor.start(session_data.get_history())
-
                     return ManagementResponse(ManagementCode.CLIENT_SESSION_IS_ACTIVE)
 
         # If the client is not registered or already started - it can't start the session.
@@ -420,8 +416,17 @@ class SessionManager:
             with session_data.lock:
                 self.pipeline_processor.end(session_data.get_history())
                 session_data.set_analyzing_state(AnalyzingState.DONE)
-            
-            # TODO: Add summary creation here using the final HistoryData values.
+
+            # For debugging.
+            from copy import deepcopy
+            history = deepcopy(session_data.get_history().history)
+            history['position_side'] = history['position_side'].name
+            for key, value in session_data.get_history().history.items():
+                if not isinstance(value, (int, float, str, bool, list, dict, type(None))):
+                    history.pop(key)
+            with open(f"/home/bodytrack/BodyTrack/Server/Files/Logs/SessionDebug/{session_id.id}.json", "w", encoding="utf-8") as f:
+                json.dump(history, f, indent=4, ensure_ascii=False)
+
             return ManagementResponse(ManagementCode.CLIENT_SESSION_IS_ENDED)
             
         # If the session is not active or paused.
@@ -433,6 +438,38 @@ class SessionManager:
     ############################################################################
     ############################## FRAME ANALYSIS ##############################
     ############################################################################
+
+    ######################
+    ### START ANALYSIS ###
+    ######################
+    def start_analysis(self, session_id:str) -> ManagementResponse | ErrorResponse:
+        """
+        ### Brief:
+        The `start_analysis` method initializes the analysis pipeline for a given session.
+        
+        ### Arguments:
+        - `session_id` (str): The session ID as a string.
+        
+        ### Returns:
+        - `ManagementResponse`: If the analysis pipeline was started successfully.
+        - `ErrorResponse`: If the session ID is invalid or if an error occurs during initialization.
+        """
+        # Checking if the session id is valid and packing it.
+        session_id:SessionId = self.id_generator.pack_string_to_session_id(session_id) 
+        if session_id is None:
+            return ErrorResponse(ErrorCode.INVALID_SESSION_ID)
+        
+        # Retrieving the session data.
+        with self.sessions_lock:
+            session_data:SessionData = self.sessions.get(session_id)
+            if session_data is None:
+                return ErrorResponse(ErrorCode.CLIENT_NOT_IN_SYSTEM)
+        
+        # Initializing the analysis pipeline for the session.
+        with session_data.lock:
+            self.pipeline_processor.start(session_data.get_history())
+        
+        return ManagementResponse(ManagementCode.SESSION_IS_STARTING)
         
     #####################
     ### ANALYZE FRAME ###

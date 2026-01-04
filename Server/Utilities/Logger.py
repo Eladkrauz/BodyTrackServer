@@ -240,21 +240,25 @@ class Logger:
         from Utilities.Config.ConfigLoader import ConfigLoader
         from Utilities.Config.ConfigParameters import ConfigParameters
 
-        self.logger_path = ConfigLoader.get([
+        self.logger_path:str = ConfigLoader.get([
             ConfigParameters.Major.LOG,
             ConfigParameters.Minor.LOGGER_PATH
         ])
-        self.logger_name = ConfigLoader.get([
+        self.logger_name:str = ConfigLoader.get([
             ConfigParameters.Major.LOG,
             ConfigParameters.Minor.LOGGER_NAME
         ])
-        self.archive_dir = ConfigLoader.get([
+        self.archive_dir:str = ConfigLoader.get([
             ConfigParameters.Major.LOG,
             ConfigParameters.Minor.ARCHIVE_DIR_NAME
         ])
-        self.log_level = ConfigLoader.get([
+        self.log_level:str = ConfigLoader.get([
             ConfigParameters.Major.LOG,
             ConfigParameters.Minor.LOG_LEVEL
+        ])
+        self.debug_sessions_dir:str = ConfigLoader.get([
+            ConfigParameters.Major.LOG,
+            ConfigParameters.Minor.DEBUG_DIR_NAME
         ])
 
     ##################

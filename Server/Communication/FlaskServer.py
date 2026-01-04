@@ -71,6 +71,7 @@ class FlaskServer:
             self.app.add_url_rule("/register/new/session",   view_func=self._register_new_session,   methods=["POST"])
             self.app.add_url_rule("/unregister/session",     view_func=self._unregister_session,     methods=["POST"])
             self.app.add_url_rule("/start/session",          view_func=self._start_session,          methods=["POST"])
+            self.app.add_url_rule("/start/analysis",         view_func=self._start_analysis,          methods=["POST"])  # Alias for backward compatibility.
             self.app.add_url_rule("/pause/session",          view_func=self._pause_session,          methods=["POST"])
             self.app.add_url_rule("/resume/session",         view_func=self._resume_session,         methods=["POST"])
             self.app.add_url_rule("/end/session",            view_func=self._end_session,            methods=["POST"])
@@ -320,7 +321,37 @@ class FlaskServer:
             return jsonify(Communication.error_response(start_session_result)), HttpCodes.BAD_REQUEST
         else: # If the session started successfully.
             return jsonify(Communication.construct_response(start_session_result)), HttpCodes.OK
-            
+    
+    ######################
+    ### START ANALYSIS ###
+    ######################
+    def _start_analysis(self) -> tuple[Response, HttpCodes]:
+        """
+        ### Brief:
+        The `_start_analysis` method starts the analysis of a previously started session.
+
+        ### Returns:
+        - `tuple`: A JSON response indicating the result and an appropriate HTTP code.
+        """
+        # Get request's JSON data.
+        data:dict = dict(request.get_json())
+        if data is None:
+            Logger.warning("Missing or invalid JSON in request")
+            return jsonify(Communication.error_response(error=None, error_code=ErrorCode.INVALID_JSON_PAYLOAD_IN_REQUEST)), HttpCodes.BAD_REQUEST
+
+        # Extract required values.
+        session_id:str = data.get("session_id", None)
+        if session_id is None:
+            Logger.warning("Missing 'session_id' in request")
+            return jsonify(Communication.error_response(error=None, error_code=ErrorCode.MISSING_SESSION_ID_IN_REQUEST)), HttpCodes.BAD_REQUEST
+        
+        # Trying to start the analysis of the session.
+        start_analysis_result:ManagementResponse | ErrorResponse = self.session_manager.start_analysis(session_id)
+        if isinstance(start_analysis_result, ErrorResponse): # If an error occured.
+            return jsonify(Communication.error_response(start_analysis_result)), HttpCodes.BAD_REQUEST
+        else: # If the session analysis started successfully.
+            return jsonify(Communication.construct_response(start_analysis_result)), HttpCodes.OK    
+
     #####################
     ### PAUSE SESSION ###
     #####################
@@ -356,7 +387,7 @@ class FlaskServer:
         pause_session_result:ManagementResponse | ErrorResponse = self.session_manager.pause_session(session_id)
         if isinstance(pause_session_result, ErrorResponse): # If an error occured.
             return jsonify(Communication.error_response(pause_session_result)), HttpCodes.BAD_REQUEST
-        else: # If the session unregistered successfully.
+        else: # If the session paused successfully.
             return jsonify(Communication.construct_response(pause_session_result)), HttpCodes.OK    
 
     ######################

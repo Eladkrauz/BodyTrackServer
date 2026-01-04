@@ -366,10 +366,13 @@ class PipelineProcessor:
         - `FeedbackCode` once a feedback formatter is implemented.
         - `ErrorCode` for errors in pose analysis, quality evaluation, joint calculation, phase determination, or error detection.
         """
+        frame_id:int = frame_data.frame_id
+        print(); print(); print("##############################")
+        print(f"Analyzing Frame ID: {frame_id}")
         ### PIPELINE STEP >>> Analyzing Pose --- using PoseAnalyzer.
         pose_analyzer_result:PoseLandmarksArray | ErrorCode = self.pose_analyzer.analyze_frame(frame_data)
         if self._check_for_error(pose_analyzer_result): return pose_analyzer_result
-        Logger.debug("Successfully analyzed pose landmarks.")
+        print("PoseAnalyzer: Successfully analyzed pose landmarks.")
         
         ### PIPELINE STEP >>> Validating Frame Quality --- using PoseQualityManager.
         pose_quality_result:PoseQuality = self.pose_quality_manager.evaluate_landmarks(
@@ -377,7 +380,7 @@ class PipelineProcessor:
             landmarks=pose_analyzer_result
         )
         if self._check_for_error(pose_quality_result): return pose_quality_result
-        Logger.debug(f"Successfully evaluated pose quality: {pose_quality_result}")
+        print(f"PoseQualityManager: Successfully evaluated pose quality. Result: {pose_quality_result.name}")
 
         # The HistoryData of the session.
         history:HistoryData = session_data.get_history()
@@ -392,7 +395,7 @@ class PipelineProcessor:
                 frame_id=frame_data.frame_id,
                 invalid_reason=pose_quality_result
             )
-            Logger.debug("Successfully recorded invalid frame.")
+            print("HistoryManager: Successfully recorded invalid frame.")
             # Check if frame needs to get aborted.
             if self.history_manager.should_abort_session(history):
                 return ErrorCode.SESSION_SHOULD_ABORT
@@ -408,7 +411,7 @@ class PipelineProcessor:
             landmarks=pose_analyzer_result
         )
         if self._check_for_error(joint_analyzer_result): return joint_analyzer_result
-        Logger.debug("Successfully calculated joint angles.")
+        print(f"JointAnalyzer: Successfully calculated joint angles - {joint_analyzer_result}")
         
         # Recording valid §frame.
         self.history_manager.record_valid_frame(
@@ -417,12 +420,12 @@ class PipelineProcessor:
             landmarks=pose_analyzer_result,
             joints=joint_analyzer_result
         )
-        Logger.debug("Successfully recorded valid frame.")
+        print("HistoryManager: Successfully recorded valid frame.")
 
         ### PIPELINE STEP >>> Determining the current phase --- using PhaseDetector.
         phase_detector_result:PhaseType = self.phase_detector.determine_phase(session_data=session_data)
         if self._check_for_error(phase_detector_result): return phase_detector_result
-        Logger.debug(f"Successfully detected current phase: {phase_detector_result.name}.")
+        print(f"PhaseDetector: Successfully detected current phase: {phase_detector_result.name}.")
         
         # Recording the phase.
         self.history_manager.record_phase_transition(
@@ -436,7 +439,7 @@ class PipelineProcessor:
         ### PIPELINE STEP >>> Detecting errors --- using ErrorDetector.
         error_detector_result:DetectedErrorCode = self.error_detector.detect_errors(session_data)
         if self._check_for_error(error_detector_result): return error_detector_result
-        Logger.debug(f"Successfully detected error: {error_detector_result.name}.")
+        print(f"ErrorDetector: Successfully detected error: {error_detector_result.name}.")
         
         # Recording the error (also NO_BIOMECHANICAL_ERROR and NOT_READY_FOR_ANALYSIS are recorded).   
         self.history_manager.add_frame_error(
@@ -458,19 +461,18 @@ class PipelineProcessor:
         feedback_result = self.feedback_formatter.construct_feedback(session_data)
 
         if self._check_for_error(feedback_result): return feedback_result
-        Logger.debug("Successfully constructed feedback.")
+        print(f"FeedbackFormatter: Successfully constructed feedback - {feedback_result.name}.")
 
         # If the feedback is SILENT or VALID - increment frames since last feedback.
         if feedback_result in (FeedbackCode.SILENT, FeedbackCode.VALID):
             self.history_manager.increment_frames_since_last_feedback(history)
-            print("$\n$\n$\nNot sending feedback.\n$\n$\n$")
         # Else - reset the counter and record the feedback to the current rep.
         else:
             self.history_manager.reset_frames_since_last_feedback(history)
             self.history_manager.record_feedback_notified(history, feedback_result)
             self.feedbacks.append(feedback_result)
-            print("$\n$\n$\n!!!!!!!!!!!!!!!!!!!!!!!!!!Sending feedback!\n$\n$\n$")
 
+        print("##############################"); print(); print()
         return feedback_result
 
     #####################################################################

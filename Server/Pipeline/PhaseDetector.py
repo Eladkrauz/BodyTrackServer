@@ -124,6 +124,7 @@ class PhaseDetector:
             if self._phase_matches_rules(phase, rules, last_valid_joints):
                 candidates.append(phase.name)
 
+        print(f"PhaseDetector: Candidates: {candidates}")
         # Resolve final selected phase.
         return self._select_phase_from_candidates(candidates, session_data)
     
@@ -280,16 +281,13 @@ class PhaseDetector:
             Logger.error(f"Phase rules not found for phase '{phase_type.name}'.")
             return False
 
-        Logger.debug(f"Checking phase '{phase_type.name}' with rules: {phase_rules}")
         for joint_name, joint_range in phase_rules.items():
             if joint_name not in joints:
                 # Missing joint: cannot match this phase.
-                Logger.debug(f"Phase '{phase_type.name}': Missing joint '{joint_name}' in provided joints.")
+                Logger.error(f"Phase '{phase_type.name}': Missing joint '{joint_name}' in provided joints.")
                 return False
 
             angle = joints[joint_name]
-            print(f"Angle of joint {joint_name}: {angle}")
-            Logger.debug(f"Phase '{phase_type.name}': Checking joint '{joint_name}' with angle {angle} against limits {joint_range}.")
             min_allowed = joint_range.get(PhaseDictKey.MIN)
             max_allowed = joint_range.get(PhaseDictKey.MAX)
 
@@ -377,10 +375,9 @@ class PhaseDetector:
         # Therefore: prefer continuity (last phase) or a safe initial default.
         last_phase:PhaseType = session_data.get_history().get_phase_state()
         if len(candidates) == 0:
-            Logger.debug("CASE NUMBER 1")
+            print("CASE NUMBER 1")
             # If we have a last known phase, keep it (hysteresis / continuity).
             if last_phase is not None:
-                Logger.debug("Returning last known phase for continuity.")
                 return last_phase
 
             # If we have no last phase (for example - start of session), fallback to initial phase from config.
@@ -394,7 +391,6 @@ class PhaseDetector:
 
             # Config validation should ensure 'initial' exists, but we keep this safe-guard anyway.
             if initial in phase_enum:
-                Logger.debug("Returning initial phase from configuration.")
                 return phase_enum[initial]
 
             # If we cannot determine a safe phase, return undetermined.
@@ -421,8 +417,7 @@ class PhaseDetector:
 
         # If only one phase matches rules, that is the phase.
         if len(candidates) == 1:
-            Logger.debug("CASE NUMBER 2")
-            Logger.debug(f"Only one candidate phase '{candidates[0]}' matched rules.")
+            print("CASE NUMBER 2")
             # Hysteresis: if last phase is different, but still valid, keep it for stability.
             candidate:PhaseType = phase_enum[candidates[0]]
 
@@ -434,15 +429,13 @@ class PhaseDetector:
         ##############
         ### CASE 3 ### - Multiple candidates, we need resolution logic.
         ##############
-        Logger.debug("CASE NUMBER 3")
-        Logger.debug(f"Candidates: {candidates}")
+        print("CASE NUMBER 3")
         # Common cause: overlapping thresholds.
         last_phase:PhaseType | None = session_data.get_history().get_phase_state()
 
         # If the last phase is still a valid candidate this frame, keep it.
         # This is standard hysteresis to prevent flickering when multiple phases match.
         if last_phase is not None and last_phase.name in candidates:
-            Logger.debug(f"Last phase '{last_phase.name}' is still a valid candidate. Keeping it for stability.")
             return last_phase
 
         # Low-motion phases are phases we only want to allow when motion is actually small.
@@ -468,12 +461,11 @@ class PhaseDetector:
                 # Instead, keep last phase to avoid falsely entering HOLD (or similar).
                 # Note: last_phase may not be in candidates here, but we accept hysteresis for stability.
                 if (next_expected in low_motion_phases) and (not is_low_motion_ready):
-                    Logger.debug(f"Next expected phase '{next_expected}' is low-motion but not ready. Keeping last phase '{last_phase.name}'.")
+                    print("PhaseDetector: Next expected phase is low motion but not ready.")
                     return last_phase
 
                 # If the next expected phase is one of the candidates, choose it.
                 if next_expected in candidates:
-                    Logger.debug(f"Selecting next expected phase '{next_expected}' from candidates for natural progression.")
                     return phase_enum[next_expected]
 
             except ValueError:
@@ -502,14 +494,14 @@ class PhaseDetector:
                 # If this candidate is a low-motion phase but we are not yet “low-motion ready”, skip it.
                 if (phase_name in low_motion_phases) and (not is_low_motion_ready):
                     continue
-                Logger.debug(f"Selecting candidate phase '{phase_name}' based on recovery order.")
+
                 return phase_enum[phase_name]
 
         # If we got here, candidates exist but none were selectable under gating rules.
         # This can happen if candidates only include low-motion phases but motion isn't low yet.
         # In that case, prefer continuity.
         if last_phase is not None:
-            Logger.debug("No candidates selectable under gating rules. Keeping last phase for continuity.")
+            print("No candidates selectable under gating rules. Keeping last phase for continuity.")
             return last_phase
 
         # Otherwise, safe-guard.
