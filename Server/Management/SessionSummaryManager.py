@@ -7,6 +7,8 @@
 ###############
 ### IMPORTS ###
 ###############
+from copy import deepcopy
+from math import ceil
 from typing import Dict, Any, List
 import inspect
 from datetime import datetime
@@ -94,6 +96,7 @@ class SessionSummaryManager():
             session_duration_seconds:float      = history.get_exercise_duration()
             reps:List[Dict[str, Any]]           = history.get_rep_history()
             average_rep_duration_seconds:float  = self._average_rep_duration_seconds(reps)
+            raw_reps:List[Dict[str, Any]]       = deepcopy(history.get_rep_history())
             reps_breakdown:List[Dict[str, Any]] = self._prepare_reps(reps)
             aggregated_errors:Dict[str, int]    = self._aggregated_rep_errors(reps_breakdown)
 
@@ -104,7 +107,7 @@ class SessionSummaryManager():
                 session_duration_seconds=     session_duration_seconds,
                 number_of_reps=               history.get_rep_count(),
                 average_rep_duration_seconds= average_rep_duration_seconds,
-                overall_grade=                self._overall_grade(reps),
+                overall_grade=                self._overall_grade(raw_reps),
                 rep_breakdown=                reps_breakdown,
                 aggregated_errors=            aggregated_errors,
                 recommendations=              self._recommendations(aggregated_errors)
@@ -165,24 +168,49 @@ class SessionSummaryManager():
         - Ensure the final grade does not fall below `0`.
 
         ### Arguments:
-        reps (List[Dict[str, Any]]): List of repetitions with correctness info.
+        - `reps` (List[Dict[str, Any]]): List of repetitions with correctness info.
+        
         ### Returns:
         - `float`: The computed grade, never below 0.
         """
         try:
-            # If there are no reps, return a grade of 0.0.
+            # If there are no repetitions, return a grade of 0.0.
             if not reps: return 0.0
 
-            # Count incorrect reps.
-            incorrect_reps = sum(
-                1 for rep in reps
-                if rep.get(HistoryDictKey.Repetition.IS_CORRECT) is False
-            )
+            grades:List[float] = []
 
-            # Calculate grade based on incorrect reps.
-            correctness_ratio = 1.0 - (incorrect_reps / len(reps))
-            # Ensure grade is not negative.
-            return round(self.max_grade * correctness_ratio, 2)
+            for rep in reps:
+                # Duration of the repetition in seconds.
+                duration: float = rep.get(HistoryDictKey.Repetition.DURATION, 0.0)
+
+                # Estimate total number of frames in this repetition.
+                # We ceil the duration, add 1 second margin, and multiply by FPS.
+                total_frames:int = (ceil(duration) + 1) * self.approximate_fps
+
+                # Number of error frames (at most one error per frame).
+                total_errors:int = len(rep.get(HistoryDictKey.Repetition.ERRORS, []))
+
+                # Avoid division by zero (should not happen, but kept for safety).
+                if total_frames <= 0:
+                    grades.append(0.0)
+                    continue
+
+                # Compute penalty ratio and clamp it.
+                penalty_ratio:float = min(
+                    total_errors / total_frames,
+                    self.penalty
+                )
+
+                # Compute grade for this repetition.
+                rep_grade:float = self.max_grade * (1.0 - penalty_ratio)
+
+                # Ensure grade is non-negative.
+                grades.append(max(0.0, rep_grade))
+
+            # Average grade across all repetitions.
+            final_grade:float = sum(grades) / len(grades)
+
+            return round(final_grade, 2)
         except Exception as e:
             ErrorHandler.handle(
                 error=ErrorCode.SUMMARY_MANAGER_INTERNAL_ERROR,
@@ -348,4 +376,14 @@ class SessionSummaryManager():
         self.max_grade:float = ConfigLoader().get([
             ConfigParameters.Major.SUMMARY,
             ConfigParameters.Minor.MAX_GRADE
+        ])
+
+        self.penalty:float = ConfigLoader().get([
+            ConfigParameters.Major.SUMMARY,
+            ConfigParameters.Minor.PENALTY
+        ])
+
+        self.approximate_fps:int = ConfigLoader().get([
+            ConfigParameters.Major.SUMMARY,
+            ConfigParameters.Minor.APPROXIMATE_FPS
         ])

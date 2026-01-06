@@ -68,6 +68,8 @@
     },
     "summary": {
       "number_of_top_errors":                 4,
-      "max_grade":                            100
+      "max_grade":                            100,
+      "penalty":                              0.6,
+      "approximate_fps":                      10
     }
 }

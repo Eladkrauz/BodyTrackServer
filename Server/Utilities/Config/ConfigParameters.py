@@ -183,3 +183,7 @@ class ConfigParameters:
         NUMBER_OF_TOP_ERRORS                    = "number_of_top_errors"
         # The maximum grade achievable.
         MAX_GRADE                               = "max_grade"
+        # The penalty per error point.
+        PENALTY                                 = "penalty"
+        # Approximate frames per second.
+        APPROXIMATE_FPS                         = "approximate_fps"
