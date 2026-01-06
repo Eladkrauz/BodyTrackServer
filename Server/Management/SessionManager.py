@@ -683,7 +683,7 @@ class SessionManager:
         
         # Retrieving the session data.
         with self.sessions_lock:
-            session_data:SessionData = self.sessions.pop(session_id, None)
+            session_data:SessionData = self.sessions.get(session_id, None)
             if session_data is None:
                 return ErrorResponse(ErrorCode.CLIENT_NOT_IN_SYSTEM)
         
