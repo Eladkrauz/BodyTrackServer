@@ -661,3 +661,16 @@ class HistoryData:
         An `int` indicating the current transition index.
         """
         return self.history[HistoryDictKey.CURRENT_TRANSITION_INDEX]
+    
+    ####################
+    ### GET END TIME ###
+    ####################
+    def get_end_time(self) -> Optional[datetime]:
+        """
+        ### Brief:
+        The `get_end_time` method returns the exercise end time.
+
+        ### Returns:
+        A `datetime` indicating the exercise end time.
+        """
+        return self.history[HistoryDictKey.EXERCISE_END_TIME]

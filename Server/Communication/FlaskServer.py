@@ -10,7 +10,7 @@
 from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
 from threading import Thread
-from typing import Dict
+from typing import Dict, List, Any
 import inspect, ipaddress
 import base64, cv2
 import numpy as np
@@ -67,20 +67,22 @@ class FlaskServer:
 
         # Bind routes to handler functions.
         try:
-            self.app.add_url_rule("/ping",                   view_func=self.ping,                    methods=["GET"])
-            self.app.add_url_rule("/register/new/session",   view_func=self._register_new_session,   methods=["POST"])
-            self.app.add_url_rule("/unregister/session",     view_func=self._unregister_session,     methods=["POST"])
-            self.app.add_url_rule("/start/session",          view_func=self._start_session,          methods=["POST"])
-            self.app.add_url_rule("/start/analysis",         view_func=self._start_analysis,          methods=["POST"])  # Alias for backward compatibility.
-            self.app.add_url_rule("/pause/session",          view_func=self._pause_session,          methods=["POST"])
-            self.app.add_url_rule("/resume/session",         view_func=self._resume_session,         methods=["POST"])
-            self.app.add_url_rule("/end/session",            view_func=self._end_session,            methods=["POST"])
-            self.app.add_url_rule("/analyze",                view_func=self._analyze_pose,           methods=["POST"])
-            self.app.add_url_rule("/session/status",         view_func=self._session_status,         methods=["POST"])
-            self.app.add_url_rule("/session/summary",        view_func=self._session_summary,        methods=["POST"])
-            self.app.add_url_rule("/internal/telemetry",     view_func=self._telemetry,              methods=["GET"])
-            self.app.add_url_rule("/terminate/server",       view_func=self._terminate_server,       methods=["POST"])
-            self.app.add_url_rule("/refresh/configurations", view_func=self._refresh_configurations, methods=["GET"])
+            self.app.add_url_rule("/ping",                          view_func=self.ping,                           methods=["GET"])
+            self.app.add_url_rule("/register/new/session",          view_func=self._register_new_session,          methods=["POST"])
+            self.app.add_url_rule("/unregister/session",            view_func=self._unregister_session,            methods=["POST"])
+            self.app.add_url_rule("/start/session",                 view_func=self._start_session,                 methods=["POST"])
+            self.app.add_url_rule("/start/analysis",                view_func=self._start_analysis,                methods=["POST"])
+            self.app.add_url_rule("/pause/session",                 view_func=self._pause_session,                 methods=["POST"])
+            self.app.add_url_rule("/resume/session",                view_func=self._resume_session,                methods=["POST"])
+            self.app.add_url_rule("/end/session",                   view_func=self._end_session,                   methods=["POST"])
+            self.app.add_url_rule("/analyze",                       view_func=self._analyze_pose,                  methods=["POST"])
+            self.app.add_url_rule("/session/status",                view_func=self._session_status,                methods=["POST"])
+            self.app.add_url_rule("/session/summary",               view_func=self._session_summary,               methods=["POST"])
+            self.app.add_url_rule("/internal/telemetry",            view_func=self._telemetry,                     methods=["GET"])
+            self.app.add_url_rule("/terminate/server",              view_func=self._terminate_server,              methods=["POST"])
+            self.app.add_url_rule("/refresh/configurations",        view_func=self._refresh_configurations,        methods=["GET"])
+            self.app.add_url_rule("/get/finished/sessions",         view_func=self._get_finished_sessions,         methods=["GET"])
+            self.app.add_url_rule("/retrieve/session/frames/trace", view_func=self._retrieve_session_frames_trace, methods=["POST"])
         except Exception as e:
             ErrorHandler.handle(
                 error=ErrorCode.CANT_ADD_URL_RULE_TO_FLASK_SERVER,
@@ -622,7 +624,7 @@ class FlaskServer:
     #################
     ### TELEMETRY ###
     #################
-    def _telemetry(self):
+    def _telemetry(self) -> tuple[Response, HttpCodes]:
         """
         ### Brief:
         The `telemetry` method provides internal server state information for debugging purposes.
@@ -634,7 +636,7 @@ class FlaskServer:
     ########################
     ### TERMINATE SERVER ###
     ########################
-    def _terminate_server(self) -> None:
+    def _terminate_server(self) -> tuple[Response, HttpCodes]:
         """
         ### Brief:
         The `_terminate_server` method stops the Flask server and exits the system.
@@ -666,3 +668,55 @@ class FlaskServer:
         # Use a background thread to exit the system after the response is sent.
         def exit_system(): import time; time.sleep(1); os._exit(0)
         Thread(target=exit_system).start(); return response
+    
+    #############################
+    ### GET FINISHED SESSIONS ###
+    #############################
+    def _get_finished_sessions(self) -> tuple[Response, HttpCodes]:
+        """
+        ### Brief:
+        The `_get_finished_sessions` method retrieves a list of finished sessions from the SessionManager.
+
+        ### Returns:
+        - JSON response containing the list of finished sessions and the appropriate HTTP code.
+
+        ### Use:
+        Used to get information about sessions that have been completed.
+        """
+        finished_sessions:List[Dict[str, str]] = self.session_manager.get_finished_sessions()
+        return jsonify({
+            "finished_sessions": finished_sessions
+        }), HttpCodes.OK
+    
+    ########################################
+    ### RETRIEVE SESSION FRAMES TRACE ###
+    ########################################
+    def _retrieve_session_frames_trace(self) -> tuple[Response, HttpCodes]:
+        """
+        ### Brief:
+        The `_retrieve_session_frames_trace` method retrieves the frames trace for a given session.
+
+        ### Returns:
+        - JSON response containing the frames trace and the appropriate HTTP code.
+
+        ### Use:
+        Used to get the frames trace of a specific session for analysis or debugging.
+        """
+        # Get request's JSON data.
+        data:dict = dict(request.get_json())
+        if not data:
+            Logger.warning("Missing or invalid JSON in analyze_pose request")
+            return jsonify(Communication.error_response(error=None, error_code=ErrorCode.INVALID_JSON_PAYLOAD_IN_REQUEST)), HttpCodes.BAD_REQUEST
+
+        # Extract required fields.
+        session_id:str = data.get("session_id", None)
+        if session_id is None:
+            Logger.warning("Missing fields in analyze_pose request")
+            return jsonify(Communication.error_response(error=None, error_code=ErrorCode.MISSING_FRAME_DATA_IN_REQUEST)), HttpCodes.BAD_REQUEST
+        
+        # Get the frames trace.
+        frames_trace_icd:List[Dict[str, Any]] | ErrorResponse = self.session_manager.retrieve_session_frames_trace(session_id)
+        if isinstance(frames_trace_icd, ErrorResponse):
+            return jsonify(Communication.error_response(frames_trace_icd)), HttpCodes.SERVER_ERROR
+        else:
+            return jsonify({ "frames_trace": frames_trace_icd }), HttpCodes.OK

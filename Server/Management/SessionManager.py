@@ -12,6 +12,7 @@ import inspect, threading, time, psutil, os, json
 import numpy   as np
 from threading import RLock
 from datetime  import datetime
+from typing import Dict, List, Any
 
 # Utilities.
 from Utilities.SessionIdGenerator      import SessionIdGenerator, SessionId
@@ -417,23 +418,63 @@ class SessionManager:
                 self.pipeline_processor.end(session_data.get_history())
                 session_data.set_analyzing_state(AnalyzingState.DONE)
 
-            # For debugging.
-            from copy import deepcopy
-            history = deepcopy(session_data.get_history().history)
-            history['position_side'] = history['position_side'].name
-            for key, value in session_data.get_history().history.items():
-                if not isinstance(value, (int, float, str, bool, list, dict, type(None))):
-                    history.pop(key)
-            with open(f"/home/bodytrack/BodyTrack/Server/Files/Logs/SessionDebug/{session_id.id}.json", "w", encoding="utf-8") as f:
-                json.dump(history, f, indent=4, ensure_ascii=False)
-
             return ManagementResponse(ManagementCode.CLIENT_SESSION_IS_ENDED)
             
         # If the session is not active or paused.
         else:
             error_code:ErrorCode = self._session_status_to_error(session_status)
             ErrorHandler.handle(error=error_code, origin=inspect.currentframe())
-            return ErrorResponse(error_code)       
+            return ErrorResponse(error_code)
+    
+    #############################
+    ### GET FINISHED SESSIONS ###
+    #############################
+    def get_finished_sessions(self) -> List[Dict[str, str]]:
+        """
+        ### Brief:
+        The `get_finished_sessions` method retrieves a list of session IDs that have completed their analysis.
+
+        ### Returns:
+        - A list of dictionaries, each containing a session ID and its corresponding end time.
+        """
+        finished_sessions = []
+        with self.sessions_lock:
+            for session_id, session_data in self.sessions.items():
+                if session_data.get_session_status() == SessionStatus.ENDED:
+                    finished_sessions.append({
+                        session_id.id: session_data.get_history().get_end_time().strftime("%Y-%m-%d %H:%M:%S")
+                    })
+        return finished_sessions
+    
+    #####################################
+    ### RETRIEVE SESSION FRAMES TRACE ###
+    #####################################
+    def retrieve_session_frames_trace(self, session_id:str) -> List[Dict[str, Any]] | ErrorResponse:
+        """
+        ### Brief:
+        The `retrieve_session_frames_trace` method retrieves the list of frame IDs processed in a session.
+
+        ### Arguments:
+        - `session_id` (str): The session ID as a string.
+
+        ### Returns:
+        - A list of frame IDs if the session exists.
+        - `ErrorResponse` if the session ID is invalid or the session does not exist.
+        """
+        # Checking if the session id is valid and packing it.
+        session_id:SessionId = self.id_generator.pack_string_to_session_id(session_id) 
+        if session_id is None:
+            return ErrorResponse(ErrorCode.INVALID_SESSION_ID)
+        
+        # Retrieving the session data.
+        with self.sessions_lock:
+            session_data:SessionData = self.sessions.get(session_id)
+            if session_data is None:
+                return ErrorResponse(ErrorCode.CLIENT_NOT_IN_SYSTEM)
+        
+        # Getting the frame trace.
+        with session_data.lock:
+            return session_data.get_full_trace()
 
     ############################################################################
     ############################## FRAME ANALYSIS ##############################

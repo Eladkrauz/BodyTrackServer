@@ -97,7 +97,7 @@
             color: #bbb;
         }
 
-        #terminateBtn {
+        #reloadBtn {
             padding: 12px 20px;
             background: #d14444;
             color: white;
@@ -233,11 +233,13 @@
 
     <div style="text-align:center;">
         <button id="refreshBtn">Refresh Configurations</button>
-        <button id="terminateBtn">Terminate Server</button>
+        <button id="getTraceBtn">Get Session Frames Trace</button>
+        <button id="reloadBtn">Reload Server</button>
     </div>
+    
 
 
-    <!-- Terminate Modal -->
+    <!-- Reload Modal -->
     <div id="terminateModal">
         <div id="modalContent">
             <h3 style="margin-top:0;color:#ff6b6b;">Terminate Server</h3>
@@ -273,8 +275,33 @@
         </div>
     </div>
 
-    <script>
+    <!-- Finished Sessions Modal -->
+    <div id="finishedSessionsModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.65); justify-content:center; align-items:center;">
+        <div style="background:#1b1f28; padding:25px; border-radius:8px; width:600px; max-height:80%; overflow:auto;">
+            <h3 style="color:#49a6ff;">Finished Sessions</h3>
+            <div id="finishedSessionsContent" style="margin-top:15px;">
+                <div class="value">Loading…</div>
+            </div>
+            <div style="text-align:right; margin-top:20px;">
+                <button onclick="closeFinishedSessions()">Close</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Frames Trace Modal -->
+    <div id="framesTraceModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.65); justify-content:center; align-items:center;">
+        <div style="background:#1b1f28; padding:25px; border-radius:8px; width:90%; max-height:85%; overflow:auto;">
+            <h3 style="color:#49a6ff;">Session Frames Trace</h3>
+            <div id="framesTraceContent" style="margin-top:15px;">
+                <div class="value">Loading…</div>
+            </div>
+            <div style="text-align:right; margin-top:20px;">
+                <button onclick="closeFramesTrace()">Close</button>
+            </div>
+        </div>
+    </div>    
 
+    <script>
         function prettyName(s) {
             if (!s) return "-";
             return s.split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
@@ -309,7 +336,7 @@
         }
 
         function refresh() {
-            fetch("http://localhost:8080/internal/telemetry")
+            fetch("http://46.101.195.128:8080/internal/telemetry")
                 .then(r => r.json())
                 .then(data => {
                     document.getElementById("supported").textContent =
@@ -331,7 +358,7 @@
         }
 
 
-        document.getElementById("terminateBtn").onclick = () => {
+        document.getElementById("reloadBtn").onclick = () => {
             document.getElementById("terminateModal").style.display = "flex";
             document.getElementById("terminateError").style.display = "none";
         };
@@ -343,7 +370,7 @@
         document.getElementById("confirmTerminate").onclick = () => {
             const pw = document.getElementById("terminatePassword").value;
 
-            fetch("http://localhost:8080/terminate/server", {
+            fetch("http://46.101.195.128:8080/terminate/server", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ password: pw })
@@ -362,21 +389,14 @@
                         document.getElementById("successModal").style.display = "flex";
 
                         setTimeout(() => {
-                            document.getElementById("successModal").style.display = "none";
-
-                            // Navigate away
-                            window.location.href = "about:blank";
-
-                            // Attempt to close (will succeed if allowed)
-                            setTimeout(() => { window.close(); }, 200);
-
+                            window.location.reload();
                         }, 2000);
                     }
                 });
         };
 
         document.getElementById("refreshBtn").onclick = () => {
-            fetch("http://localhost:8080/refresh/configurations", {
+            fetch("http://46.101.195.128:8080/refresh/configurations", {
                 method: "GET"
             })
                 .then(r => r.json())
@@ -397,6 +417,98 @@
                     // Optional: log or silently ignore
                 });
         };
+
+        document.getElementById("getTraceBtn").onclick = () => {
+            openFinishedSessions();
+        };
+
+        function openFinishedSessions() {
+            document.getElementById("finishedSessionsModal").style.display = "flex";
+            const box = document.getElementById("finishedSessionsContent");
+            box.innerHTML = `<div class="value">Loading…</div>`;
+
+            fetch("http://46.101.195.128:8080/get/finished/sessions")
+                .then(r => r.json())
+                .then(
+                    res => {
+                        const sessions = res.finished_sessions || [];
+
+                        if (sessions.length === 0) {
+                            box.innerHTML = `<p style="color:#bbb;">No finished sessions available.</p>`;
+                            return;
+                        }
+
+                        let html = `<table>
+                            <tr><th>Session ID</th><th>Ended At</th><th></th></tr>`;
+
+                        sessions.forEach(obj => {
+                            const sessionId = Object.keys(obj)[0];
+                            const endedAt  = obj[sessionId];
+
+                            html += `
+                                <tr>
+                                    <td>${sessionId}</td>
+                                    <td>${endedAt}</td>
+                                    <td>
+                                        <button onclick="loadFramesTrace('${sessionId}')">View Trace</button>
+                                    </td>
+                                </tr>`;
+                        });
+
+                        html += `</table>`;
+                        box.innerHTML = html;
+                    }
+                );
+        }
+
+        function loadFramesTrace(sessionId) {
+            document.getElementById("finishedSessionsModal").style.display = "none";
+            document.getElementById("framesTraceModal").style.display = "flex";
+
+            const box = document.getElementById("framesTraceContent");
+            box.innerHTML = `<div class="value">Loading…</div>`;
+
+            fetch("http://46.101.195.128:8080/retrieve/session/frames/trace", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ session_id: sessionId })
+            })
+            .then(r => r.json())
+            .then(res => {
+                const frames = res.frames_trace || [];
+
+                let html = `<table>
+                    <tr>
+                        <th>Frame ID</th>
+                        <th>Timestamp</th>
+                        <th>Events</th>
+                    </tr>`;
+
+                frames.forEach(frame => {
+                    html += `
+                        <tr>
+                            <td>${frame.frame_id}</td>
+                            <td>${frame.timestamp}</td>
+                            <td>
+                                ${frame.events.map(ev =>
+                                    `<pre>${JSON.stringify(ev, null, 2)}</pre>`
+                                ).join("")}
+                            </td>
+                        </tr>`;
+                });
+
+                html += `</table>`;
+                box.innerHTML = html;
+            });
+        }
+
+        function closeFinishedSessions() {
+            document.getElementById("finishedSessionsModal").style.display = "none";
+        }
+
+        function closeFramesTrace() {
+            document.getElementById("framesTraceModal").style.display = "none";
+        }
 
         setInterval(refresh, 1000);
         refresh();

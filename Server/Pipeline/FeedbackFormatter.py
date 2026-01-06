@@ -90,14 +90,13 @@ class FeedbackFormatter:
         - `FeedbackCode`: A system, pose-quality, biomechanical, or silent feedback code.
         """
         try:
-            history:HistoryData = session.get_history()
-            current_state_ok:bool = history.is_state_ok()  
+            current_state_ok:bool = session.get_history().is_state_ok()  
 
             # Check biomechanical issues.
             if not current_state_ok:
-                return self._handle_pose_quality_feedback(history)
+                return self._handle_pose_quality_feedback(session)
             else:
-                return self._handle_biomechanical_feedback(history)
+                return self._handle_biomechanical_feedback(session)
             
         except Exception as e:
             ErrorHandler.handle(
@@ -112,7 +111,7 @@ class FeedbackFormatter:
     ####################################
     ### HANDLE POSE QUALITY FEEDBACK ###
     ####################################
-    def _handle_pose_quality_feedback(self, history:HistoryData) -> FeedbackCode:
+    def _handle_pose_quality_feedback(self, session:SessionData) -> FeedbackCode:
         """
         ### Brief:
         The `_handle_pose_quality_feedback` method determines whether pose-quality
@@ -127,18 +126,32 @@ class FeedbackFormatter:
             4. Convert that issue to the matching `FeedbackCode`.
 
         ### Arguments:
-        - `history` (HistoryData): Provides pose-quality streaks and state.
+        - `session` (SessionData): Provides history data for pose-quality evaluation.
 
         ### Returns:
         - `FeedbackCode`: Pose-quality feedback or `SILENT`.
         """
         try:
+            history:HistoryData = session.get_history()
+
             # Check if pose is currently valid.
             frames_since_last_valid:int = history.get_frames_since_last_valid()
             if frames_since_last_valid < self.pose_quality_feedback_threshold:
+                session.get_last_frame_trace().add_event(
+                    stage="FeedbackFormatter",
+                    success=True,
+                    result_type="Not Enough Valid Frames Sent So Far",
+                    result={"Frames Since Last Valid": frames_since_last_valid, "Threshold": self.pose_quality_feedback_threshold}
+                )
                 return FeedbackCode.SILENT
             # If cooldown not passed, return SILENT.
             if not self._is_cooldown_passed(history):
+                session.get_last_frame_trace().add_event(
+                    stage="FeedbackFormatter",
+                    success=True,
+                    result_type="Cooldown Not Passed",
+                    result={"Frames Since Last Feedback": history.get_frames_since_last_feedback(), "Cooldown Frames": self.cooldown_frames}
+                )
                 return FeedbackCode.SILENT
             
             # Select worst pose-quality issue.
@@ -146,6 +159,12 @@ class FeedbackFormatter:
             worst_quality:PoseQuality = max(bad_frame_streak, key=bad_frame_streak.get)
 
             # Convert to FeedbackCode and return it.
+            session.get_last_frame_trace().add_event(
+                stage="FeedbackFormatter",
+                success=True,
+                result_type="Pose Quality Feedback Selected",
+                result={"Worst Pose Quality": worst_quality.name, "Streak Length": bad_frame_streak[worst_quality]}
+            )
             return FeedbackCode.from_pose_quality(worst_quality)        
         
         except Exception as e:
@@ -162,7 +181,7 @@ class FeedbackFormatter:
     #####################################
     ### HANDLE BIOMECHANICAL FEEDBACK ###
     #####################################
-    def _handle_biomechanical_feedback(self, history:HistoryData) -> FeedbackCode:
+    def _handle_biomechanical_feedback(self, session:SessionData) -> FeedbackCode:
         """
         ### Brief:
         The `_handle_biomechanical_feedback` method determines whether
@@ -178,16 +197,23 @@ class FeedbackFormatter:
         - Otherwise, return the feedback code.
 
         ### Arguments:
-        - `history` (HistoryData): Provides biomechanical error streaks.
+        - `session` (SessionData): Provides history data for biomechanical evaluation.
 
         ### Returns:
         - `FeedbackCode`: A biomechanical feedback code or `SILENT`.
         """
         try:
+            history:HistoryData = session.get_history()
+
             # Get current rep data.
             current_rep:Dict[str, Any] = history.get_current_rep()
             if not current_rep:
-                Logger.debug("No current rep data available. Returning SILENT feedback.")
+                session.get_last_frame_trace().add_event(
+                    stage="FeedbackFormatter",
+                    success=True,
+                    result_type="No Current Rep Data",
+                    result=None
+                )
                 return FeedbackCode.SILENT
             
             # Get biomechanical errors in current rep.
@@ -195,25 +221,43 @@ class FeedbackFormatter:
             
             # If no biomechanical errors, return VALID.
             if not rep_errors:
-                Logger.debug("No biomechanical errors detected in current rep. Returning VALID feedback.")
+                session.get_last_frame_trace().add_event(
+                    stage="FeedbackFormatter",
+                    success=True,
+                    result_type="No Biomechanical Errors Detected",
+                    result=None
+                )
                 return FeedbackCode.VALID
             # If there are errors but cooldown not passed, return SILENT.
             if not self._is_cooldown_passed(history):
-                Logger.debug("Cooldown not passed for biomechanical feedback. Returning SILENT.")
+                session.get_last_frame_trace().add_event(
+                    stage="FeedbackFormatter",
+                    success=True,
+                    result_type="Cooldown Not Passed",
+                    result={"Frames Since Last Feedback": history.get_frames_since_last_feedback(), "Cooldown Frames": self.cooldown_frames}
+                )
                 return FeedbackCode.SILENT
             
             # Select worst biomechanical error.
             biomechanical_streaks:Dict[str, int] = history.get_error_streaks()
-            print("Biomechanical Streaks:", biomechanical_streaks)
             if not biomechanical_streaks:
-                Logger.debug("No biomechanical error streaks found. Returning SILENT.")
+                session.get_last_frame_trace().add_event(
+                    stage="FeedbackFormatter",
+                    success=True,
+                    result_type="No Biomechanical Error Streaks Found",
+                    result=None
+                )
                 return FeedbackCode.SILENT
             worst_error_streak:str = max(biomechanical_streaks, key=biomechanical_streaks.get)
-            print("Worst Error Streak:", worst_error_streak)
 
             # If below threshold, return SILENT.
             if biomechanical_streaks[worst_error_streak] < self.biomechanical_feedback_threshold:
-                Logger.debug(f"Biomechanical error '{worst_error_streak}' below threshold. Returning SILENT.")
+                session.get_last_frame_trace().add_event(
+                    stage="FeedbackFormatter",
+                    success=True,
+                    result_type="Biomechanical Error Streak Below Threshold",
+                    result={"Worst Error": worst_error_streak, "Streak Length": biomechanical_streaks[worst_error_streak], "Threshold": self.biomechanical_feedback_threshold}
+                )
                 return FeedbackCode.SILENT
                         
             # Convert to FeedbackCode and check if already notified in rep.
@@ -223,11 +267,21 @@ class FeedbackFormatter:
 
             # If already notified in rep, return SILENT.
             if feedback_code in notified_errors_in_rep:
-                Logger.debug(f"Biomechanical feedback '{feedback_code}' already notified in current rep. Returning SILENT.")
+                session.get_last_frame_trace().add_event(
+                    stage="FeedbackFormatter",
+                    success=True,
+                    result_type="Biomechanical Feedback Already Notified in Rep",
+                    result={"Feedback Code": feedback_code.name}
+                )
                 return FeedbackCode.SILENT
             # Otherwise, return the feedback code.
             else:
-                Logger.debug(f"Returning biomechanical feedback: {feedback_code}.")
+                session.get_last_frame_trace().add_event(
+                    stage="FeedbackFormatter",
+                    success=True,
+                    result_type="Biomechanical Feedback Selected",
+                    result={"Worst Biomechanical Error": worst_error_streak, "Streak Length": biomechanical_streaks[worst_error_streak]}
+                )
                 return feedback_code
         except Exception as e:
             ErrorHandler.handle(
@@ -237,6 +291,12 @@ class FeedbackFormatter:
                     "Exception": type(e).__name__,
                     "Reason": "Unexpected failure during biomechanical feedback selection."
                 }
+            )
+            session.get_last_frame_trace().add_event(
+                stage="FeedbackFormatter",
+                success=False,
+                result_type="Biomechanical Feedback Selection Error",
+                result={"Exception": type(e).__name__, "Message": str(e)}
             )
             return FeedbackCode.SILENT       
 

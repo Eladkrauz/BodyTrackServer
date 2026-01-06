@@ -7,7 +7,7 @@
 ###############
 ### IMPORTS ###
 ###############
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, field
 from datetime import datetime
 from threading import RLock
@@ -17,8 +17,8 @@ from Data.Session.ExerciseType    import ExerciseType
 from Data.Session.SessionStatus   import SessionStatus
 from Data.Session.AnalyzingState  import AnalyzingState
 from Data.History.HistoryData     import HistoryData
-from Server.Data.Debbug.FrameTrace import FrameTrace
-from Server.Data.Debbug.FrameEvent import FrameEvent
+from Server.Data.Debug.FrameTrace import FrameTrace
+from Server.Data.Debug.FrameEvent import FrameEvent
 
 
 ##########################
@@ -53,11 +53,10 @@ class SessionData:
         "last_activity": datetime.now(),
     })
     extended_evaluation:bool            = field(default=False)
-    # TODO: CHANGE BACK TO INIT!!!
     analyzing_state:AnalyzingState      = field(default=AnalyzingState.INIT)
     lock:RLock                          = field(default_factory=RLock, init=False, repr=False)
     session_status:SessionStatus        = field(default=SessionStatus.REGISTERED)
-    frame_traces:Dict[int, FrameTrace] = field(default_factory=dict, repr=False)
+    frame_trace:List[FrameTrace]        = field(default_factory=list, repr=False)
 
     #################
     ### POST INIT ###
@@ -208,6 +207,34 @@ class SessionData:
         """
         return self.history
 
+    #######################
+    ### GET FRAME TRACE ###
+    #######################
+    def get_full_trace(self) -> List[Dict[str, Any]]:
+        """
+        ### Brief:
+        The `get_full_trace` method retrieves the frame trace data for debugging purposes.
+
+        ### Returns:
+        - `List[Dict[str, Any]]`: A list representation of the frame trace data.
+        """
+        return [ trace.to_dict() for trace in self.frame_trace ]
+    
+    ############################
+    ### GET LAST FRAME TRACE ###
+    ############################
+    def get_last_frame_trace(self) -> Optional[FrameTrace]:
+        """
+        ### Brief:
+        The `get_last_frame_trace` method retrieves the last `FrameTrace` in the session.
+
+        ### Returns:
+        - `Optional[FrameTrace]`: The last frame trace if available, otherwise `None`.
+        """
+        if len(self.frame_trace) == 0:
+            return None
+        return self.frame_trace[-1]
+
     #####################################################################
     ############################## SETTERS ##############################
     #####################################################################
@@ -253,35 +280,15 @@ class SessionData:
         self.session_status = session_status
         self.update_time_stamp(session_status)
 
-    #######################
-    ### ADD FRAME EVENT ###
-    #######################
-    def add_frame_event(
-        self,
-        frame_id: int,
-        stage: str,
-        success: bool,
-        result_type: str,
-        result: Dict[str, Any],
-        info: Optional[Dict[str, Any]] = None
-    ) -> None:
-        trace = self.frame_traces.setdefault(
-            frame_id,
-            FrameTrace(frame_id=frame_id)
-        )
+    ############################
+    ### INIT NEW FRAME TRACE ###
+    ############################
+    def init_new_frame_trace(self, frame_id:int) -> None:
+        """
+        ### Brief:
+        The `init_new_frame_trace` method initializes a new `FrameTrace` for the given frame ID.
 
-        trace.events.append(
-            FrameEvent(
-                stage=stage,
-                success=success,
-                result_type=result_type,
-                result=result,
-                info=info
-            )
-        )
-
-    def frame_traces_to_dict(self) -> Dict[str, Any]:
-        return {
-            str(fid): trace.to_dict()
-            for fid, trace in self.frame_traces.items()
-        }
+        ### Arguments:
+        - `frame_id` (int): The ID of the frame to initialize the trace for.
+        """
+        self.frame_trace[frame_id] = FrameTrace(frame_id=frame_id)

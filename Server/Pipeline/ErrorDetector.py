@@ -89,11 +89,23 @@ class ErrorDetector:
         # If history state is not OK, return NOT_READY_FOR_ANALYSIS.
         if not history.is_state_ok():
             Logger.debug("History state not OK.")
+            session.get_last_frame_trace().add_event(
+                stage="ErrorDetector",
+                success=True,
+                result_type="History state not OK.",
+                result=None
+            )
             return DetectedErrorCode.NOT_READY_FOR_ANALYSIS
         
         # If last frame is not actually valid, return NOT_READY_FOR_ANALYSIS.
         if not history.is_last_frame_actually_valid():
             Logger.debug("Last frame not actually valid.")
+            session.get_last_frame_trace().add_event(
+                stage="ErrorDetector",
+                success=True,
+                result_type="Last frame not actually valid.",
+                result=None
+            )
             return DetectedErrorCode.NOT_READY_FOR_ANALYSIS
 
         # Get current phase.      
@@ -151,7 +163,15 @@ class ErrorDetector:
                         extra_info={"angle": angle_name,
                                     "reason": "No mapping for low value"}
                     )
-                return ErrorCode.ERROR_DETECTOR_MAPPING_NOT_FOUND if mapped is None else mapped
+                    return ErrorCode.ERROR_DETECTOR_MAPPING_NOT_FOUND
+                else:
+                    session.get_last_frame_trace().add_event(
+                        stage="ErrorDetector",
+                        success=True,
+                        result_type="Biomechanical error detected",
+                        result={"angle": angle_name, "value": value, "limit": rules["min"], "type": "LOW"}
+                    )
+                    return mapped
 
             # Above MAXIMUM.
             if value > rules["max"]:
@@ -168,7 +188,15 @@ class ErrorDetector:
                         extra_info={"angle": angle_name,
                                     "reason": "No mapping for high value"}
                     )
-                return ErrorCode.ERROR_DETECTOR_MAPPING_NOT_FOUND if mapped is None else mapped
+                    return ErrorCode.ERROR_DETECTOR_MAPPING_NOT_FOUND
+                else:
+                    session.get_last_frame_trace().add_event(
+                        stage="ErrorDetector",
+                        success=True,
+                        result_type="Biomechanical error detected",
+                        result={"angle": angle_name, "value": value, "limit": rules["max"], "type": "HIGH"}
+                    )
+                    return mapped
 
         # No biomechanical issues detected.
         return DetectedErrorCode.NO_BIOMECHANICAL_ERROR

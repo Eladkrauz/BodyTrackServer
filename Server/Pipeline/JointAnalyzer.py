@@ -82,11 +82,23 @@ class JointAnalyzer:
                 error=ErrorCode.CANT_CALCULATE_JOINTS_OF_UNSTALBE_FRAME,
                 origin=inspect.currentframe()
             )
+            session_data.get_last_frame_trace().add_event(
+                stage="JointAnalyzer",
+                success=False,
+                result_type="Error Code",
+                result={ "Error Code": ErrorCode.CANT_CALCULATE_JOINTS_OF_UNSTALBE_FRAME.description }
+            )
             return {}
         
         # Ensure there is valid frame data to analyze.
         if session_data.analyzing_state is AnalyzingState.ACTIVE and \
             not history.is_last_frame_actually_valid():
+            session_data.get_last_frame_trace().add_event(
+                stage="JointAnalyzer",
+                success=True,
+                result_type="The last frame is not actually valid",
+                result=None
+            )
             return {}
         
         exercise_type       = session_data.get_exercise_type()
@@ -169,6 +181,12 @@ class JointAnalyzer:
                 )
                 return ErrorCode.TOO_MANY_INVALID_ANGLES
             else:
+                session_data.get_last_frame_trace().add_event(
+                    stage="JointAnalyzer",
+                    success=True,
+                    result_type="Calculated Joints",
+                    result=results
+                )
                 return results
         except Exception as e:
             ErrorHandler.handle(

@@ -10,7 +10,7 @@
 # Python libraries.
 import inspect
 import numpy as np
-from typing import Dict, Any
+from typing import Dict, Any, cast
 
 # Utilities.
 from Utilities.SessionIdGenerator      import SessionId
@@ -104,8 +104,6 @@ class PipelineProcessor:
         self.retrieve_configurations()
         Logger.info("Initialized successfully")
 
-        self.feedbacks = []
-
     ############################################################################
     ############################## PUBLIC METHODS ##############################
     ############################################################################
@@ -161,7 +159,6 @@ class PipelineProcessor:
         - `history_data` (HistoryData): The container storing all session-state.
         """
         self.history_manager.mark_exercise_end(history_data)
-        print(self.feedbacks)
 
     ######################
     ### VALIDATE FRAME ###
@@ -367,20 +364,39 @@ class PipelineProcessor:
         - `ErrorCode` for errors in pose analysis, quality evaluation, joint calculation, phase determination, or error detection.
         """
         frame_id:int = frame_data.frame_id
-        print(); print(); print("##############################")
-        print(f"Analyzing Frame ID: {frame_id}")
+        session_data.init_new_frame_trace(frame_id)
+
         ### PIPELINE STEP >>> Analyzing Pose --- using PoseAnalyzer.
         pose_analyzer_result:PoseLandmarksArray | ErrorCode = self.pose_analyzer.analyze_frame(frame_data)
-        if self._check_for_error(pose_analyzer_result): return pose_analyzer_result
-        print("PoseAnalyzer: Successfully analyzed pose landmarks.")
+        if self._check_for_error(pose_analyzer_result):
+            session_data.get_last_frame_trace().add_event(
+                stage="PoseAnalyzer",
+                success=False,
+                result_type="Error Code",
+                result={ "Error Code": cast(ErrorCode, pose_analyzer_result).description }
+            )
+            return pose_analyzer_result
+        else:
+            session_data.get_last_frame_trace().add_event(
+                stage="PoseAnalyzer",
+                success=True,
+                result_type="PoseLandmarks Array",
+                result=None
+            )
         
         ### PIPELINE STEP >>> Validating Frame Quality --- using PoseQualityManager.
         pose_quality_result:PoseQuality = self.pose_quality_manager.evaluate_landmarks(
             session_data=session_data,
             landmarks=pose_analyzer_result
         )
-        if self._check_for_error(pose_quality_result): return pose_quality_result
-        print(f"PoseQualityManager: Successfully evaluated pose quality. Result: {pose_quality_result.name}")
+        if self._check_for_error(pose_quality_result):
+            session_data.get_last_frame_trace().add_event(
+                stage="PoseQualityManager",
+                success=False,
+                result_type="Error Code",
+                result={ "Error Code": cast(ErrorCode, pose_quality_result).description }
+            )
+            return pose_quality_result
 
         # The HistoryData of the session.
         history:HistoryData = session_data.get_history()
@@ -395,9 +411,21 @@ class PipelineProcessor:
                 frame_id=frame_data.frame_id,
                 invalid_reason=pose_quality_result
             )
-            print("HistoryManager: Successfully recorded invalid frame.")
+            session_data.get_last_frame_trace().add_event(
+                stage="HistoryManager",
+                success=True,
+                result_type="Record Invalid Frame",
+                result={ "Invalid Reason": pose_quality_result.name }
+            )
+
             # Check if frame needs to get aborted.
             if self.history_manager.should_abort_session(history):
+                session_data.get_last_frame_trace().add_event(
+                    stage="HistoryManager",
+                    success=True,
+                    result_type="Session Should Abort",
+                    result=None
+                )
                 return ErrorCode.SESSION_SHOULD_ABORT
             else:
                 return self.feedback_formatter.construct_feedback(session_data)
@@ -410,22 +438,39 @@ class PipelineProcessor:
             session_data=session_data,
             landmarks=pose_analyzer_result
         )
-        if self._check_for_error(joint_analyzer_result): return joint_analyzer_result
-        print(f"JointAnalyzer: Successfully calculated joint angles - {joint_analyzer_result}")
+        if self._check_for_error(joint_analyzer_result):
+            session_data.get_last_frame_trace().add_event(
+                stage="JointAnalyzer",
+                success=False,
+                result_type="Error Code",
+                result={ "Error Code": cast(ErrorCode, joint_analyzer_result).description }
+            )
+            return joint_analyzer_result
         
-        # Recording valid §frame.
+        # Recording valid frame.
         self.history_manager.record_valid_frame(
             history_data=history,
             frame_id=frame_data.frame_id,
             landmarks=pose_analyzer_result,
             joints=joint_analyzer_result
         )
-        print("HistoryManager: Successfully recorded valid frame.")
+        session_data.get_last_frame_trace().add_event(
+            stage="HistoryManager",
+            success=True,
+            result_type="Record Valid Frame",
+            result=None
+        )
 
         ### PIPELINE STEP >>> Determining the current phase --- using PhaseDetector.
         phase_detector_result:PhaseType = self.phase_detector.determine_phase(session_data=session_data)
-        if self._check_for_error(phase_detector_result): return phase_detector_result
-        print(f"PhaseDetector: Successfully detected current phase: {phase_detector_result.name}.")
+        if self._check_for_error(phase_detector_result):
+            session_data.get_last_frame_trace().add_event(
+                stage="PhaseDetector",
+                success=False,
+                result_type="Error Code",
+                result={ "Error Code": cast(ErrorCode, phase_detector_result).description }
+            )
+            return phase_detector_result
         
         # Recording the phase.
         self.history_manager.record_phase_transition(
@@ -435,17 +480,35 @@ class PipelineProcessor:
             frame_id=frame_data.frame_id,
             joints=joint_analyzer_result
         )
+        session_data.get_last_frame_trace().add_event(
+            stage="HistoryManager",
+            success=True,
+            result_type="Record Phase Transition",
+            result={ "New Phase": phase_detector_result.name }
+        )
 
         ### PIPELINE STEP >>> Detecting errors --- using ErrorDetector.
         error_detector_result:DetectedErrorCode = self.error_detector.detect_errors(session_data)
-        if self._check_for_error(error_detector_result): return error_detector_result
-        print(f"ErrorDetector: Successfully detected error: {error_detector_result.name}.")
+        if self._check_for_error(error_detector_result):
+            session_data.get_last_frame_trace().add_event(
+                stage="ErrorDetector",
+                success=False,
+                result_type="Error Code",
+                result={ "Error Code": cast(ErrorCode, error_detector_result).description }
+            )
+            return error_detector_result
         
         # Recording the error (also NO_BIOMECHANICAL_ERROR and NOT_READY_FOR_ANALYSIS are recorded).   
         self.history_manager.add_frame_error(
             history_data=history,
             error_to_add=error_detector_result,
             frame_id=frame_data.frame_id
+        )
+        session_data.get_last_frame_trace().add_event(
+            stage="HistoryManager",
+            success=True,
+            result_type="Add Frame Error",
+            result={ "Detected Error": error_detector_result.name }
         )
 
         if not error_detector_result in (
@@ -456,23 +519,44 @@ class PipelineProcessor:
                 history_data=history,
                 error_to_add=error_detector_result
             )
+            session_data.get_last_frame_trace().add_event(
+                stage="HistoryManager",
+                success=True,
+                result_type="Add Error To Current Rep",
+                result={ "Detected Error": error_detector_result.name }
+            )
 
         ### PIPELINE STEP >>> Combining feedback --- using FeedbackFormatter.
         feedback_result = self.feedback_formatter.construct_feedback(session_data)
-
-        if self._check_for_error(feedback_result): return feedback_result
-        print(f"FeedbackFormatter: Successfully constructed feedback - {feedback_result.name}.")
+        if self._check_for_error(feedback_result):
+            session_data.get_last_frame_trace().add_event(
+                stage="FeedbackFormatter",
+                success=False,
+                result_type="Error Code",
+                result={ "Error Code": cast(ErrorCode, feedback_result).description }
+            )
+            return feedback_result
 
         # If the feedback is SILENT or VALID - increment frames since last feedback.
         if feedback_result in (FeedbackCode.SILENT, FeedbackCode.VALID):
             self.history_manager.increment_frames_since_last_feedback(history)
+            session_data.get_last_frame_trace().add_event(
+                stage="HistoryManager",
+                success=True,
+                result_type="Increment Frames Since Last Feedback",
+                result=None
+            )
         # Else - reset the counter and record the feedback to the current rep.
         else:
             self.history_manager.reset_frames_since_last_feedback(history)
             self.history_manager.record_feedback_notified(history, feedback_result)
-            self.feedbacks.append(feedback_result)
+            session_data.get_last_frame_trace().add_event(
+                stage="HistoryManager",
+                success=True,
+                result_type="Record Feedback Notified",
+                result={ "Feedback Code": feedback_result.name }
+            )
 
-        print("##############################"); print(); print()
         return feedback_result
 
     #####################################################################

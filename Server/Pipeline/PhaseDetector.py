@@ -82,7 +82,14 @@ class PhaseDetector:
         
         # Ensure there is valid frame data to analyze.
         if not history.is_last_frame_actually_valid():
-            return history.get_phase_state()
+            current_phase_state:PhaseType.Squat | PhaseType.BicepsCurl = history.get_phase_state()
+            session_data.get_last_frame_trace().add_event(
+                stage="PhaseDetector",
+                success=True,
+                result_type="No valid frame data. Keeping last known phase.",
+                result={ "Phase": current_phase_state.name } if current_phase_state is not None else { "Phase": None }
+            )
+            return current_phase_state
 
         # Load configuration for this exercise.
         exercise_configuration:Dict[str, Any] = self._get_exercise_config(session_data)
@@ -375,9 +382,14 @@ class PhaseDetector:
         # Therefore: prefer continuity (last phase) or a safe initial default.
         last_phase:PhaseType = session_data.get_history().get_phase_state()
         if len(candidates) == 0:
-            print("CASE NUMBER 1")
             # If we have a last known phase, keep it (hysteresis / continuity).
             if last_phase is not None:
+                session_data.get_last_frame_trace().add_event(
+                    stage="PhaseDetector",
+                    success=True,
+                    result_type="Case 1: No candidates. Keeping last phase.",
+                    result={ "Phase": last_phase.name }
+                )
                 return last_phase
 
             # If we have no last phase (for example - start of session), fallback to initial phase from config.
@@ -391,6 +403,12 @@ class PhaseDetector:
 
             # Config validation should ensure 'initial' exists, but we keep this safe-guard anyway.
             if initial in phase_enum:
+                session_data.get_last_frame_trace().add_event(
+                    stage="PhaseDetector",
+                    success=True,
+                    result_type="Case 1: No candidates. Using initial phase from config.",
+                    result={ "Phase": initial }
+                )
                 return phase_enum[initial]
 
             # If we cannot determine a safe phase, return undetermined.
@@ -417,25 +435,41 @@ class PhaseDetector:
 
         # If only one phase matches rules, that is the phase.
         if len(candidates) == 1:
-            print("CASE NUMBER 2")
             # Hysteresis: if last phase is different, but still valid, keep it for stability.
             candidate:PhaseType = phase_enum[candidates[0]]
 
             if candidate != last_phase and last_phase is not None and candidate != next_expected:
+                session_data.get_last_frame_trace().add_event(
+                    stage="PhaseDetector",
+                    success=True,
+                    result_type=f"Case 2: One candidate ({candidates[0]}) but keeping last phase for hysteresis.",
+                    result={ "Phase": last_phase.name }
+                )
                 return last_phase
             else:
+                session_data.get_last_frame_trace().add_event(
+                    stage="PhaseDetector",
+                    success=True,
+                    result_type="Case 2: One candidate selected.",
+                    result={ "Phase": candidate.name }
+                )
                 return candidate
 
         ##############
         ### CASE 3 ### - Multiple candidates, we need resolution logic.
         ##############
-        print("CASE NUMBER 3")
         # Common cause: overlapping thresholds.
         last_phase:PhaseType | None = session_data.get_history().get_phase_state()
 
         # If the last phase is still a valid candidate this frame, keep it.
         # This is standard hysteresis to prevent flickering when multiple phases match.
         if last_phase is not None and last_phase.name in candidates:
+            session_data.get_last_frame_trace().add_event(
+                stage="PhaseDetector",
+                success=True,
+                result_type="Case 3: Multiple candidates but keeping last phase for hysteresis.",
+                result={ "Phase": last_phase.name, "Candidates": candidates }
+            )
             return last_phase
 
         # Low-motion phases are phases we only want to allow when motion is actually small.
@@ -461,11 +495,22 @@ class PhaseDetector:
                 # Instead, keep last phase to avoid falsely entering HOLD (or similar).
                 # Note: last_phase may not be in candidates here, but we accept hysteresis for stability.
                 if (next_expected in low_motion_phases) and (not is_low_motion_ready):
-                    print("PhaseDetector: Next expected phase is low motion but not ready.")
+                    session_data.get_last_frame_trace().add_event(
+                        stage="PhaseDetector",
+                        success=True,
+                        result_type="Priority Rule 1: Next expected phase is low-motion but not ready. Keeping last phase.",
+                        result={ "Phase": last_phase.name, "Candidates": candidates }
+                    )
                     return last_phase
 
                 # If the next expected phase is one of the candidates, choose it.
                 if next_expected in candidates:
+                    session_data.get_last_frame_trace().add_event(
+                        stage="PhaseDetector",
+                        success=True,
+                        result_type="Priority Rule 1: Selecting next expected phase.",
+                        result={ "Phase": next_expected, "Candidates": candidates }
+                    )
                     return phase_enum[next_expected]
 
             except ValueError:
@@ -494,14 +539,25 @@ class PhaseDetector:
                 # If this candidate is a low-motion phase but we are not yet “low-motion ready”, skip it.
                 if (phase_name in low_motion_phases) and (not is_low_motion_ready):
                     continue
-
+                
+                session_data.get_last_frame_trace().add_event(
+                    stage="PhaseDetector",
+                    success=True,
+                    result_type="Priority Rule 2: Selecting first sensible candidate phase.",
+                    result={ "Phase": phase_name, "Candidates": candidates }
+                )
                 return phase_enum[phase_name]
 
         # If we got here, candidates exist but none were selectable under gating rules.
         # This can happen if candidates only include low-motion phases but motion isn't low yet.
         # In that case, prefer continuity.
         if last_phase is not None:
-            print("No candidates selectable under gating rules. Keeping last phase for continuity.")
+            session_data.get_last_frame_trace().add_event(
+                stage="PhaseDetector",
+                success=True,
+                result_type="No selectable candidates under gating rules. Keeping last phase.",
+                result={ "Phase": last_phase.name, "Candidates": candidates }
+            )
             return last_phase
 
         # Otherwise, safe-guard.
