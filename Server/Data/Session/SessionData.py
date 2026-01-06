@@ -291,4 +291,4 @@ class SessionData:
         ### Arguments:
         - `frame_id` (int): The ID of the frame to initialize the trace for.
         """
-        self.frame_trace[frame_id] = FrameTrace(frame_id=frame_id)
+        self.frame_trace.append(FrameTrace(frame_id=frame_id))
