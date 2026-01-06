@@ -98,7 +98,7 @@ class PipelineProcessor:
             self.history_manager,
             self.phase_detector,
             self.error_detector,
-            # self.feedback_manager
+            self.feedback_formatter
         }
 
         self.retrieve_configurations()
@@ -617,3 +617,5 @@ class PipelineProcessor:
         # Calling each pipeline module's retrieve_configurations method.
         for pipeline_module in self.pipeline_modules:
             pipeline_module.retrieve_configurations()
+
+        Logger.info("Retrieved configurations successfully")

@@ -233,7 +233,7 @@ class ErrorDetector:
                 origin=inspect.currentframe()
             )
 
-        Logger.info("Configurations retrieved and validated successfully.")
+        Logger.info("Retrieved configurations successfully")
 
     ################################
     ### VALIDATE EXERCISE CONFIG ###

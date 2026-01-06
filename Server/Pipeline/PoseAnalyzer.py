@@ -471,3 +471,5 @@ class PoseAnalyzer:
             ConfigParameters.Major.LOG,
             ConfigParameters.Minor.LOG_LEVEL
         ])
+
+        Logger.info("Retrieved configurations successfully")

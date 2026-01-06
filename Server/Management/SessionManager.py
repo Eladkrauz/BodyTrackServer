@@ -931,6 +931,8 @@ class SessionManager:
         # Run PipelineProcessor configuration retrieval.
         self.pipeline_processor.retrieve_configurations()
 
+        Logger.info("Retrieved configurations successfully")
+
     ##############################################
     ### DEBUG / TELEMETRY EXPOSURE (SAFE) ########
     ##############################################

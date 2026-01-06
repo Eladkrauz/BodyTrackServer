@@ -217,3 +217,5 @@ class PositionSideDetector:
             ConfigParameters.Major.POSITION_SIDE,
             ConfigParameters.Minor.MIN_REQUIRED_LANDMARK_RATIO
         ])
+
+        Logger.info("Retrieved configurations successfully")

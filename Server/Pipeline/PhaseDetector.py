@@ -52,7 +52,6 @@ class PhaseDetector:
         The `__init__` method initializes the PhaseDetector class by retrieving configurations.
         """
         self.retrieve_configurations()
-
         Logger.info("Initialized successfully.")
 
     #######################
@@ -609,8 +608,8 @@ class PhaseDetector:
                 origin=inspect.currentframe()
             )
 
-        Logger.info("Configurations retrieved and validated successfully.")
-
+        Logger.info("Retrieved configurations successfully")
+        
     ################################
     ### VALIDATE EXERCISE CONFIG ###
     ################################

@@ -445,3 +445,5 @@ class PoseQualityManager:
             ConfigParameters.Major.POSE,
             ConfigParameters.Minor.REQUIRED_VISIBILITY_RATIO
         ])
+
+        Logger.info("Retrieved configurations successfully")

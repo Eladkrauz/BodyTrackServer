@@ -1138,3 +1138,5 @@ class HistoryManager:
                         "Reason": f"Initial phase '{exercise_initial_phase}' is not a valid phase"
                     }
                 )
+
+        Logger.info("Retrieved configurations successfully")

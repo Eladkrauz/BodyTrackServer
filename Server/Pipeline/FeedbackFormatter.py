@@ -339,6 +339,7 @@ class FeedbackFormatter:
             ConfigParameters.Major.FEEDBACK,
             ConfigParameters.Minor.FEEDBACK_COOLDOWN_FRAMES
             ])
+            Logger.info("Retrieved configurations successfully")
         except Exception as e:
             ErrorHandler.handle(
                 error=ErrorCode.FEEDBACK_CONFIG_RETRIEVAL_ERROR,

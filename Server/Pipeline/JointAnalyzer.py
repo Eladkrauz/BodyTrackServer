@@ -542,3 +542,5 @@ class JointAnalyzer:
             ConfigParameters.Major.JOINTS,
             ConfigParameters.Minor.MIN_VALID_JOINT_RATIO
         ])
+
+        Logger.info("Retrieved configurations successfully")
