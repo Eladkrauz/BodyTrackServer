@@ -504,11 +504,18 @@ class PipelineProcessor:
             error_to_add=error_detector_result,
             frame_id=frame_data.frame_id
         )
+        
         session_data.get_last_frame_trace().add_event(
             stage="HistoryManager",
             success=True,
             result_type="Add Frame Error",
             result={ "Detected Error": error_detector_result.name }
+        )
+        session_data.get_last_frame_trace().add_event(
+            stage="ErrorStreaks",
+            success=True,
+            result_type="Update Error Streaks",
+            result=history.get_error_streaks()
         )
 
         if not error_detector_result in (

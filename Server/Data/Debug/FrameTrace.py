@@ -26,6 +26,7 @@ class FrameTrace:
     frame_id:  int
     timestamp: str              = field(default_factory=lambda: datetime.now().strftime("%H:%M:%S"))
     events:    List[FrameEvent] = field(default_factory=list)
+    streaks:   Dict[str, int]   = field(default_factory=dict)
 
     ###############
     ### TO DICT ###
@@ -42,7 +43,8 @@ class FrameTrace:
         return {
             "frame_id":     self.frame_id,
             "timestamp":    self.timestamp,
-            "events":       [ e.to_dict() for e in self.events ]
+            "events":       [ e.to_dict() for e in self.events ],
+            "streaks":      self.streaks
         }
     
     #################
@@ -72,3 +74,17 @@ class FrameTrace:
                 info=info
             )
         )
+
+    ##################
+    ### ADD STREAK ###
+    ##################
+    def add_streak(self, streaks:Dict[str, int]) -> None:
+        """
+        ### Brief:
+        The `add_streak` method adds streak information to the `streaks`
+        dictionary of the `FrameTrace`.
+
+        ### Arguments:
+        - `streaks` (Dict[str, int]): A dictionary containing streak information.
+        """
+        self.streaks = streaks
