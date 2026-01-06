@@ -7,9 +7,10 @@
 ###############
 ### IMPORTS ###
 ###############
+from __future__ import annotations
 import numpy as np
 import inspect
-from typing import List, Set, Dict, Any
+from typing import List, Set, Dict, Any, TYPE_CHECKING
 
 from Utilities.Error.ErrorHandler import ErrorHandler
 from Utilities.Error.ErrorCode    import ErrorCode
@@ -17,12 +18,15 @@ from Utilities.Logger             import Logger
 
 from Data.Session.SessionData     import SessionData
 from Data.Session.ExerciseType    import ExerciseType
-from Data.Pose.PoseLandmarks      import PoseLandmarksArray, PoseLandmark
+from Data.Pose.PoseLandmarks      import PoseLandmarksArray
 from Data.Pose.PoseQuality        import PoseQuality
 from Data.Pose.PositionSide       import PositionSide
 from Data.History.HistoryData     import HistoryData
 from Data.History.HistoryDictKey  import HistoryDictKey
 from Data.Joints.JointAngle       import JointAngle, Joint
+
+if TYPE_CHECKING:
+    from Data.Debug.FrameTrace    import FrameTrace
 
 ####################################
 ### POSE QUALITY MANAGER CLASS #####
@@ -290,12 +294,14 @@ class PoseQualityManager:
         if prev_xy is not None:
             mean_delta:float | None = self._mean_landmark_delta(prev_xy, current_xy)
             if mean_delta is not None and mean_delta > self.stability_threshold:
-                session_data.get_last_frame_trace().add_event(
-                    stage="PoseQualityManager",
-                    success=True,
-                    result_type="Unstable",
-                    result={ "Mean landmark delta exceeds stability threshold": mean_delta }
-                )
+                frame_trace:FrameTrace = session_data.get_last_frame_trace()
+                if frame_trace is not None:
+                    frame_trace.add_event(
+                        stage="PoseQualityManager",
+                        success=True,
+                        result_type="Unstable",
+                        result={ "Mean landmark delta exceeds stability threshold": mean_delta }
+                    )
                 return PoseQuality.UNSTABLE
             
         ##############

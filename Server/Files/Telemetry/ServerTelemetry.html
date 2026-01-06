@@ -120,6 +120,18 @@
             margin-right: 15px;
         }
 
+        #getTraceBtn {
+            padding: 12px 20px;
+            background: #159906;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 50px;
+            margin-right: 15px;
+        }
+
         #terminateModal,
         #successModal {
             display: none;
@@ -150,6 +162,11 @@
 
         #confirmTerminate {
             background: #d14444;
+            margin-right: 10px;
+        }
+
+        #rertieveSessionsBtn {
+            background: #22d40e;
             margin-right: 10px;
         }
 
@@ -242,8 +259,8 @@
     <!-- Reload Modal -->
     <div id="terminateModal">
         <div id="modalContent">
-            <h3 style="margin-top:0;color:#ff6b6b;">Terminate Server</h3>
-            <p>This operation will terminate the entire session and stop the server immediately.</p>
+            <h3 style="margin-top:0;color:#ff6b6b;">Reload Server</h3>
+            <p>This operation will reload the entire session and restart the server immediately.</p>
 
             <input type="password" id="terminatePassword" placeholder="Enter password..."
                 style="width:100%;padding:8px;margin-top:15px;border-radius:4px;border:1px solid #333;background:#0d1117;color:#eee;">
@@ -251,7 +268,7 @@
             <p id="terminateError" style="color:#ff6b6b;margin-top:10px;display:none;"></p>
 
             <div id="modalButtons" style="margin-top:20px;text-align:right;">
-                <button id="confirmTerminate">Terminate</button>
+                <button id="confirmTerminate">Reload</button>
                 <button id="cancelTerminate">Cancel</button>
             </div>
         </div>
@@ -283,7 +300,7 @@
                 <div class="value">Loading…</div>
             </div>
             <div style="text-align:right; margin-top:20px;">
-                <button onclick="closeFinishedSessions()">Close</button>
+                <button id="rertieveSessionsBtn" onclick="closeFinishedSessions()">Close</button>
             </div>
         </div>
     </div>

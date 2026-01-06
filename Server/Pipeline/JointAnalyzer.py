@@ -8,9 +8,10 @@
 ### IMPORTS ###
 ###############
 # Python libraries.
+from __future__ import annotations
 import math, inspect
 import numpy as np
-from typing import Dict, Any
+from typing import Dict, Any, TYPE_CHECKING
 
 from Utilities.Logger             import Logger
 from Utilities.Error.ErrorHandler import ErrorHandler
@@ -21,6 +22,9 @@ from Data.Joints.JointAngle       import JointAngle, Joint
 from Data.Pose.PositionSide       import PositionSide
 from Data.History.HistoryData     import HistoryData
 from Data.Session.AnalyzingState  import AnalyzingState
+
+if TYPE_CHECKING:
+    from Data.Debug.FrameTrace    import FrameTrace
 
 ###############################
 ### CALCULATED JOINTS ALIAS ###
@@ -76,29 +80,32 @@ class JointAnalyzer:
         - `ErrorCode`: If calculation fails due to missing/invalid landmarks.
         """
         history:HistoryData = session_data.get_history()
+        frame_trace:FrameTrace = session_data.get_last_frame_trace()
         # Ensure session state is stable.
         if not history.is_state_ok():
             ErrorHandler.handle(
                 error=ErrorCode.CANT_CALCULATE_JOINTS_OF_UNSTALBE_FRAME,
                 origin=inspect.currentframe()
             )
-            session_data.get_last_frame_trace().add_event(
-                stage="JointAnalyzer",
-                success=False,
-                result_type="Error Code",
-                result={ "Error Code": ErrorCode.CANT_CALCULATE_JOINTS_OF_UNSTALBE_FRAME.description }
-            )
+            if frame_trace is not None:
+                frame_trace.add_event(
+                    stage="JointAnalyzer",
+                    success=False,
+                    result_type="Error Code",
+                    result={ "Error Code": ErrorCode.CANT_CALCULATE_JOINTS_OF_UNSTALBE_FRAME.description }
+                )
             return {}
         
         # Ensure there is valid frame data to analyze.
         if session_data.analyzing_state is AnalyzingState.ACTIVE and \
             not history.is_last_frame_actually_valid():
-            session_data.get_last_frame_trace().add_event(
-                stage="JointAnalyzer",
-                success=True,
-                result_type="The last frame is not actually valid",
-                result=None
-            )
+            if frame_trace is not None:
+                session_data.get_last_frame_trace().add_event(
+                    stage="JointAnalyzer",
+                    success=True,
+                    result_type="The last frame is not actually valid",
+                    result=None
+                )
             return {}
         
         exercise_type       = session_data.get_exercise_type()
@@ -181,12 +188,13 @@ class JointAnalyzer:
                 )
                 return ErrorCode.TOO_MANY_INVALID_ANGLES
             else:
-                session_data.get_last_frame_trace().add_event(
-                    stage="JointAnalyzer",
-                    success=True,
-                    result_type="Calculated Joints",
-                    result=results
-                )
+                if frame_trace is not None:
+                    session_data.get_last_frame_trace().add_event(
+                        stage="JointAnalyzer",
+                        success=True,
+                        result_type="Calculated Joints",
+                        result=results
+                    )
                 return results
         except Exception as e:
             ErrorHandler.handle(
