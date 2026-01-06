@@ -24,7 +24,7 @@ class FrameTrace:
     during the processing of a single frame in a system.
     """
     frame_id:  int
-    timestamp: str              = field(default_factory=datetime.now().strftime("%H:%M:%S"))
+    timestamp: str              = field(default_factory=lambda: datetime.now().strftime("%H:%M:%S"))
     events:    List[FrameEvent] = field(default_factory=list)
 
     ###############
