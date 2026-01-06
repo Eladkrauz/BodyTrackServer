@@ -176,6 +176,7 @@ class PoseQualityManager:
         history:HistoryData = session_data.get_history()
         exercise_type:ExerciseType = session_data.get_exercise_type()
         position_side:PositionSide = history.get_position_side()
+        frame_trace:FrameTrace = session_data.get_last_frame_trace()
 
         ##################################
         ### CHECKING ELEMENTS VALIDITY ###
@@ -198,12 +199,13 @@ class PoseQualityManager:
         ### STEP 1 ### - Validate landmark existence.
         ##############
         if landmarks is None or landmarks.size == 0 or landmarks.ndim != 2:
-            session_data.get_last_frame_trace().add_event(
-                stage="PoseQualityManager",
-                success=True,
-                result_type="No Person",
-                result={"Landmarks":  "Missing"} if landmarks is None else {"Landmarks": "Invalid shape"}
-            )
+            if frame_trace is not None:
+                session_data.get_last_frame_trace().add_event(
+                    stage="PoseQualityManager",
+                    success=True,
+                    result_type="No Person",
+                    result={"Landmarks":  "Missing"} if landmarks is None else {"Landmarks": "Invalid shape"}
+                )
             return PoseQuality.NO_PERSON
 
         ##############
@@ -223,12 +225,13 @@ class PoseQualityManager:
 
         # If the area is too small, likely no person detected.
         if area <= self.minimum_bbox_area:
-            session_data.get_last_frame_trace().add_event(
-                stage="PoseQualityManager",
-                success=True,
-                result_type="No Person",
-                result={ "Bounding Box Area": "Too small" }
-            )
+            if frame_trace is not None:
+                session_data.get_last_frame_trace().add_event(
+                    stage="PoseQualityManager",
+                    success=True,
+                    result_type="No Person",
+                    result={ "Bounding Box Area": "Too small" }
+                )
             return PoseQuality.NO_PERSON
 
         ##############
@@ -250,22 +253,24 @@ class PoseQualityManager:
 
         # If the area is below the "too far" threshold, mark as TOO FAR.
         if area < self.bbox_too_far and visibility_ratio < self.required_visibility_ratio:
-            session_data.get_last_frame_trace().add_event(
-                stage="PoseQualityManager",
-                success=True,
-                result_type="Too Far",
-                result={ "Bounding Box Area": "Below too far threshold and insufficient visibility" }
-            )
+            if frame_trace is not None:
+                session_data.get_last_frame_trace().add_event(
+                    stage="PoseQualityManager",
+                    success=True,
+                    result_type="Too Far",
+                    result={ "Bounding Box Area": "Below too far threshold and insufficient visibility" }
+                )
             return PoseQuality.TOO_FAR
         
         # If visibility ratio is below required threshold, mark as PARTIAL BODY.
         elif area >= self.bbox_too_far and visibility_ratio < self.required_visibility_ratio:
-            session_data.get_last_frame_trace().add_event(
-                stage="PoseQualityManager",
-                success=True,
-                result_type="Partial Body",
-                result={ "Visibility": "Insufficient for required landmarks" }
-            )
+            if frame_trace is not None:
+                session_data.get_last_frame_trace().add_event(
+                    stage="PoseQualityManager",
+                    success=True,
+                    result_type="Partial Body",
+                    result={ "Visibility": "Insufficient for required landmarks" }
+                )
             return PoseQuality.PARTIAL_BODY
 
         ##############
@@ -281,12 +286,13 @@ class PoseQualityManager:
                 )
                 return ErrorCode.LAST_VALID_FRAME_MISSING
             else:
-                session_data.get_last_frame_trace().add_event(
-                    stage="PoseQualityManager",
-                    success=True,
-                    result_type="OK",
-                    result={ "No Previous Valid Frame": "Skipping stability check" }
-                )
+                if frame_trace is not None:
+                    session_data.get_last_frame_trace().add_event(
+                        stage="PoseQualityManager",
+                        success=True,
+                        result_type="OK",
+                        result={ "No Previous Valid Frame": "Skipping stability check" }
+                    )
                 return PoseQuality.OK
         
         prev_xy:np.ndarray | None = last_valid_frame.get(HistoryDictKey.Frame.LANDMARKS, None)
@@ -294,7 +300,7 @@ class PoseQualityManager:
         if prev_xy is not None:
             mean_delta:float | None = self._mean_landmark_delta(prev_xy, current_xy)
             if mean_delta is not None and mean_delta > self.stability_threshold:
-                frame_trace:FrameTrace = session_data.get_last_frame_trace()
+                
                 if frame_trace is not None:
                     frame_trace.add_event(
                         stage="PoseQualityManager",
@@ -307,12 +313,13 @@ class PoseQualityManager:
         ##############
         ### STEP 6 ### - Frame accepted.
         ##############
-        session_data.get_last_frame_trace().add_event(
-            stage="PoseQualityManager",
-            success=True,
-            result_type="OK",
-            result={ "Frame passed": "All quality checks" }
-        )
+        if frame_trace is not None:
+            session_data.get_last_frame_trace().add_event(
+                stage="PoseQualityManager",
+                success=True,
+                result_type="OK",
+                result={ "Frame passed": "All quality checks" }
+            )
         return PoseQuality.OK
 
     #####################################################################
