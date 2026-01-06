@@ -17,8 +17,8 @@ from Data.Session.ExerciseType    import ExerciseType
 from Data.Session.SessionStatus   import SessionStatus
 from Data.Session.AnalyzingState  import AnalyzingState
 from Data.History.HistoryData     import HistoryData
-from Server.Data.Debug.FrameTrace import FrameTrace
-from Server.Data.Debug.FrameEvent import FrameEvent
+from Data.Debug.FrameTrace import FrameTrace
+from Data.Debug.FrameEvent import FrameEvent
 
 
 ##########################
