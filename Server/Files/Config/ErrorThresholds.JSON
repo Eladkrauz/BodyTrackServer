@@ -1,25 +1,36 @@
 {
   "squat": {
     "TOP": {
-      "trunk_tilt_angle": { "min": 80, "max": 100 },
-      "hip_line_angle":   { "min": 0,  "max": 15 }
-    },
-    "DOWN": {
-      "left_knee_angle":  { "min": 120, "max": 160 },
-      "right_knee_angle": { "min": 120, "max": 160 },
-      "left_hip_angle":   { "min": 115, "max": 155 },
-      "right_hip_angle":  { "min": 115, "max": 155 }
-    },
-    "HOLD": {
-      "left_hip_angle":    { "min": 75,  "max": 120 },
-      "right_hip_angle":   { "min": 75,  "max": 120 },
-      "knee_valgus_angle": { "min": 140, "max": 180 }
-    },
-    "UP": {
-      "left_knee_angle":  { "min": 110, "max": 165 },
-      "right_knee_angle": { "min": 110, "max": 165 },
-      "trunk_tilt_angle": { "min": 65,  "max": 95 }
-    }
+      "left_knee_angle":   { "min": 165, "max": 190 },
+      "right_knee_angle":  { "min": 165, "max": 190 },
+
+      "left_hip_angle":    { "min": 160, "max": 185 },
+      "right_hip_angle":   { "min": 160, "max": 185 },
+
+      "trunk_tilt_angle":  { "min": 165, "max": 190 },
+      "hip_line_angle":    { "min": 0,   "max": 15 }
+      },
+
+      "DOWN": {
+        "trunk_tilt_angle":  { "min": 145, "max": 190 },
+        "hip_line_angle":    { "min": 0,   "max": 15 }
+      },
+
+      "HOLD": {
+        "left_knee_angle":   { "min": 75,  "max": 110 },
+        "right_knee_angle":  { "min": 75,  "max": 110 },
+
+        "left_hip_angle":    { "min": 65,  "max": 120 },
+        "right_hip_angle":   { "min": 65,  "max": 120 },
+
+        "trunk_tilt_angle":  { "min": 135, "max": 190 },
+        "hip_line_angle":    { "min": 0,   "max": 15 }
+      },
+
+      "UP": {
+        "trunk_tilt_angle":  { "min": 145, "max": 190 },
+        "hip_line_angle":    { "min": 0,   "max": 15 }
+      }
   },
   "biceps_curl": {
     "REST": {
