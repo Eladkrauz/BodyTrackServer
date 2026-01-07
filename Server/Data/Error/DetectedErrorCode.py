@@ -23,22 +23,49 @@ class DetectedErrorCode(Enum):
     ##################################
     ### SQUAT DETECTED ERROR CODES ###
     ##################################
-    SQUAT_TOP_TRUNK_TOO_FORWARD         = auto()
-    SQUAT_TOP_TRUNK_TOO_BACKWARD        = auto()
-    SQUAT_TOP_HIP_LINE_UNBALANCED       = auto()
+    ###########
+    ### TOP ###
+    ###########
+    SQUAT_TOP_KNEE_TOO_STRAIGHT        = auto()
+    SQUAT_TOP_KNEE_TOO_BENT            = auto()
 
-    SQUAT_DOWN_KNEE_TOO_STRAIGHT        = auto()
-    SQUAT_DOWN_KNEE_TOO_BENT            = auto()
-    SQUAT_DOWN_HIP_TOO_STRAIGHT         = auto()
-    SQUAT_DOWN_HIP_TOO_BENT             = auto()
+    SQUAT_TOP_HIP_TOO_STRAIGHT         = auto()
+    SQUAT_TOP_HIP_TOO_BENT             = auto()
 
-    SQUAT_HOLD_HIP_NOT_DEEP_ENOUGH      = auto()
-    SQUAT_HOLD_HIP_TOO_DEEP             = auto()
-    SQUAT_HOLD_KNEE_VALGUS              = auto()
+    SQUAT_TOP_TRUNK_TOO_FORWARD        = auto()
+    SQUAT_TOP_TRUNK_TOO_BACKWARD       = auto()
 
-    SQUAT_UP_KNEE_COLLAPSE              = auto()
-    SQUAT_UP_TRUNK_TOO_FORWARD          = auto()
-    SQUAT_UP_TRUNK_TOO_BACKWARD         = auto()
+    SQUAT_TOP_HIP_LINE_UNBALANCED      = auto()
+
+    ############
+    ### DOWN ###
+    ############
+    SQUAT_DOWN_TRUNK_TOO_FORWARD       = auto()
+    SQUAT_DOWN_TRUNK_TOO_BACKWARD      = auto()
+
+    SQUAT_DOWN_HIP_LINE_UNBALANCED     = auto()
+
+    ############
+    ### HOLD ###
+    ############
+    SQUAT_HOLD_KNEE_TOO_STRAIGHT       = auto()
+    SQUAT_HOLD_KNEE_TOO_BENT            = auto()
+
+    SQUAT_HOLD_HIP_TOO_HIGH            = auto()
+    SQUAT_HOLD_HIP_TOO_DEEP            = auto()
+
+    SQUAT_HOLD_TRUNK_TOO_FORWARD       = auto()
+    SQUAT_HOLD_TRUNK_TOO_BACKWARD      = auto()
+
+    SQUAT_HOLD_HIP_LINE_UNBALANCED     = auto()
+
+    ##########
+    ### UP ###
+    ##########
+    SQUAT_UP_TRUNK_TOO_FORWARD         = auto()
+    SQUAT_UP_TRUNK_TOO_BACKWARD        = auto()
+
+    SQUAT_UP_HIP_LINE_UNBALANCED       = auto()
 
     ########################################
     ### BICEPS CURL DETECTED ERROR CODES ###

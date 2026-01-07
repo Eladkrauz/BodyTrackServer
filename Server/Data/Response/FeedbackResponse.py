@@ -54,22 +54,29 @@ class FeedbackCode(IntEnum):
     ####################
     ### SQUAT ERRORS ###
     ####################
+    SQUAT_TOP_KNEE_TOO_STRAIGHT         = auto()
+    SQUAT_TOP_KNEE_TOO_BENT             = auto()
+    SQUAT_TOP_HIP_TOO_STRAIGHT          = auto()
+    SQUAT_TOP_HIP_TOO_BENT              = auto()
     SQUAT_TOP_TRUNK_TOO_FORWARD         = auto()
     SQUAT_TOP_TRUNK_TOO_BACKWARD        = auto()
     SQUAT_TOP_HIP_LINE_UNBALANCED       = auto()
 
-    SQUAT_DOWN_KNEE_TOO_STRAIGHT        = auto()
-    SQUAT_DOWN_KNEE_TOO_BENT            = auto()
-    SQUAT_DOWN_HIP_TOO_STRAIGHT         = auto()
-    SQUAT_DOWN_HIP_TOO_BENT             = auto()
+    SQUAT_DOWN_TRUNK_TOO_FORWARD        = auto()
+    SQUAT_DOWN_TRUNK_TOO_BACKWARD       = auto()
+    SQUAT_DOWN_HIP_LINE_UNBALANCED      = auto()
 
-    SQUAT_HOLD_HIP_NOT_DEEP_ENOUGH      = auto()
+    SQUAT_HOLD_KNEE_TOO_STRAIGHT        = auto()
+    SQUAT_HOLD_KNEE_TOO_BENT            = auto()
+    SQUAT_HOLD_HIP_TOO_HIGH             = auto()
     SQUAT_HOLD_HIP_TOO_DEEP             = auto()
-    SQUAT_HOLD_KNEE_VALGUS              = auto()
+    SQUAT_HOLD_TRUNK_TOO_FORWARD        = auto()
+    SQUAT_HOLD_TRUNK_TOO_BACKWARD       = auto()
+    SQUAT_HOLD_HIP_LINE_UNBALANCED      = auto()
 
-    SQUAT_UP_KNEE_COLLAPSE              = auto()
     SQUAT_UP_TRUNK_TOO_FORWARD          = auto()
     SQUAT_UP_TRUNK_TOO_BACKWARD         = auto()
+    SQUAT_UP_HIP_LINE_UNBALANCED        = auto()
 
     ##########################
     ### BICEPS CURL ERRORS ###
@@ -111,23 +118,28 @@ class FeedbackCode(IntEnum):
             FeedbackCode.UNSTABLE:                              "The camera view is unstable try holding your position.",
 
             # Squat
-            FeedbackCode.SQUAT_TOP_TRUNK_TOO_FORWARD:           "Keep your chest more upright at the top.",
-            FeedbackCode.SQUAT_TOP_TRUNK_TOO_BACKWARD:          "Avoid leaning backward at the top.",
-            FeedbackCode.SQUAT_TOP_HIP_LINE_UNBALANCED:         "Keep your hips level.",
-
-            FeedbackCode.SQUAT_DOWN_KNEE_TOO_STRAIGHT:          "Bend your knees more as you go down.",
-            FeedbackCode.SQUAT_DOWN_KNEE_TOO_BENT:              "Don't bend your knees too much on the way down.",
-            FeedbackCode.SQUAT_DOWN_HIP_TOO_STRAIGHT:           "Sit back more into the squat.",
-            FeedbackCode.SQUAT_DOWN_HIP_TOO_BENT:               "Don't drop too quickly into the squat.",
-
-            FeedbackCode.SQUAT_HOLD_HIP_NOT_DEEP_ENOUGH:        "Go a bit deeper in the squat.",
-            FeedbackCode.SQUAT_HOLD_HIP_TOO_DEEP:               "You're going too deep rise slightly.",
-            FeedbackCode.SQUAT_HOLD_KNEE_VALGUS:                "Keep your knees aligned over your toes.",
-
-            FeedbackCode.SQUAT_UP_KNEE_COLLAPSE:                "Avoid letting your knees collapse inward.",
-            FeedbackCode.SQUAT_UP_TRUNK_TOO_FORWARD:            "Lift your chest as you stand up.",
-            FeedbackCode.SQUAT_UP_TRUNK_TOO_BACKWARD:           "Don't lean backward as you rise.",
-
+            FeedbackCode.SQUAT_TOP_KNEE_TOO_STRAIGHT:           "Relax your knees slightly. Avoid locking them.",
+            FeedbackCode.SQUAT_TOP_KNEE_TOO_BENT:               "Straighten your knees a bit to stand tall.",
+            FeedbackCode.SQUAT_TOP_HIP_TOO_STRAIGHT:            "Relax your hips slightly for a natural standing position.",
+            FeedbackCode.SQUAT_TOP_HIP_TOO_BENT:                "Extend your hips to reach a full standing position.",
+            FeedbackCode.SQUAT_TOP_TRUNK_TOO_FORWARD:           "Lift your chest and stand more upright.",
+            FeedbackCode.SQUAT_TOP_TRUNK_TOO_BACKWARD:          "Avoid leaning back. Keep your torso neutral.",
+            FeedbackCode.SQUAT_TOP_HIP_LINE_UNBALANCED:         "Distribute your weight evenly between both hips.",
+            FeedbackCode.SQUAT_DOWN_TRUNK_TOO_FORWARD:          "Keep your chest stable as you lower down.",
+            FeedbackCode.SQUAT_DOWN_TRUNK_TOO_BACKWARD:         "Avoid leaning back while descending.",
+            FeedbackCode.SQUAT_DOWN_HIP_LINE_UNBALANCED:        "Lower yourself evenly without shifting to one side.",
+            FeedbackCode.SQUAT_HOLD_KNEE_TOO_STRAIGHT:          "Go a bit deeper and hold the position.",
+            FeedbackCode.SQUAT_HOLD_KNEE_TOO_BENT:              "You're too deep. Rise slightly and hold.",
+            FeedbackCode.SQUAT_HOLD_HIP_TOO_HIGH:               "Lower your hips slightly and hold the squat.",
+            FeedbackCode.SQUAT_HOLD_HIP_TOO_DEEP:               "Raise your hips a bit to maintain control.",
+            FeedbackCode.SQUAT_HOLD_TRUNK_TOO_FORWARD:          "Lift your chest and keep your torso stable.",
+            FeedbackCode.SQUAT_HOLD_TRUNK_TOO_BACKWARD:         "Avoid arching your back. Keep your torso neutral.",
+            FeedbackCode.SQUAT_HOLD_HIP_LINE_UNBALANCED:        "Hold the squat evenly without shifting sideways.",
+            FeedbackCode.SQUAT_UP_TRUNK_TOO_FORWARD:            "Keep your chest up as you rise.",
+            FeedbackCode.SQUAT_UP_TRUNK_TOO_BACKWARD:           "Avoid leaning back while standing up.",
+            FeedbackCode.SQUAT_UP_HIP_LINE_UNBALANCED:          "Push up evenly through both legs.",
+            
+            
             # Biceps curl
             FeedbackCode.CURL_REST_ELBOW_TOO_BENT:              "Fully extend your arms at the bottom.",
             FeedbackCode.CURL_REST_ELBOW_TOO_STRAIGHT:          "Maintain slight tension don't lock out.",
