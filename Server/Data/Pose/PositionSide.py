@@ -98,6 +98,6 @@ class PositionSide(enum):
         ### Returns:
         - List[PositionSide]: A list of allowed position sides for the given exercise type.
         """
-        if   exercise_type is ExerciseType.SQUAT:         return [cls.FRONT, cls.LEFT, cls.RIGHT]
+        if   exercise_type is ExerciseType.SQUAT:         return [cls.LEFT, cls.RIGHT]
         elif exercise_type is ExerciseType.BICEPS_CURL:   return [cls.LEFT, cls.RIGHT]
         else:                                             return []
