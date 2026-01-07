@@ -34,59 +34,80 @@ class ErrorRecommendations:
     """
     _default_message = "Maintain controlled, stable movement and proper form."
     _recommenations_map:Dict[DetectedErrorCode, str] = {
-        ########################
-        ### SQUAT – TOP PHASE ###
-        ########################
+        #######################
+        ### SQUAT TOP PHASE ###
+        #######################
+        DetectedErrorCode.SQUAT_TOP_KNEE_TOO_STRAIGHT:
+            "Increase knee flexion.",
+
+        DetectedErrorCode.SQUAT_TOP_KNEE_TOO_BENT:
+            "Reduce knee flexion.",
+
+        DetectedErrorCode.SQUAT_TOP_HIP_TOO_STRAIGHT:
+            "Increase hip flexion.",
+
+        DetectedErrorCode.SQUAT_TOP_HIP_TOO_BENT:
+            "Reduce hip flexion.",
+
         DetectedErrorCode.SQUAT_TOP_TRUNK_TOO_FORWARD:
-            "Keep your torso more upright at the top of the squat.",
+            "Straighten your torso.",
 
         DetectedErrorCode.SQUAT_TOP_TRUNK_TOO_BACKWARD:
-            "Avoid leaning backward - keep your torso stacked over your hips.",
+            "Bring torso to neutral.",
 
         DetectedErrorCode.SQUAT_TOP_HIP_LINE_UNBALANCED:
-            "Distribute your weight evenly between both hips at the top position.",
+            "Balance weight evenly between hips.",
 
 
-        #########################
-        ### SQUAT – DOWN PHASE ###
-        #########################
-        DetectedErrorCode.SQUAT_DOWN_KNEE_TOO_STRAIGHT:
-            "Allow your knees to bend more as you descend.",
+        ########################
+        ### SQUAT DOWN PHASE ###
+        ########################
+        DetectedErrorCode.SQUAT_DOWN_TRUNK_TOO_FORWARD:
+            "Reduce forward trunk lean.",
 
-        DetectedErrorCode.SQUAT_DOWN_KNEE_TOO_BENT:
-            "Control the descent - avoid collapsing too quickly into the bottom.",
+        DetectedErrorCode.SQUAT_DOWN_TRUNK_TOO_BACKWARD:
+            "Reduce backward trunk lean.",
 
-        DetectedErrorCode.SQUAT_DOWN_HIP_TOO_STRAIGHT:
-            "Sit back more with your hips as you lower.",
-
-        DetectedErrorCode.SQUAT_DOWN_HIP_TOO_BENT:
-            "Slow the descent and avoid dropping too deep too fast.",
+        DetectedErrorCode.SQUAT_DOWN_HIP_LINE_UNBALANCED:
+            "Maintain balanced hip alignment.",
 
 
-        #########################
-        ### SQUAT – HOLD PHASE ###
-        #########################
-        DetectedErrorCode.SQUAT_HOLD_HIP_NOT_DEEP_ENOUGH:
-            "Lower your hips slightly more to reach proper squat depth.",
+        ########################
+        ### SQUAT HOLD PHASE ###
+        ########################
+        DetectedErrorCode.SQUAT_HOLD_KNEE_TOO_STRAIGHT:
+            "Increase knee bend.",
+
+        DetectedErrorCode.SQUAT_HOLD_KNEE_TOO_BENT:
+            "Reduce knee bend.",
+
+        DetectedErrorCode.SQUAT_HOLD_HIP_TOO_HIGH:
+            "Lower hips to proper depth.",
 
         DetectedErrorCode.SQUAT_HOLD_HIP_TOO_DEEP:
-            "Rise slightly - avoid sinking too deep at the bottom.",
+            "Raise hips slightly.",
 
-        DetectedErrorCode.SQUAT_HOLD_KNEE_VALGUS:
-            "Push your knees outward to prevent them from collapsing inward.",
+        DetectedErrorCode.SQUAT_HOLD_TRUNK_TOO_FORWARD:
+            "Lift torso to neutral.",
+
+        DetectedErrorCode.SQUAT_HOLD_TRUNK_TOO_BACKWARD:
+            "Bring torso forward to neutral.",
+
+        DetectedErrorCode.SQUAT_HOLD_HIP_LINE_UNBALANCED:
+            "Stabilize hip alignment.",
 
 
-        #######################
-        ### SQUAT – UP PHASE ###
-        #######################
-        DetectedErrorCode.SQUAT_UP_KNEE_COLLAPSE:
-            "Maintain knee alignment as you stand up.",
-
+        ######################
+        ### SQUAT UP PHASE ###
+        ######################
         DetectedErrorCode.SQUAT_UP_TRUNK_TOO_FORWARD:
-            "Lift your chest as you rise from the squat.",
+            "Lift chest while rising.",
 
         DetectedErrorCode.SQUAT_UP_TRUNK_TOO_BACKWARD:
-            "Avoid leaning back - stand up tall and controlled.",
+            "Avoid backward trunk lean.",
+
+        DetectedErrorCode.SQUAT_UP_HIP_LINE_UNBALANCED:
+            "Maintain even hip drive.",
 
 
         ################################
