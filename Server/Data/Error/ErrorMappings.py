@@ -157,14 +157,6 @@ class ErrorMappings:
                 LOW:  DetectedErrorCode.CURL_HOLD_ELBOW_TOO_CLOSED,
                 HIGH: DetectedErrorCode.CURL_HOLD_ELBOW_TOO_OPEN,
             },
-            JointAngle.BicepsCurl.LEFT_WRIST.name: {
-                LOW:  DetectedErrorCode.CURL_HOLD_WRIST_TOO_FLEXED,
-                HIGH: DetectedErrorCode.CURL_HOLD_WRIST_TOO_EXTENDED,
-            },
-            JointAngle.BicepsCurl.RIGHT_WRIST.name: {
-                LOW:  DetectedErrorCode.CURL_HOLD_WRIST_TOO_FLEXED,
-                HIGH: DetectedErrorCode.CURL_HOLD_WRIST_TOO_EXTENDED,
-            },
         },
         PhaseType.BicepsCurl.LOWERING: {
             JointAngle.BicepsCurl.LEFT_ELBOW.name: {

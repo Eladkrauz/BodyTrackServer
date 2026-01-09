@@ -47,9 +47,7 @@
     },
     "HOLD": {
       "left_elbow_angle":  { "min": 45,  "max": 95 },
-      "right_elbow_angle": { "min": 45,  "max": 95 },
-      "left_wrist_angle":  { "min": 150, "max": 195 },
-      "right_wrist_angle": { "min": 150, "max": 195 }
+      "right_elbow_angle": { "min": 45,  "max": 95 }
     },
     "LOWERING": {
       "left_elbow_angle":            { "min": 95,  "max": 160 },
