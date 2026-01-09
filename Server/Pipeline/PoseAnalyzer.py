@@ -331,7 +331,7 @@ class PoseAnalyzer:
                     origin=inspect.currentframe(),
                     extra_info={ "Reason": "The returned pose landmarks object is None" }
                 )
-                return ErrorCode.FRAME_ANALYSIS_ERROR
+                return ErrorCode.NO_PERSON_DETECTED_IN_FRAME
             
             # Convert NormalizedLandmarkList to landmarks list.
             pose_landmarks = getattr(pose_landmarks, "landmark", None)
@@ -341,7 +341,7 @@ class PoseAnalyzer:
                     origin=inspect.currentframe(),
                     extra_info={ "Reason": "The returned pose landmarks object is None" }
                 )
-                return ErrorCode.FRAME_ANALYSIS_ERROR
+                return ErrorCode.NO_PERSON_DETECTED_IN_FRAME
             
             # Creating the output array from the landmarks returned from MediaPipe.
             results_array:list = []

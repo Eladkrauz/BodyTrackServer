@@ -368,7 +368,7 @@ class PipelineProcessor:
 
         ### PIPELINE STEP >>> Analyzing Pose --- using PoseAnalyzer.
         pose_analyzer_result:PoseLandmarksArray | ErrorCode = self.pose_analyzer.analyze_frame(frame_data)
-        if self._check_for_error(pose_analyzer_result):
+        if self._check_for_error(pose_analyzer_result) and pose_analyzer_result != ErrorCode.NO_PERSON_DETECTED_IN_FRAME:
             session_data.get_last_frame_trace().add_event(
                 stage="PoseAnalyzer",
                 success=False,
@@ -376,6 +376,13 @@ class PipelineProcessor:
                 result={ "Error Code": cast(ErrorCode, pose_analyzer_result).description }
             )
             return pose_analyzer_result
+        elif pose_analyzer_result == ErrorCode.NO_PERSON_DETECTED_IN_FRAME:
+            session_data.get_last_frame_trace().add_event(
+                stage="PoseAnalyzer",
+                success=True,
+                result_type="PoseLandmarks Array",
+                result="No person detected in frame"
+            )
         else:
             session_data.get_last_frame_trace().add_event(
                 stage="PoseAnalyzer",
