@@ -17,8 +17,8 @@
       },
 
       "HOLD": {
-        "left_knee_angle":   { "min": 75,  "max": 110 },
-        "right_knee_angle":  { "min": 75,  "max": 110 },
+        "left_knee_angle":   { "min": 75,  "max": 120 },
+        "right_knee_angle":  { "min": 75,  "max": 120 },
 
         "left_hip_angle":    { "min": 65,  "max": 120 },
         "right_hip_angle":   { "min": 65,  "max": 120 },
