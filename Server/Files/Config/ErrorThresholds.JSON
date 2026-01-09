@@ -7,13 +7,11 @@
       "left_hip_angle":    { "min": 160, "max": 185 },
       "right_hip_angle":   { "min": 160, "max": 185 },
 
-      "trunk_tilt_angle":  { "min": 165, "max": 190 },
-      "hip_line_angle":    { "min": 0,   "max": 15 }
+      "trunk_tilt_angle":  { "min": 165, "max": 190 }
       },
 
       "DOWN": {
-        "trunk_tilt_angle":  { "min": 145, "max": 190 },
-        "hip_line_angle":    { "min": 0,   "max": 15 }
+        "trunk_tilt_angle":  { "min": 145, "max": 190 }
       },
 
       "HOLD": {
@@ -23,13 +21,11 @@
         "left_hip_angle":    { "min": 65,  "max": 120 },
         "right_hip_angle":   { "min": 65,  "max": 120 },
 
-        "trunk_tilt_angle":  { "min": 135, "max": 190 },
-        "hip_line_angle":    { "min": 0,   "max": 15 }
+        "trunk_tilt_angle":  { "min": 135, "max": 190 }
       },
 
       "UP": {
-        "trunk_tilt_angle":  { "min": 145, "max": 190 },
-        "hip_line_angle":    { "min": 0,   "max": 15 }
+        "trunk_tilt_angle":  { "min": 145, "max": 190 }
       }
   },
   "biceps_curl": {

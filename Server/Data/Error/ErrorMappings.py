@@ -52,10 +52,6 @@ class ErrorMappings:
                 LOW:  DetectedErrorCode.SQUAT_TOP_TRUNK_TOO_FORWARD,
                 HIGH: DetectedErrorCode.SQUAT_TOP_TRUNK_TOO_BACKWARD
             },
-            JointAngle.Squat.HIP_LINE.name: {
-                LOW:  DetectedErrorCode.SQUAT_TOP_HIP_LINE_UNBALANCED,
-                HIGH: DetectedErrorCode.SQUAT_TOP_HIP_LINE_UNBALANCED
-            }
         },
 
         PhaseType.Squat.DOWN: {
@@ -63,10 +59,6 @@ class ErrorMappings:
                 LOW:  DetectedErrorCode.SQUAT_DOWN_TRUNK_TOO_FORWARD,
                 HIGH: DetectedErrorCode.SQUAT_DOWN_TRUNK_TOO_BACKWARD
             },
-            JointAngle.Squat.HIP_LINE.name: {
-                LOW:  DetectedErrorCode.SQUAT_DOWN_HIP_LINE_UNBALANCED,
-                HIGH: DetectedErrorCode.SQUAT_DOWN_HIP_LINE_UNBALANCED
-            }
         },
 
         PhaseType.Squat.HOLD: {
@@ -90,10 +82,6 @@ class ErrorMappings:
                 LOW:  DetectedErrorCode.SQUAT_HOLD_TRUNK_TOO_FORWARD,
                 HIGH: DetectedErrorCode.SQUAT_HOLD_TRUNK_TOO_BACKWARD
             },
-            JointAngle.Squat.HIP_LINE.name: {
-                LOW:  DetectedErrorCode.SQUAT_HOLD_HIP_LINE_UNBALANCED,
-                HIGH: DetectedErrorCode.SQUAT_HOLD_HIP_LINE_UNBALANCED
-            }
         },
 
         PhaseType.Squat.UP: {
@@ -101,10 +89,6 @@ class ErrorMappings:
                 LOW:  DetectedErrorCode.SQUAT_UP_TRUNK_TOO_FORWARD,
                 HIGH: DetectedErrorCode.SQUAT_UP_TRUNK_TOO_BACKWARD
             },
-            JointAngle.Squat.HIP_LINE.name: {
-                LOW:  DetectedErrorCode.SQUAT_UP_HIP_LINE_UNBALANCED,
-                HIGH: DetectedErrorCode.SQUAT_UP_HIP_LINE_UNBALANCED
-            }
         }
     }
 
