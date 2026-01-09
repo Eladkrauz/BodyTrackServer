@@ -436,111 +436,110 @@ class PipelineProcessor:
                     result=None
                 )
                 return ErrorCode.SESSION_SHOULD_ABORT
-            else:
-                return self.feedback_formatter.construct_feedback(session_data)
 
         ##############
         ### CASE 2 ### - The returned results are OK. This means the frame is valid.
         ##############
-        ### PIPELINE STEP >>> Calculating Joints --- using JointAnalyzer.
-        joint_analyzer_result:CalculatedJoints | ErrorCode = self.joint_analyzer.calculate_joints(
-            session_data=session_data,
-            landmarks=pose_analyzer_result
-        )
-        if self._check_for_error(joint_analyzer_result):
-            session_data.get_last_frame_trace().add_event(
-                stage="JointAnalyzer",
-                success=False,
-                result_type="Error Code",
-                result={ "Error Code": cast(ErrorCode, joint_analyzer_result).description }
+        else:
+            ### PIPELINE STEP >>> Calculating Joints --- using JointAnalyzer.
+            joint_analyzer_result:CalculatedJoints | ErrorCode = self.joint_analyzer.calculate_joints(
+                session_data=session_data,
+                landmarks=pose_analyzer_result
             )
-            return joint_analyzer_result
-        
-        # Recording valid frame.
-        self.history_manager.record_valid_frame(
-            history_data=history,
-            frame_id=frame_data.frame_id,
-            landmarks=pose_analyzer_result,
-            joints=joint_analyzer_result
-        )
-        session_data.get_last_frame_trace().add_event(
-            stage="HistoryManager",
-            success=True,
-            result_type="Record Valid Frame",
-            result=None
-        )
-
-        ### PIPELINE STEP >>> Determining the current phase --- using PhaseDetector.
-        phase_detector_result:PhaseType = self.phase_detector.determine_phase(session_data=session_data)
-        if self._check_for_error(phase_detector_result):
-            session_data.get_last_frame_trace().add_event(
-                stage="PhaseDetector",
-                success=False,
-                result_type="Error Code",
-                result={ "Error Code": cast(ErrorCode, phase_detector_result).description }
-            )
-            return phase_detector_result
-        
-        # Recording the phase.
-        self.history_manager.record_phase_transition(
-            history_data=history,
-            exercise_type=session_data.get_exercise_type(),
-            new_phase=phase_detector_result,
-            frame_id=frame_data.frame_id,
-            joints=joint_analyzer_result
-        )
-        session_data.get_last_frame_trace().add_event(
-            stage="HistoryManager",
-            success=True,
-            result_type="Record Phase Transition",
-            result={ "New Phase": phase_detector_result.name }
-        )
-
-        ### PIPELINE STEP >>> Detecting errors --- using ErrorDetector.
-        error_detector_result:DetectedErrorCode = self.error_detector.detect_errors(session_data)
-        if self._check_for_error(error_detector_result):
-            session_data.get_last_frame_trace().add_event(
-                stage="ErrorDetector",
-                success=False,
-                result_type="Error Code",
-                result={ "Error Code": cast(ErrorCode, error_detector_result).description }
-            )
-            return error_detector_result
-        
-        # Recording the error (also NO_BIOMECHANICAL_ERROR and NOT_READY_FOR_ANALYSIS are recorded).   
-        self.history_manager.add_frame_error(
-            history_data=history,
-            error_to_add=error_detector_result,
-            frame_id=frame_data.frame_id
-        )
-        
-        session_data.get_last_frame_trace().add_event(
-            stage="HistoryManager",
-            success=True,
-            result_type="Add Frame Error",
-            result={ "Detected Error": error_detector_result.name }
-        )
-        session_data.get_last_frame_trace().add_event(
-            stage="ErrorStreaks",
-            success=True,
-            result_type="Update Error Streaks",
-            result=history.get_error_streaks()
-        )
-
-        if not error_detector_result in (
-            DetectedErrorCode.NO_BIOMECHANICAL_ERROR,
-            DetectedErrorCode.NOT_READY_FOR_ANALYSIS
-        ):
-            self.history_manager.add_error_to_current_rep(
+            if self._check_for_error(joint_analyzer_result):
+                session_data.get_last_frame_trace().add_event(
+                    stage="JointAnalyzer",
+                    success=False,
+                    result_type="Error Code",
+                    result={ "Error Code": cast(ErrorCode, joint_analyzer_result).description }
+                )
+                return joint_analyzer_result
+            
+            # Recording valid frame.
+            self.history_manager.record_valid_frame(
                 history_data=history,
-                error_to_add=error_detector_result
+                frame_id=frame_data.frame_id,
+                landmarks=pose_analyzer_result,
+                joints=joint_analyzer_result
             )
             session_data.get_last_frame_trace().add_event(
                 stage="HistoryManager",
                 success=True,
-                result_type="Add Error To Current Rep",
+                result_type="Record Valid Frame",
+                result=None
+            )
+
+            ### PIPELINE STEP >>> Determining the current phase --- using PhaseDetector.
+            phase_detector_result:PhaseType = self.phase_detector.determine_phase(session_data=session_data)
+            if self._check_for_error(phase_detector_result):
+                session_data.get_last_frame_trace().add_event(
+                    stage="PhaseDetector",
+                    success=False,
+                    result_type="Error Code",
+                    result={ "Error Code": cast(ErrorCode, phase_detector_result).description }
+                )
+                return phase_detector_result
+            
+            # Recording the phase.
+            self.history_manager.record_phase_transition(
+                history_data=history,
+                exercise_type=session_data.get_exercise_type(),
+                new_phase=phase_detector_result,
+                frame_id=frame_data.frame_id,
+                joints=joint_analyzer_result
+            )
+            session_data.get_last_frame_trace().add_event(
+                stage="HistoryManager",
+                success=True,
+                result_type="Record Phase Transition",
+                result={ "New Phase": phase_detector_result.name }
+            )
+
+            ### PIPELINE STEP >>> Detecting errors --- using ErrorDetector.
+            error_detector_result:DetectedErrorCode = self.error_detector.detect_errors(session_data)
+            if self._check_for_error(error_detector_result):
+                session_data.get_last_frame_trace().add_event(
+                    stage="ErrorDetector",
+                    success=False,
+                    result_type="Error Code",
+                    result={ "Error Code": cast(ErrorCode, error_detector_result).description }
+                )
+                return error_detector_result
+            
+            # Recording the error (also NO_BIOMECHANICAL_ERROR and NOT_READY_FOR_ANALYSIS are recorded).   
+            self.history_manager.add_frame_error(
+                history_data=history,
+                error_to_add=error_detector_result,
+                frame_id=frame_data.frame_id
+            )
+            
+            session_data.get_last_frame_trace().add_event(
+                stage="HistoryManager",
+                success=True,
+                result_type="Add Frame Error",
                 result={ "Detected Error": error_detector_result.name }
             )
+            session_data.get_last_frame_trace().add_event(
+                stage="ErrorStreaks",
+                success=True,
+                result_type="Update Error Streaks",
+                result=history.get_error_streaks()
+            )
+
+            if not error_detector_result in (
+                DetectedErrorCode.NO_BIOMECHANICAL_ERROR,
+                DetectedErrorCode.NOT_READY_FOR_ANALYSIS
+            ):
+                self.history_manager.add_error_to_current_rep(
+                    history_data=history,
+                    error_to_add=error_detector_result
+                )
+                session_data.get_last_frame_trace().add_event(
+                    stage="HistoryManager",
+                    success=True,
+                    result_type="Add Error To Current Rep",
+                    result={ "Detected Error": error_detector_result.name }
+                )
 
         ### PIPELINE STEP >>> Combining feedback --- using FeedbackFormatter.
         feedback_result = self.feedback_formatter.construct_feedback(session_data)

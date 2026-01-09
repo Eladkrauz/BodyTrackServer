@@ -64,7 +64,7 @@
     "feedback": {
       "pose_quality_feedback_threshold":      5,
       "biomechanical_feedback_threshold":     2,
-      "feedback_cooldown_frames":             10
+      "feedback_cooldown_frames":             15
     },
     "summary": {
       "number_of_top_errors":                 4,
