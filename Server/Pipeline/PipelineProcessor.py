@@ -383,6 +383,7 @@ class PipelineProcessor:
                 result_type="PoseLandmarks Array",
                 result="No person detected in frame"
             )
+            pose_analyzer_result = None
         else:
             session_data.get_last_frame_trace().add_event(
                 stage="PoseAnalyzer",
