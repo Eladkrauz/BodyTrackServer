@@ -55,6 +55,7 @@ class JointAngle:
         LEFT_HIP    = Joint("left_hip_angle",    (PoseLandmark.LEFT_SHOULDER.value,  PoseLandmark.LEFT_HIP.value,      PoseLandmark.LEFT_KNEE.value),           False)
         RIGHT_HIP   = Joint("right_hip_angle",   (PoseLandmark.RIGHT_SHOULDER.value, PoseLandmark.RIGHT_HIP.value,     PoseLandmark.RIGHT_KNEE.value),          False)
         TRUNK_TILT  = Joint("trunk_tilt_angle",  (PoseLandmark.LEFT_HIP.value,       PoseLandmark.LEFT_SHOULDER.value, PoseLandmark.LEFT_EAR.value),            False)
+        LEFT_CORE   = [LEFT_KNEE, RIGHT_HIP, TRUNK_TILT]
         RIGHT_CORE  = [RIGHT_KNEE, RIGHT_HIP, TRUNK_TILT]
         CORE        = [LEFT_KNEE, RIGHT_KNEE, LEFT_HIP, RIGHT_HIP, TRUNK_TILT]
 
