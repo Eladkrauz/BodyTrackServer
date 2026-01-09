@@ -33,20 +33,20 @@ class ErrorMappings:
     SQUAT_MAP = {
         PhaseType.Squat.TOP: {
             JointAngle.Squat.LEFT_KNEE.name: {
-                LOW:  DetectedErrorCode.SQUAT_TOP_KNEE_TOO_STRAIGHT,
-                HIGH: DetectedErrorCode.SQUAT_TOP_KNEE_TOO_BENT
+                LOW:  DetectedErrorCode.SQUAT_TOP_KNEE_TOO_BENT,
+                HIGH: DetectedErrorCode.SQUAT_TOP_KNEE_TOO_STRAIGHT
             },
             JointAngle.Squat.RIGHT_KNEE.name: {
-                LOW:  DetectedErrorCode.SQUAT_TOP_KNEE_TOO_STRAIGHT,
-                HIGH: DetectedErrorCode.SQUAT_TOP_KNEE_TOO_BENT
+                LOW:  DetectedErrorCode.SQUAT_TOP_KNEE_TOO_BENT,
+                HIGH: DetectedErrorCode.SQUAT_TOP_KNEE_TOO_STRAIGHT
             },
             JointAngle.Squat.LEFT_HIP.name: {
-                LOW:  DetectedErrorCode.SQUAT_TOP_HIP_TOO_STRAIGHT,
-                HIGH: DetectedErrorCode.SQUAT_TOP_HIP_TOO_BENT
+                LOW:  DetectedErrorCode.SQUAT_TOP_HIP_TOO_BENT,
+                HIGH: DetectedErrorCode.SQUAT_TOP_HIP_TOO_STRAIGHT
             },
             JointAngle.Squat.RIGHT_HIP.name: {
-                LOW:  DetectedErrorCode.SQUAT_TOP_HIP_TOO_STRAIGHT,
-                HIGH: DetectedErrorCode.SQUAT_TOP_HIP_TOO_BENT
+                LOW:  DetectedErrorCode.SQUAT_TOP_HIP_TOO_BENT,
+                HIGH: DetectedErrorCode.SQUAT_TOP_HIP_TOO_STRAIGHT
             },
             JointAngle.Squat.TRUNK_TILT.name: {
                 LOW:  DetectedErrorCode.SQUAT_TOP_TRUNK_TOO_FORWARD,
@@ -71,20 +71,20 @@ class ErrorMappings:
 
         PhaseType.Squat.HOLD: {
             JointAngle.Squat.LEFT_KNEE.name: {
-                LOW:  DetectedErrorCode.SQUAT_HOLD_KNEE_TOO_STRAIGHT,
-                HIGH: DetectedErrorCode.SQUAT_HOLD_KNEE_TOO_BENT
+                LOW:  DetectedErrorCode.SQUAT_HOLD_KNEE_TOO_BENT,
+                HIGH: DetectedErrorCode.SQUAT_HOLD_KNEE_TOO_STRAIGHT
             },
             JointAngle.Squat.RIGHT_KNEE.name: {
-                LOW:  DetectedErrorCode.SQUAT_HOLD_KNEE_TOO_STRAIGHT,
-                HIGH: DetectedErrorCode.SQUAT_HOLD_KNEE_TOO_BENT
+                LOW:  DetectedErrorCode.SQUAT_HOLD_KNEE_TOO_BENT,
+                HIGH: DetectedErrorCode.SQUAT_HOLD_KNEE_TOO_STRAIGHT
             },
             JointAngle.Squat.LEFT_HIP.name: {
-                LOW:  DetectedErrorCode.SQUAT_HOLD_HIP_TOO_HIGH,
-                HIGH: DetectedErrorCode.SQUAT_HOLD_HIP_TOO_DEEP
+                LOW:  DetectedErrorCode.SQUAT_HOLD_HIP_TOO_DEEP,
+                HIGH: DetectedErrorCode.SQUAT_HOLD_HIP_TOO_HIGH
             },
             JointAngle.Squat.RIGHT_HIP.name: {
-                LOW:  DetectedErrorCode.SQUAT_HOLD_HIP_TOO_HIGH,
-                HIGH: DetectedErrorCode.SQUAT_HOLD_HIP_TOO_DEEP
+                LOW:  DetectedErrorCode.SQUAT_HOLD_HIP_TOO_DEEP,
+                HIGH: DetectedErrorCode.SQUAT_HOLD_HIP_TOO_HIGH
             },
             JointAngle.Squat.TRUNK_TILT.name: {
                 LOW:  DetectedErrorCode.SQUAT_HOLD_TRUNK_TOO_FORWARD,
