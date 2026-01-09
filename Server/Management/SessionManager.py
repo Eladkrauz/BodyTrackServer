@@ -219,14 +219,13 @@ class SessionManager:
     #####################
     ### START SESSION ###
     #####################
-    def start_session(self, session_id:str, extended_evaluation:bool) -> ManagementResponse | ErrorResponse:
+    def start_session(self, session_id:str) -> ManagementResponse | ErrorResponse:
         """
         ### Brief:
         The `start_session` method starts a session that is currently in the `REGISTERED` state, transitioning it to `ACTIVE`.
         
         ### Arguments:
         - `session_id` (str): The session ID string received from the client.
-        - `extended_evaluation` (bool): If `True`, calculate all biomechanical angles; 
         if `False`, calculate only those needed for evaluating correctness (core movement).
         
         ### Returns:
@@ -240,14 +239,6 @@ class SessionManager:
         session_id:SessionId = self.id_generator.pack_string_to_session_id(session_id) 
         if session_id is None:
             return ErrorResponse(ErrorCode.INVALID_SESSION_ID)
-        
-        # Checking if the exetended evaluation parameter is valid.
-        if extended_evaluation is None or not isinstance(extended_evaluation, bool):
-            ErrorHandler.handle(
-                error=ErrorCode.INVALID_EXTENDED_EVALUATION_PARAM,
-                origin=inspect.currentframe()
-            )
-            return ErrorResponse(ErrorCode.INVALID_EXTENDED_EVALUATION_PARAM)
         
         # If the client is registered - meaning it has not started a session yet.
         session_status:SessionStatus = self._search(key=session_id, search_type=SearchType.ID)
@@ -270,7 +261,6 @@ class SessionManager:
                     session_data:SessionData = self.sessions[session_id]
                     session_data.set_session_status(SessionStatus.ACTIVE)
                     self.current_active_sessions += 1
-                    session_data.set_extended_evaluation(extended_evaluation)
 
                     return ManagementResponse(ManagementCode.CLIENT_SESSION_IS_ACTIVE)
 
@@ -952,7 +942,6 @@ class SessionManager:
                 session_summaries[sid.id] = {
                     "status": session.get_session_status().name,
                     "exercise_type": session.get_exercise_type().name,
-                    "extended_evaluation": session.get_extended_evaluation(),
                     "analyzing_state": session.get_analyzing_state().name,
                     "last_activity": session.time.get("last_activity")
                 }

@@ -312,13 +312,9 @@ class FlaskServer:
         if session_id is None:
             Logger.warning("Missing 'session_id' in request")
             return jsonify(Communication.error_response(error=None, error_code=ErrorCode.MISSING_SESSION_ID_IN_REQUEST)), HttpCodes.BAD_REQUEST
-        extended_evaluation:bool = data.get("extended_evaluation", None)
-        if extended_evaluation is None:
-            Logger.warning("Missing 'extended_evaluation' in request")
-            return jsonify(Communication.error_response(error=None, error_code=ErrorCode.INVALID_EXTENDED_EVALUATION_PARAM)), HttpCodes.BAD_REQUEST
-        
+
         # Trying to start the session.
-        start_session_result:ManagementResponse | ErrorResponse = self.session_manager.start_session(session_id, extended_evaluation)
+        start_session_result:ManagementResponse | ErrorResponse = self.session_manager.start_session(session_id)
         if isinstance(start_session_result, ErrorResponse):
             return jsonify(Communication.error_response(start_session_result)), HttpCodes.BAD_REQUEST
         else: # If the session started successfully.

@@ -329,7 +329,6 @@ class PhaseDetector:
         allowed:Set[str] = { joint.name for joint in JointAngle.get_all_joints(
             cls_name=joint_cls,
             position_side=position_side,
-            extended_evaluation=session_data.get_extended_evaluation()
         )}
 
         filtered_rules:Rules = {}
@@ -695,8 +694,7 @@ class PhaseDetector:
                     joint.name for joint in
                     JointAngle.get_all_joints(
                         cls_name=joint_cls,
-                        position_side=PositionSide.FRONT,
-                        extended_evaluation=True
+                        position_side=PositionSide.FRONT
                     )
                 ]
 

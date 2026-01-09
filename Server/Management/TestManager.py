@@ -67,7 +67,7 @@ class TestManager:
         # Start session.
         requests.post(
             Endpoint.START_SESSION,
-            json={'session_id': session_id, 'extended_evaluation': False}
+            json={'session_id': session_id}
         )
         input("Continue to next step >>> ")
 
@@ -173,7 +173,7 @@ class TestManager:
         input("Continue to next step >>> ")
 
         # Start the session.
-        requests.post(Endpoint.START_SESSION, json={'session_id': session_id, 'extended_evaluation': False}).json()
+        requests.post(Endpoint.START_SESSION, json={'session_id': session_id}).json()
         input("Continue to next step >>> ")
 
         # Open the video file.

@@ -35,7 +35,6 @@ class SessionData:
     - `client_info` (dict[str, Any]): Metadata about the client device/IP.
     - `exercise_type` (ExerciseType): The type of exercise (e.g., "squats", "pushups").
     - `time` (dict[str, datetime]): Timestamps about the sessions.
-    - `extended_evaluation` (bool): Indicates whether evaluate the frame with extended joints or only core.
     - `history_data` (HistoryData): Holds pose analysis results and feedback.
     """
     ###########################
@@ -52,7 +51,6 @@ class SessionData:
         "ended": None,
         "last_activity": datetime.now(),
     })
-    extended_evaluation:bool            = field(default=False)
     analyzing_state:AnalyzingState      = field(default=AnalyzingState.INIT)
     lock:RLock                          = field(default_factory=RLock, init=False, repr=False)
     session_status:SessionStatus        = field(default=SessionStatus.REGISTERED)
@@ -153,20 +151,6 @@ class SessionData:
         - `ExerciseType`: The type of exercise for the session.
         """
         return self.exercise_type
-    
-    ###############################
-    ### GET EXTENDED EVALUATION ###
-    ###############################
-    def get_extended_evaluation(self) -> bool:
-        """
-        ### Brief:
-        The `get_extended_evaluation` method retrieves whether extended evaluation
-        is enabled for the session.
-
-        ### Returns:
-        - `bool`: True if extended evaluation is enabled, False otherwise.
-        """
-        return self.extended_evaluation
 
     ###########################
     ### GET ANALYZING STATE ###
@@ -238,20 +222,6 @@ class SessionData:
     #####################################################################
     ############################## SETTERS ##############################
     #####################################################################
-
-    ###############################
-    ### SET EXTENDED EVALUATION ###
-    ###############################
-    def set_extended_evaluation(self, extended_evaluation:bool) -> None:
-        """
-        ### Brief:
-        The `set_extended_evaluation` method sets whether extended evaluation
-        is enabled for the session.
-
-        ### Arguments:
-        - `extended_evaluation` (bool): `True` to enable extended evaluation, `False` to disable.
-        """
-        self.extended_evaluation = extended_evaluation
 
     ###########################
     ### SET ANALYZING STATE ###

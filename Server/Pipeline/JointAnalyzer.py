@@ -109,7 +109,6 @@ class JointAnalyzer:
             return {}
         
         exercise_type       = session_data.get_exercise_type()
-        extended_evaluation = session_data.get_extended_evaluation()
         # Validate landmarks.
         if landmarks is None or not isinstance(landmarks, np.ndarray):
             ErrorHandler.handle(
@@ -121,12 +120,11 @@ class JointAnalyzer:
 
         # Handle each exercise.
         try:        
-            # Based on position side and extended_evaluation parameter, decide which joints to calculate.
+            # Based on position side parameter, decide which joints to calculate.
             position_side:PositionSide = session_data.get_history().get_position_side()
             exercise_joints:list[Joint] = JointAngle.get_all_joints(
                 cls_name=JointAngle.exercise_type_to_joint_type(exercise_type),
                 position_side=position_side,
-                extended_evaluation=extended_evaluation
             )
             # If no joints are defined for the given exercise type, in this position side.
             if exercise_joints is None or len(exercise_joints) == 0:

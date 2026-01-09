@@ -293,8 +293,7 @@ class ErrorDetector:
                     joint.name for joint in
                     JointAngle.get_all_joints(
                         cls_name=joint_cls,
-                        position_side=PositionSide.FRONT,
-                        extended_evaluation=True
+                        position_side=PositionSide.FRONT
                     )
                 ]
 

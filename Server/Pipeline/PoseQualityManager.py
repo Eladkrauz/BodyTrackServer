@@ -240,8 +240,7 @@ class PoseQualityManager:
         # Get required landmark indices for the exercise type and position side.
         required_indices:Set[int] = self._required_landmark_indices(
             exercise_type=exercise_type,
-            position_side=position_side,
-            extended_evaluation=session_data.get_extended_evaluation()
+            position_side=position_side
         )
         # Count how many required landmarks are sufficiently visible.
         visible_count:int = sum(
@@ -376,8 +375,7 @@ class PoseQualityManager:
     def _required_landmark_indices(
             self,
             exercise_type:ExerciseType,
-            position_side:PositionSide,
-            extended_evaluation:bool
+            position_side:PositionSide
         ) -> Set[int]:
         """
         ### Brief:
@@ -387,16 +385,13 @@ class PoseQualityManager:
         ### Arguments:
         - `exercise_type` (ExerciseType): The type of exercise being performed.
         - `position_side` (PositionSide): The side of the body being evaluated.
-        - `extended_evaluation` (bool): Flag indicating whether to include
-                                        additional landmarks for extended evaluation.
 
         ### Returns:
         - A `set` of integers representing the required landmark indices.
         """
         joints:List[Joint] = JointAngle.get_all_joints(
             cls_name=JointAngle.exercise_type_to_joint_type(exercise_type),
-            position_side=position_side,
-            extended_evaluation=extended_evaluation
+            position_side=position_side
         )
 
         indices:Set[int] = set()
