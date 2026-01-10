@@ -132,32 +132,76 @@ class FeedbackFormatter:
         - `FeedbackCode`: Pose-quality feedback or `SILENT`.
         """
         try:
-            history:HistoryData = session.get_history()
-
-            # Check if pose is currently valid.
-            frames_since_last_valid:int = history.get_frames_since_last_valid()
-            if frames_since_last_valid < self.pose_quality_feedback_threshold:
-                session.get_last_frame_trace().add_event(
-                    stage="FeedbackFormatter",
-                    success=True,
-                    result_type="Not Enough Valid Frames Sent So Far",
-                    result={"Frames Since Last Valid": frames_since_last_valid, "Threshold": self.pose_quality_feedback_threshold}
+            try:
+                history:HistoryData = session.get_history()
+            except Exception as e:
+                ErrorHandler.handle(
+                    error=ErrorCode.POSE_QUALITY_FEEDBACK_SELECTION_ERROR,
+                    origin=inspect.currentframe(),
+                    extra_info={
+                        "Exception": type(e).__name__,
+                        "Reason": "Failed retrieving HistoryData from SessionData."
+                    }
                 )
                 return FeedbackCode.SILENT
-            # If cooldown not passed, return SILENT.
-            if not self._is_cooldown_passed(history):
-                session.get_last_frame_trace().add_event(
-                    stage="FeedbackFormatter",
-                    success=True,
-                    result_type="Cooldown Not Passed",
-                    result={"Frames Since Last Feedback": history.get_frames_since_last_feedback(), "Cooldown Frames": self.cooldown_frames}
+
+            try:
+                # Check if pose is currently valid.
+                frames_since_last_valid:int = history.get_frames_since_last_valid()
+                if frames_since_last_valid < self.pose_quality_feedback_threshold:
+                    session.get_last_frame_trace().add_event(
+                        stage="FeedbackFormatter",
+                        success=True,
+                        result_type="Not Enough Valid Frames Sent So Far",
+                        result={"Frames Since Last Valid": frames_since_last_valid, "Threshold": self.pose_quality_feedback_threshold}
+                    )
+                    return FeedbackCode.SILENT
+            except Exception as e:
+                ErrorHandler.handle(
+                    error=ErrorCode.POSE_QUALITY_FEEDBACK_SELECTION_ERROR,
+                    origin=inspect.currentframe(),
+                    extra_info={
+                        "Exception": type(e).__name__,
+                        "Reason": "Failed retrieving frames since last valid from HistoryData."
+                    }
+                )
+                return FeedbackCode.SILENT
+            try:
+                # If cooldown not passed, return SILENT.
+                if not self._is_cooldown_passed(history):
+                    session.get_last_frame_trace().add_event(
+                        stage="FeedbackFormatter",
+                        success=True,
+                        result_type="Cooldown Not Passed",
+                        result={"Frames Since Last Feedback": history.get_frames_since_last_feedback(), "Cooldown Frames": self.cooldown_frames}
+                    )
+                    return FeedbackCode.SILENT
+            except Exception as e:
+                ErrorHandler.handle(
+                    error=ErrorCode.POSE_QUALITY_FEEDBACK_SELECTION_ERROR,
+                    origin=inspect.currentframe(),
+                    extra_info={
+                        "Exception": type(e).__name__,
+                        "Reason": "Failed retrieving frames since last feedback from HistoryData."
+                    }
                 )
                 return FeedbackCode.SILENT
             
-            # Select worst pose-quality issue.
-            bad_frame_streak:Dict[str, int] = history.get_bad_frame_streaks()
-            worst_quality:PoseQuality = max(bad_frame_streak, key=bad_frame_streak.get)
-
+            try:
+                # Select worst pose-quality issue.
+                bad_frame_streak:Dict[str, int] = history.get_bad_frame_streaks()
+                worst_quality:PoseQuality = max(bad_frame_streak, key=bad_frame_streak.get)
+            except Exception as e:
+                ErrorHandler.handle(
+                    error=ErrorCode.POSE_QUALITY_FEEDBACK_SELECTION_ERROR,
+                    origin=inspect.currentframe(),
+                    extra_info={
+                        "Exception": type(e).__name__,
+                        "Reason": "Failed retrieving bad frame streaks from HistoryData."
+                    }
+                )
+                return FeedbackCode.SILENT
+            
             # Convert to FeedbackCode and return it.
             session.get_last_frame_trace().add_event(
                 stage="FeedbackFormatter",
@@ -203,21 +247,52 @@ class FeedbackFormatter:
         - `FeedbackCode`: A biomechanical feedback code or `SILENT`.
         """
         try:
-            history:HistoryData = session.get_history()
-
-            # Get current rep data.
-            current_rep:Dict[str, Any] = history.get_current_rep()
-            if not current_rep:
-                session.get_last_frame_trace().add_event(
-                    stage="FeedbackFormatter",
-                    success=True,
-                    result_type="No Current Rep Data",
-                    result=None
+            try:
+                history:HistoryData = session.get_history()
+            except Exception as e:
+                ErrorHandler.handle(
+                    error=ErrorCode.BIOMECHANICAL_FEEDBACK_SELECTION_ERROR,
+                    origin=inspect.currentframe(),
+                    extra_info={
+                        "Exception": type(e).__name__,
+                        "Reason": "Failed retrieving HistoryData from SessionData."
+                    }
                 )
                 return FeedbackCode.SILENT
-            
-            # Get biomechanical errors in current rep.
-            rep_errors:List[str] = current_rep[HistoryDictKey.CurrentRep.ERRORS]
+            try:
+                # Get current rep data.
+                current_rep:Dict[str, Any] = history.get_current_rep()
+                if not current_rep:
+                    session.get_last_frame_trace().add_event(
+                        stage="FeedbackFormatter",
+                        success=True,
+                        result_type="No Current Rep Data",
+                        result=None
+                    )
+                    return FeedbackCode.SILENT
+            except Exception as e:
+                ErrorHandler.handle(
+                    error=ErrorCode.BIOMECHANICAL_FEEDBACK_SELECTION_ERROR,
+                    origin=inspect.currentframe(),
+                    extra_info={
+                        "Exception": type(e).__name__,
+                        "Reason": "Failed retrieving current rep data from HistoryData."
+                    }
+                )
+                return FeedbackCode.SILENT         
+            try:
+                # Get biomechanical errors in current rep.
+                rep_errors:List[str] = current_rep[HistoryDictKey.CurrentRep.ERRORS]
+            except Exception as e:
+                ErrorHandler.handle(
+                    error=ErrorCode.BIOMECHANICAL_FEEDBACK_SELECTION_ERROR,
+                    origin=inspect.currentframe(),
+                    extra_info={
+                        "Exception": type(e).__name__,
+                        "Reason": "Failed retrieving biomechanical errors from current rep data."
+                    }
+                )
+                return FeedbackCode.SILENT
             
             # If no biomechanical errors, return VALID.
             if not rep_errors:
@@ -237,34 +312,74 @@ class FeedbackFormatter:
                     result={"Frames Since Last Feedback": history.get_frames_since_last_feedback(), "Cooldown Frames": self.cooldown_frames}
                 )
                 return FeedbackCode.SILENT
-            
-            # Select worst biomechanical error.
-            biomechanical_streaks:Dict[str, int] = history.get_error_streaks()
-            if not biomechanical_streaks:
-                session.get_last_frame_trace().add_event(
-                    stage="FeedbackFormatter",
-                    success=True,
-                    result_type="No Biomechanical Error Streaks Found",
-                    result=None
+            try:
+                # Select worst biomechanical error.
+                biomechanical_streaks:Dict[str, int] = history.get_error_streaks()
+                if not biomechanical_streaks:
+                    session.get_last_frame_trace().add_event(
+                        stage="FeedbackFormatter",
+                        success=True,
+                        result_type="No Biomechanical Error Streaks Found",
+                        result=None
+                    )
+                    return FeedbackCode.SILENT
+                worst_error_streak:str = max(biomechanical_streaks, key=biomechanical_streaks.get)
+            except Exception as e:
+                ErrorHandler.handle(
+                    error=ErrorCode.BIOMECHANICAL_FEEDBACK_SELECTION_ERROR,
+                    origin=inspect.currentframe(),
+                    extra_info={
+                        "Exception": type(e).__name__,
+                        "Reason": "Failed retrieving biomechanical error streaks from HistoryData."
+                    }
                 )
                 return FeedbackCode.SILENT
-            worst_error_streak:str = max(biomechanical_streaks, key=biomechanical_streaks.get)
-
-            # If below threshold, return SILENT.
-            if biomechanical_streaks[worst_error_streak] < self.biomechanical_feedback_threshold:
-                session.get_last_frame_trace().add_event(
-                    stage="FeedbackFormatter",
-                    success=True,
-                    result_type="Biomechanical Error Streak Below Threshold",
-                    result={"Worst Error": worst_error_streak, "Streak Length": biomechanical_streaks[worst_error_streak], "Threshold": self.biomechanical_feedback_threshold}
+            try:
+                # If below threshold, return SILENT.
+                if biomechanical_streaks[worst_error_streak] < self.biomechanical_feedback_threshold:
+                    session.get_last_frame_trace().add_event(
+                        stage="FeedbackFormatter",
+                        success=True,
+                        result_type="Biomechanical Error Streak Below Threshold",
+                        result={"Worst Error": worst_error_streak, "Streak Length": biomechanical_streaks[worst_error_streak], "Threshold": self.biomechanical_feedback_threshold}
+                    )
+                    return FeedbackCode.SILENT
+            except Exception as e:
+                ErrorHandler.handle(
+                    error=ErrorCode.BIOMECHANICAL_FEEDBACK_SELECTION_ERROR,
+                    origin=inspect.currentframe(),
+                    extra_info={
+                        "Exception": type(e).__name__,
+                        "Reason": "Failed retrieving biomechanical error streak length from HistoryData."
+                    }
                 )
                 return FeedbackCode.SILENT
-                        
             # Convert to FeedbackCode and check if already notified in rep.
             detected_enum = DetectedErrorCode[worst_error_streak]
-            notified_errors_in_rep:Set[FeedbackCode] = current_rep[HistoryDictKey.CurrentRep.NOTIFIED]
-            feedback_code = FeedbackCode.from_detected_error(detected_enum)
-
+            try:
+                notified_errors_in_rep:Set[FeedbackCode] = current_rep[HistoryDictKey.CurrentRep.NOTIFIED]
+            except Exception as e:
+                ErrorHandler.handle(
+                    error=ErrorCode.BIOMECHANICAL_FEEDBACK_SELECTION_ERROR,
+                    origin=inspect.currentframe(),
+                    extra_info={
+                        "Exception": type(e).__name__,
+                        "Reason": "Failed retrieving notified errors in rep from current rep data."
+                    }
+                )
+                return FeedbackCode.SILENT
+            try:
+                feedback_code = FeedbackCode.from_detected_error(detected_enum)
+            except Exception as e:
+                ErrorHandler.handle(
+                    error=ErrorCode.BIOMECHANICAL_FEEDBACK_SELECTION_ERROR,
+                    origin=inspect.currentframe(),
+                    extra_info={
+                        "Exception": type(e).__name__,
+                        "Reason": "Failed converting DetectedErrorCode to FeedbackCode."
+                    }
+                )
+                return FeedbackCode.SILENT
             # If already notified in rep, return SILENT.
             if feedback_code in notified_errors_in_rep:
                 session.get_last_frame_trace().add_event(
