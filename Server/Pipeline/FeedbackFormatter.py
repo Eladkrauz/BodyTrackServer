@@ -190,7 +190,7 @@ class FeedbackFormatter:
             try:
                 # Select worst pose-quality issue.
                 bad_frame_streak:Dict[str, int] = history.get_bad_frame_streaks()
-                worst_quality:PoseQuality = max(bad_frame_streak, key=bad_frame_streak.get)
+                worst_quality:str = max(bad_frame_streak, key=bad_frame_streak.get)
             except Exception as e:
                 ErrorHandler.handle(
                     error=ErrorCode.POSE_QUALITY_FEEDBACK_SELECTION_ERROR,
@@ -207,7 +207,7 @@ class FeedbackFormatter:
                 stage="FeedbackFormatter",
                 success=True,
                 result_type="Pose Quality Feedback Selected",
-                result={"Worst Pose Quality": worst_quality.name, "Streak Length": bad_frame_streak[worst_quality]}
+                result={"Worst Pose Quality": worst_quality, "Streak Length": bad_frame_streak[worst_quality]}
             )
             return FeedbackCode.from_pose_quality(worst_quality)        
         
@@ -217,7 +217,7 @@ class FeedbackFormatter:
                 origin=inspect.currentframe(),
                 extra_info={
                     "Exception": type(e).__name__,
-                    "Reason": "Unexpected failure during pose-quality feedback selection."
+                    "Reason": str(e)
                 }
             )
             return FeedbackCode.SILENT    
@@ -404,7 +404,7 @@ class FeedbackFormatter:
                 origin=inspect.currentframe(),
                 extra_info={
                     "Exception": type(e).__name__,
-                    "Reason": "Unexpected failure during biomechanical feedback selection."
+                    "Reason": str(e)
                 }
             )
             session.get_last_frame_trace().add_event(

@@ -166,14 +166,14 @@ class FeedbackCode(IntEnum):
     ### FROM POSE QUALITY ###
     #########################
     @staticmethod
-    def from_pose_quality(pose_quality:PoseQuality) -> 'FeedbackCode':
+    def from_pose_quality(pose_quality:str) -> 'FeedbackCode':
         """
         ### Brief:
         The `from_pose_quality` static method maps a `PoseQuality` value
         to its corresponding `FeedbackCode`.
 
         ### Arguments:
-        - `pose_quality` (PoseQuality): The quality of the detected pose.
+        - `pose_quality` (str): The quality of the detected pose.
 
         ### Returns:
         - `FeedbackCode`: The corresponding feedback code for the given pose quality.
@@ -185,7 +185,9 @@ class FeedbackCode(IntEnum):
             PoseQuality.UNSTABLE:       FeedbackCode.UNSTABLE
         }
 
-        if isinstance(pose_quality, str): pose_quality = PoseQuality[pose_quality]
+        if isinstance(pose_quality, str):
+            pose_quality:PoseQuality = PoseQuality[pose_quality]
+            
         return mapping.get(pose_quality, FeedbackCode.SILENT)
     
     ###########################
