@@ -19,7 +19,7 @@
       "bad_frame_log_size":                   1000,
       "recovery_ok_threshold":                4,
       "bad_stability_limit":                  5,
-      "max_consecutive_invalid_before_abort": 60,
+      "max_consecutive_invalid_before_abort": 75,
       "low_motion_angle_degrees_threshold":   3.0
     },
     "tasks": {
@@ -62,7 +62,7 @@
       "phase_low_motion_threshold":           2
     },
     "feedback": {
-      "pose_quality_feedback_threshold":      5,
+      "pose_quality_feedback_threshold":      20,
       "biomechanical_feedback_threshold":     2,
       "feedback_cooldown_frames":             15
     },

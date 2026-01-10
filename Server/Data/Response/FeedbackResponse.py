@@ -112,28 +112,28 @@ class FeedbackCode(IntEnum):
             FeedbackCode.SILENT:                                "",
 
             # Pose quality
-            FeedbackCode.NO_PERSON:                             "I can't see you please step into the frame.",
-            FeedbackCode.PARTIAL_BODY:                          "Move back a bit. I need to see your full body.",
-            FeedbackCode.TOO_FAR:                               "You're too far away step closer.",
-            FeedbackCode.UNSTABLE:                              "The camera view is unstable try holding your position.",
+            FeedbackCode.NO_PERSON:                             "You are not visible.",
+            FeedbackCode.PARTIAL_BODY:                          "Your full body is not visible.",
+            FeedbackCode.TOO_FAR:                               "You're too far away, step closer.",
+            FeedbackCode.UNSTABLE:                              "The camera view is unstable.",
 
             # Squat
             FeedbackCode.SQUAT_TOP_KNEE_TOO_STRAIGHT:           "Relax your knees slightly. Avoid locking them.",
-            FeedbackCode.SQUAT_TOP_KNEE_TOO_BENT:               "Straighten your knees a bit to stand tall.",
-            FeedbackCode.SQUAT_TOP_HIP_TOO_STRAIGHT:            "Relax your hips slightly for a natural standing position.",
-            FeedbackCode.SQUAT_TOP_HIP_TOO_BENT:                "Extend your hips to reach a full standing position.",
-            FeedbackCode.SQUAT_TOP_TRUNK_TOO_FORWARD:           "Lift your chest and stand more upright.",
-            FeedbackCode.SQUAT_TOP_TRUNK_TOO_BACKWARD:          "Avoid leaning back. Keep your torso neutral.",
+            FeedbackCode.SQUAT_TOP_KNEE_TOO_BENT:               "Straighten your knees a bit.",
+            FeedbackCode.SQUAT_TOP_HIP_TOO_STRAIGHT:            "Relax your hips slightly.",
+            FeedbackCode.SQUAT_TOP_HIP_TOO_BENT:                "Extend your hips slightly.",
+            FeedbackCode.SQUAT_TOP_TRUNK_TOO_FORWARD:           "Lift your chest.",
+            FeedbackCode.SQUAT_TOP_TRUNK_TOO_BACKWARD:          "Avoid leaning back.",
             FeedbackCode.SQUAT_TOP_HIP_LINE_UNBALANCED:         "Distribute your weight evenly between both hips.",
             FeedbackCode.SQUAT_DOWN_TRUNK_TOO_FORWARD:          "Keep your chest stable as you lower down.",
             FeedbackCode.SQUAT_DOWN_TRUNK_TOO_BACKWARD:         "Avoid leaning back while descending.",
-            FeedbackCode.SQUAT_DOWN_HIP_LINE_UNBALANCED:        "Lower yourself evenly without shifting to one side.",
+            FeedbackCode.SQUAT_DOWN_HIP_LINE_UNBALANCED:        "Lower yourself evenly.",
             FeedbackCode.SQUAT_HOLD_KNEE_TOO_STRAIGHT:          "Go a bit deeper and hold the position.",
             FeedbackCode.SQUAT_HOLD_KNEE_TOO_BENT:              "You're too deep. Rise slightly and hold.",
             FeedbackCode.SQUAT_HOLD_HIP_TOO_HIGH:               "Lower your hips slightly and hold the squat.",
             FeedbackCode.SQUAT_HOLD_HIP_TOO_DEEP:               "Raise your hips a bit to maintain control.",
             FeedbackCode.SQUAT_HOLD_TRUNK_TOO_FORWARD:          "Lift your chest and keep your torso stable.",
-            FeedbackCode.SQUAT_HOLD_TRUNK_TOO_BACKWARD:         "Avoid arching your back. Keep your torso neutral.",
+            FeedbackCode.SQUAT_HOLD_TRUNK_TOO_BACKWARD:         "Avoid arching your back.",
             FeedbackCode.SQUAT_HOLD_HIP_LINE_UNBALANCED:        "Hold the squat evenly without shifting sideways.",
             FeedbackCode.SQUAT_UP_TRUNK_TOO_FORWARD:            "Keep your chest up as you rise.",
             FeedbackCode.SQUAT_UP_TRUNK_TOO_BACKWARD:           "Avoid leaning back while standing up.",
@@ -187,7 +187,7 @@ class FeedbackCode(IntEnum):
 
         if isinstance(pose_quality, str):
             pose_quality:PoseQuality = PoseQuality[pose_quality]
-            
+
         return mapping.get(pose_quality, FeedbackCode.SILENT)
     
     ###########################
