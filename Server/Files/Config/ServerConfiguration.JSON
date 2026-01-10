@@ -62,7 +62,7 @@
       "phase_low_motion_threshold":           2
     },
     "feedback": {
-      "pose_quality_feedback_threshold":      20,
+      "pose_quality_feedback_threshold":      30,
       "biomechanical_feedback_threshold":     2,
       "feedback_cooldown_frames":             15
     },
