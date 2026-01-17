@@ -1,7 +1,7 @@
-# BodyTrack – Backend Server
+# BodyTrack - Backend Server
 
 ## Overview
-This repository contains the backend server of the BodyTrack system – a real-time posture analysis and feedback platform developed as part of a final software engineering project.
+This repository contains the backend server of the BodyTrack system - a real-time posture analysis and feedback platform developed as part of a final software engineering project.
 
 The server is responsible for receiving video frames from the mobile client, analyzing body posture using a processing pipeline, managing training sessions, and returning feedback decisions to the client in real time.
 
@@ -18,10 +18,10 @@ The server is designed to be stateful, handling each user session independently 
 
 ## Technologies Used
 - Python 3
-- Flask – HTTP API and request routing
-- Gunicorn – production-grade WSGI server
-- Systemd – service management
-- Linux (Ubuntu) – deployment environment
+- Flask - HTTP API and request routing
+- Gunicorn - production-grade WSGI server
+- Systemd - service management
+- Linux (Ubuntu) - deployment environment
 
 ## Project Structure (Simplified)
 ```
