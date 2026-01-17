@@ -3,3 +3,5 @@ __pycache__/
 *.pyc
 .vscode/*
 tests/
+Server/venv/
+*.DS_Store
