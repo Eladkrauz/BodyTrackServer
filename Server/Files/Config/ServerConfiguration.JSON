@@ -9,7 +9,7 @@
       "height":                               480
     },
     "session": {
-      "supported_exercises":                  ["squat", "biceps_curl"],
+      "supported_exercises":                  ["squat"],
       "maximum_clients":                      10,
       "num_of_min_init_ok_frames":            3,
       "num_of_min_init_correct_phase":        4
