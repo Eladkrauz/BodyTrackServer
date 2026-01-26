@@ -14,7 +14,6 @@ from enum import Enum as enum
 #####################
 class ExerciseType(enum):
     SQUAT           = "squat"
-    BICEPS_CURL     = "biceps_curl"
 
     ###########
     ### GET ###
